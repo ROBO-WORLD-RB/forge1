@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>FORGE - You're Offline</title>
+  <meta name="theme-color" content="#FAFAFA" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html { height: -webkit-fill-available; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #FAFAFA;
+      color: #1A1A2E;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px));
+      padding-top: calc(24px + env(safe-area-inset-top, 0px));
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+    .container { text-align: center; max-width: 340px; }
+    .brand {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      color: #1A1A2E;
+      margin-bottom: 24px;
+    }
+    .brand span { color: #FF6B2E; }
+    .icon { width: 64px; height: 64px; margin: 0 auto 20px; color: #FF6B2E; }
+    .icon-circle {
+      width: 88px; height: 88px;
+      border-radius: 50%;
+      background: rgba(255, 107, 46, 0.08);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 24px;
+    }
+    h1 { font-size: 22px; font-weight: 600; margin-bottom: 8px; color: #1A1A2E; }
+    p {
+      font-size: 15px;
+      color: #6B7280;
+      line-height: 1.6;
+      margin-bottom: 32px;
+      padding: 0 8px;
+    }
+    .retry-btn {
+      background: #FF6B2E;
+      color: white;
+      border: none;
+      width: 100%;
+      padding: 16px 24px;
+      font-size: 16px;
+      font-weight: 600;
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.2s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .retry-btn:active { transform: scale(0.97); background: #e55a1f; }
+    .retry-btn:hover { background: #e55a1f; }
+    .note { margin-top: 16px; font-size: 12px; color: #9CA3AF; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="brand">F<span>ORGE</span></div>
+    <div class="icon-circle">
+      <svg class="icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.414-2.83m-1.414 5.658a9 9 0 01-2.167-9.238m7.824 2.167a1 1 0 111.414 1.414m-1.414-1.414L3 3m8.293 8.293l1.414 1.414" />
+      </svg>
+    </div>
+    <h1>You're Offline</h1>
+    <p>Connect to the internet to browse workers, messages, and more. Cached pages are still available.</p>
+    <button class="retry-btn" onclick="window.location.reload()">Try Again</button>
+    <p class="note">FORGE works best with an internet connection</p>
+  </div>
+</body>
+</html>

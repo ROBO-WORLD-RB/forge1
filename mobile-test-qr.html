@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>FORGE — Mobile dev test</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 420px; margin: 2rem auto; padding: 1rem; text-align: center; }
+    h1 { font-size: 1.25rem; }
+    #qrcode { display: inline-block; padding: 1rem; background: #fff; border: 1px solid #ddd; border-radius: 8px; }
+    a.url { display: block; margin: 1rem 0; word-break: break-all; color: #FF6B2E; font-weight: 600; }
+    ol { text-align: left; font-size: 0.9rem; line-height: 1.5; }
+    .note { font-size: 0.85rem; color: #555; margin-top: 1.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Scan to open FORGE on your phone</h1>
+  <p>Dev server on your PC (same Wi‑Fi required)</p>
+  <div id="qrcode"></div>
+  <a class="url" id="test-url" href="http://10.13.150.22:3000/">http://10.13.150.22:3000/</a>
+  <ol>
+    <li>Connect your phone to the <strong>same Wi‑Fi</strong> as this PC.</li>
+    <li>Scan the QR code with your camera or QR app.</li>
+    <li>If the page does not load, allow <strong>Node/Vite</strong> through Windows Firewall for private networks.</li>
+  </ol>
+  <p class="note">URL is fixed in this file. If your LAN IP changes, regenerate this page or edit the URL below.</p>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    const url = 'http://10.13.150.22:3000/';
+    new QRCode(document.getElementById('qrcode'), { text: url, width: 256, height: 256 });
+  </script>
+</body>
+</html>

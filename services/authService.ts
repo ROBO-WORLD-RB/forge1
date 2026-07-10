@@ -1,0 +1,591 @@
+/**
+ * Auth Service with Supabase Authentication
+ * Implements signUp, signIn, signOut, getUser, and onAuthStateChange
+ * Requirements: 1.2, 1.3
+ */
+
+import { supabase, isSupabaseConfigured } from './supabase';
+import type { User as SupabaseUser, Session, AuthChangeEvent, Subscription } from '@supabase/supabase-js';
+import type { Profile, UserRole } from '../types/database';
+import { startTransaction, captureError } from './monitoringService';
+import { getOAuthCallbackUrl, mapOAuthError } from '../utils/oauth';
+
+export interface UserMetadata {
+  phone: string;
+  role: UserRole;
+  country: 'GH' | 'NG';
+  firstName?: string;
+  lastName?: string;
+  username?: string;
+}
+
+export interface AuthResponse {
+  user: SupabaseUser | null;
+  session: Session | null;
+  error: AuthError | null;
+}
+
+export interface AuthError {
+  message: string;
+  code?: string;
+}
+
+export interface AuthService {
+  signUp(email: string, password: string, metadata: UserMetadata): Promise<AuthResponse>;
+  signIn(identifier: string, password: string): Promise<AuthResponse>;
+  signInWithOtp(phone: string): Promise<{ error: AuthError | null }>;
+  verifyOtp(phone: string, token: string): Promise<AuthResponse>;
+  signOut(): Promise<void>;
+  getUser(): Promise<SupabaseUser | null>;
+  onAuthStateChange(callback: (event: AuthChangeEvent, session: Session | null) => void): Subscription;
+}
+
+/** Fields clients may send through updateUserProfile (privileged columns are server-only). */
+export type ClientUpdatableProfileFields = Partial<
+  Pick<
+    Profile,
+    | 'first_name'
+    | 'last_name'
+    | 'username'
+    | 'phone'
+    | 'bio'
+    | 'location'
+    | 'country'
+    | 'avatar_url'
+    | 'profile_completed'
+  >
+>;
+
+const CLIENT_UPDATABLE_PROFILE_KEYS = [
+  'first_name',
+  'last_name',
+  'username',
+  'phone',
+  'bio',
+  'location',
+  'country',
+  'avatar_url',
+  'profile_completed',
+] as const satisfies readonly (keyof ClientUpdatableProfileFields)[];
+
+function sanitizeProfileUpdates(
+  updates: ClientUpdatableProfileFields
+): ClientUpdatableProfileFields {
+  const sanitized: ClientUpdatableProfileFields = {};
+  for (const key of CLIENT_UPDATABLE_PROFILE_KEYS) {
+    if (Object.prototype.hasOwnProperty.call(updates, key)) {
+      sanitized[key] = updates[key];
+    }
+  }
+  return sanitized;
+}
+
+function signupRole(role: UserRole): 'worker' | 'customer' {
+  return role === 'worker' ? 'worker' : 'customer';
+}
+
+function mapSignUpError(error: { message: string; code?: string }): AuthError {
+  const msg = error.message.toLowerCase();
+  if (
+    msg.includes('already registered') ||
+    msg.includes('already been registered') ||
+    msg.includes('user already exists')
+  ) {
+    return {
+      message: 'An account with this email already exists. Please sign in instead.',
+      code: 'user_already_exists',
+    };
+  }
+  return { message: error.message, code: error.code };
+}
+
+function mapSignInError(error: { message: string; code?: string }): AuthError {
+  const msg = error.message.toLowerCase();
+  const code = error.code?.toLowerCase() ?? '';
+
+  if (
+    code === 'invalid_credentials' ||
+    msg.includes('invalid login credentials') ||
+    msg.includes('invalid grant')
+  ) {
+    return {
+      message: 'Invalid email or password. Please try again.',
+      code: 'invalid_credentials',
+    };
+  }
+  if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) {
+    return {
+      message: 'Please verify your email before logging in.',
+      code: 'email_not_confirmed',
+    };
+  }
+  return { message: error.message, code: error.code };
+}
+
+function isDuplicateSignUpUser(user: SupabaseUser | null, session: Session | null): boolean {
+  if (!user || session) return false;
+  const identities = user.identities;
+  return Array.isArray(identities) && identities.length === 0;
+}
+
+/**
+ * Wait for OAuth / URL session to be established after PKCE code exchange.
+ * getSession() awaits the auth client initializePromise (detectSessionInUrl).
+ */
+export async function waitForAuthSession(maxAttempts = 25, delayMs = 200): Promise<Session | null> {
+  for (let i = 0; i < maxAttempts; i++) {
+    const { data: { session }, error } = await supabase.auth.getSession();
+    if (error) {
+      console.error('OAuth session error:', error.message);
+      return null;
+    }
+    if (session) return session;
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+  }
+  return null;
+}
+
+/**
+ * Sign up a new user with email, password, and metadata
+ * Creates user in Supabase Auth and stores profile data in profiles table
+ */
+export async function signUp(
+  email: string,
+  password: string,
+  metadata: UserMetadata
+): Promise<AuthResponse> {
+  const transaction = startTransaction('auth.signUp', 'auth');
+  
+  try {
+    // Create user in Supabase Auth
+    const role = signupRole(metadata.role);
+
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          phone: metadata.phone,
+          role,
+          country: metadata.country,
+          firstName: metadata.firstName, // Database trigger expects camelCase
+          lastName: metadata.lastName,   // Database trigger expects camelCase
+          username: metadata.username,
+        },
+      },
+    });
+
+    if (error) {
+      captureError(new Error(error.message), { tags: { operation: 'signUp' } });
+      return {
+        user: null,
+        session: null,
+        error: mapSignUpError(error),
+      };
+    }
+
+    if (isDuplicateSignUpUser(data.user, data.session)) {
+      return {
+        user: null,
+        session: null,
+        error: {
+          message: 'An account with this email already exists. Please sign in instead.',
+          code: 'user_already_exists',
+        },
+      };
+    }
+
+    // If user was created successfully, create profile in profiles table
+    if (data.user) {
+      // Use provided username or generate from first/last name
+      const username = metadata.username 
+        ? `@${metadata.username.replace(/^@/, '')}`
+        : metadata.firstName && metadata.lastName
+          ? `@${metadata.firstName.toLowerCase()}${metadata.lastName.toLowerCase()}`.replace(/\s/g, '')
+          : `@user${Date.now().toString(36)}`;
+
+      const profileData = {
+        id: data.user.id,
+        phone: metadata.phone,
+        first_name: metadata.firstName || null,
+        last_name: metadata.lastName || null,
+        username,
+        country: metadata.country,
+        profile_completed: role === 'customer',
+      };
+
+      // Use upsert to work around Supabase trigger already creating the profile
+      const { error: profileError } = await (supabase
+        .from('profiles') as any)
+        .upsert(profileData, { onConflict: 'id' });
+
+      if (profileError) {
+        // Log the error but don't fail the signup - profile can be created later
+        console.error('Failed to create profile:', profileError.message);
+        captureError(new Error(profileError.message), { tags: { operation: 'createProfile' } });
+      }
+    }
+
+    return {
+      user: data.user,
+      session: data.session,
+      error: null,
+    };
+  } finally {
+    transaction.finish();
+  }
+}
+
+/**
+ * Sign in an existing user with email and password
+ * Returns a valid session token on success
+ */
+export async function signIn(
+  identifier: string,
+  password: string
+): Promise<AuthResponse> {
+  const transaction = startTransaction('auth.signIn', 'auth');
+  
+  try {
+    // Check if identifier is an email or phone number
+    const isEmail = identifier.includes('@');
+    
+    const { data, error } = await supabase.auth.signInWithPassword(
+      isEmail 
+        ? { email: identifier, password }
+        : { phone: identifier, password }
+    );
+
+    if (error) {
+      captureError(new Error(error.message), { tags: { operation: 'signIn', type: isEmail ? 'email' : 'phone' } });
+      return {
+        user: null,
+        session: null,
+        error: mapSignInError(error),
+      };
+    }
+
+    return {
+      user: data.user,
+      session: data.session,
+      error: null,
+    };
+  } finally {
+    transaction.finish();
+  }
+}
+
+/**
+ * Sign in with OTP (One-Time Password) via SMS
+ */
+export async function signInWithOtp(phone: string): Promise<{ error: AuthError | null }> {
+  const transaction = startTransaction('auth.signInWithOtp', 'auth');
+  try {
+    const { error } = await supabase.auth.signInWithOtp({
+      phone,
+    });
+
+    if (error) {
+      captureError(new Error(error.message), { tags: { operation: 'signInWithOtp' } });
+      return { error: { message: error.message, code: error.code } };
+    }
+
+    return { error: null };
+  } finally {
+    transaction.finish();
+  }
+}
+
+/**
+ * Verify OTP code and complete sign in
+ */
+export async function verifyOtp(phone: string, token: string): Promise<AuthResponse> {
+  const transaction = startTransaction('auth.verifyOtp', 'auth');
+  try {
+    const { data, error } = await supabase.auth.verifyOtp({
+      phone,
+      token,
+      type: 'sms',
+    });
+
+    if (error) {
+      captureError(new Error(error.message), { tags: { operation: 'verifyOtp' } });
+      return {
+        user: null,
+        session: null,
+        error: { message: error.message, code: error.code },
+      };
+    }
+
+    return {
+      user: data.user,
+      session: data.session,
+      error: null,
+    };
+  } finally {
+    transaction.finish();
+  }
+}
+
+/**
+ * Sign out the current user
+ */
+export async function signOut(): Promise<void> {
+  const { error } = await supabase.auth.signOut();
+  if (error) {
+    throw new Error(error.message);
+  }
+}
+
+/**
+ * Get the currently authenticated user
+ */
+export async function getUser(): Promise<SupabaseUser | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
+}
+
+/**
+ * Subscribe to auth state changes
+ * Returns a subscription that can be used to unsubscribe
+ */
+export function onAuthStateChange(
+  callback: (event: AuthChangeEvent, session: Session | null) => void
+): Subscription {
+  const { data: { subscription } } = supabase.auth.onAuthStateChange(callback);
+  return subscription;
+}
+
+/**
+ * Get the user's profile from the profiles table
+ */
+export async function getUserProfile(userId: string): Promise<Profile | null> {
+  // Use type assertion to work around Supabase type inference issues
+  const { data, error } = await (supabase
+    .from('profiles') as any)
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error) {
+    console.error('Failed to get profile:', error.message);
+    return null;
+  }
+
+  return data;
+}
+
+/**
+ * Update the user's profile in the profiles table
+ */
+export async function updateUserProfile(
+  userId: string,
+  updates: ClientUpdatableProfileFields
+): Promise<Profile | null> {
+  const sanitized = sanitizeProfileUpdates(updates);
+  if (Object.keys(sanitized).length === 0) {
+    return getUserProfile(userId);
+  }
+
+  // Use type assertion to work around Supabase type inference issues
+  const { data, error } = await (supabase
+    .from('profiles') as any)
+    .update(sanitized)
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to update profile:', error.message);
+    return null;
+  }
+
+  return data as Profile;
+}
+
+/**
+ * Mark worker onboarding complete and advance status to pending_payment.
+ * DB trigger only allows pending → pending_payment for workers.
+ */
+export async function completeWorkerOnboardingProfile(userId: string): Promise<Profile | null> {
+  const { data, error } = await (supabase
+    .from('profiles') as any)
+    .update({
+      profile_completed: true,
+      worker_status: 'pending_payment',
+    })
+    .eq('id', userId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error('Failed to complete worker onboarding:', error.message);
+    return null;
+  }
+
+  return data as Profile;
+}
+
+/**
+ * Sign in with Google OAuth
+ * Redirects to Google for authentication
+ */
+export async function signInWithGoogle(role: UserRole, country: 'GH' | 'NG'): Promise<{ error: AuthError | null }> {
+  const transaction = startTransaction('auth.signInWithGoogle', 'auth');
+
+  if (!isSupabaseConfigured()) {
+    return {
+      error: {
+        message:
+          'Supabase is not configured. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to .env.local, then restart the dev server.',
+        code: 'supabase_not_configured',
+      },
+    };
+  }
+
+  try {
+    // Persist before redirect — navigation may occur before signInWithOAuth resolves
+    localStorage.setItem('oauth_pending_role', role);
+    localStorage.setItem('oauth_pending_country', country);
+
+    const redirectTo = getOAuthCallbackUrl();
+
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+
+    if (error) {
+      localStorage.removeItem('oauth_pending_role');
+      localStorage.removeItem('oauth_pending_country');
+      captureError(new Error(error.message), { tags: { operation: 'signInWithGoogle' } });
+      return {
+        error: {
+          message: mapOAuthError(error.code, error.message),
+          code: error.code,
+        },
+      };
+    }
+
+    return { error: null };
+  } finally {
+    transaction.finish();
+  }
+}
+
+/**
+ * Google user metadata from OAuth
+ */
+export interface GoogleUserMetadata {
+  full_name?: string;
+  name?: string;
+  avatar_url?: string;
+  picture?: string;
+  email?: string;
+  email_verified?: boolean;
+}
+
+/**
+ * Complete OAuth signup by creating profile after Google redirect
+ * Extracts Google account info including profile picture
+ */
+export async function completeOAuthSignup(
+  userId: string,
+  email: string,
+  userMetadata?: GoogleUserMetadata
+): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> {
+  try {
+    // Get stored role and country from localStorage
+    const role = signupRole(
+      (localStorage.getItem('oauth_pending_role') as UserRole) || 'customer'
+    );
+    const country = (localStorage.getItem('oauth_pending_country') as 'GH' | 'NG') || 'GH';
+    
+    // Clear stored values
+    localStorage.removeItem('oauth_pending_role');
+    localStorage.removeItem('oauth_pending_country');
+
+    const { error: roleError } = await (supabase as any).rpc('assign_initial_role', { p_role: role });
+    if (roleError) {
+      // Non-fatal for returning users — role is already committed on the profile
+      console.warn('assign_initial_role:', roleError.message);
+    }
+
+    // Extract Google profile data
+    const fullName = userMetadata?.full_name || userMetadata?.name || '';
+    const avatarUrl = userMetadata?.avatar_url || userMetadata?.picture || null;
+    
+    // Parse name
+    const nameParts = fullName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+
+    // Generate username from Google name or email
+    const username = firstName && lastName
+      ? `@${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9@]/g, '')
+      : email 
+        ? `@${email.split('@')[0].replace(/[^a-z0-9]/g, '')}`
+        : `@user${Date.now().toString(36)}`;
+
+    // Check if profile already exists
+    const existingProfile = await getUserProfile(userId);
+    if (existingProfile) {
+      // Update existing profile with Google data if missing
+      if (!existingProfile.avatar_url && avatarUrl) {
+        await updateUserProfile(userId, { avatar_url: avatarUrl });
+      }
+      if (!existingProfile.first_name && firstName) {
+        await updateUserProfile(userId, { 
+          first_name: firstName,
+          last_name: lastName || existingProfile.last_name,
+        });
+      }
+      return { success: true, isNewUser: false };
+    }
+
+    // Create new profile with Google data (role/worker_status set by trigger + assign_initial_role)
+    const profileData = {
+      id: userId,
+      phone: '',
+      first_name: firstName || null,
+      last_name: lastName || null,
+      username,
+      country,
+      avatar_url: avatarUrl,
+      profile_completed: role === 'customer',
+    };
+
+    // Use upsert to avoid conflicts
+    const { error: profileError } = await (supabase
+      .from('profiles') as any)
+      .upsert(profileData, { onConflict: 'id' });
+
+    if (profileError) {
+      console.error('Failed to create profile:', profileError.message);
+      return { success: false, error: profileError.message };
+    }
+
+    return { success: true, isNewUser: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// Export as a service object for compatibility with existing code patterns
+export const authService: AuthService = {
+  signUp,
+  signIn,
+  signInWithOtp,
+  verifyOtp,
+  signOut,
+  getUser,
+  onAuthStateChange,
+};
+
+export default authService;

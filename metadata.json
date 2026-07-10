@@ -1,0 +1,7 @@
+{
+  "name": "FORGE",
+  "description": "The premier blue-collar worker marketplace for Ghana & Nigeria. Find skilled verified professionals for your projects.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

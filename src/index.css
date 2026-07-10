@@ -1,0 +1,163 @@
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+@utility pb-nav {
+  padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+}
+
+@utility pt-nav {
+  padding-top: calc(4rem + env(safe-area-inset-top, 0px));
+}
+
+@utility min-h-dynamic {
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-height: -webkit-fill-available;
+}
+
+@utility h-dynamic {
+  height: 100vh;
+  height: 100dvh;
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+@utility pl-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+}
+
+@utility pr-safe {
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+@utility px-safe {
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+@utility touch-scroll {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+@utility snap-x-mandatory {
+  scroll-snap-type: x mandatory;
+}
+
+@utility tap-highlight-none {
+  -webkit-tap-highlight-color: transparent;
+}
+
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@layer base {
+  html {
+    height: -webkit-fill-available;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+    @apply bg-forge-bg text-forge-navy antialiased;
+    overscroll-behavior-y: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  input, textarea, select, button {
+    font-size: 16px;
+  }
+
+  a, button {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  a:focus-visible,
+  button:focus-visible {
+    @apply outline-2 outline-forge-orange outline-offset-2 rounded;
+  }
+}
+
+@layer components {
+  .bottom-sheet {
+    @apply fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl z-50;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    max-height: 85vh;
+  }
+
+  .mobile-container {
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-bottom: calc(4rem + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slide-down {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.3s ease-out;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@utility shimmer {
+  background: linear-gradient(
+    90deg,
+    rgb(243 244 246) 0%,
+    rgb(229 231 235) 40%,
+    rgb(243 244 246) 80%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s ease-in-out infinite;
+}

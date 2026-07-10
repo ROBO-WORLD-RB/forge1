@@ -1,0 +1,54 @@
+{
+  "name": "forge",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest --run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest --run --coverage"
+  },
+  "dependencies": {
+    "@google/genai": "^1.30.0",
+    "@hookform/resolvers": "^5.2.2",
+    "@paystack/inline-js": "^2.22.8",
+    "@sentry/react": "^10.27.0",
+    "@sentry/vite-plugin": "^4.6.1",
+    "@supabase/supabase-js": "^2.84.0",
+    "framer-motion": "^12.38.0",
+    "lucide-react": "^0.554.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-helmet-async": "^3.0.0",
+    "react-hook-form": "^7.75.0",
+    "react-router-dom": "^7.9.6",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.1",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.0.0",
+    "@vitest/coverage-v8": "^4.1.9",
+    "autoprefixer": "^10.5.0",
+    "fast-check": "^4.3.0",
+    "jsdom": "^27.2.0",
+    "postcss": "^8.5.15",
+    "rollup-plugin-visualizer": "^6.0.5",
+    "tailwindcss": "^4.3.1",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0",
+    "vite-imagetools": "^9.0.2",
+    "vite-plugin-pwa": "^1.1.0",
+    "vitest": "^4.0.14"
+  }
+}

@@ -1,0 +1,16 @@
+# Supabase local development configuration for Forge.
+# See https://supabase.com/docs/guides/cli/config
+
+project_id = "forge"
+
+[api]
+enabled = true
+port = 54321
+
+[functions.paystack-webhook]
+# Paystack sends unsigned server-to-server POST requests (no Supabase JWT).
+verify_jwt = false
+
+[functions.subscription-expiry-cron]
+# Cron callers must pass Authorization: Bearer <service_role_key> or x-cron-secret.
+verify_jwt = true
