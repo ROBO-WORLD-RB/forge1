@@ -78,21 +78,34 @@ export default defineConfig(({ mode }) => {
             chunkFileNames: 'assets/[name]-[hash].js',
             assetFileNames: 'assets/[name]-[hash].[ext]',
             // Manual chunk splitting for better caching (Requirements 5.2)
+            // IMPORTANT: Order and path matching matter. A broad `/react/` regex
+            // pulled `@sentry/react` into vendor-react while other @sentry/*
+            // packages went to vendor-sentry, and splitting react-helmet-async
+            // into its own chunk created a circular init graph that threw
+            // "Cannot access 'f' before initialization" at index.esm.js:441
+            // (react-helmet-async reading React.version) — blank white page.
             manualChunks(id) {
               if (!id.includes('node_modules')) return;
-              if (id.includes('react-dom') || id.includes('react-router') || /[/\\]react[/\\]/.test(id)) {
-                return 'vendor-react';
-              }
-              if (id.includes('@supabase')) return 'vendor-supabase';
+              // Scoped packages first — before any react path matching
               if (id.includes('@sentry')) return 'vendor-sentry';
+              if (id.includes('@supabase')) return 'vendor-supabase';
+              if (id.includes('@google/genai')) return 'vendor-genai';
+              if (id.includes('@paystack')) return 'vendor-paystack';
+              if (id.includes('@hookform')) return 'vendor-forms';
               if (id.includes('framer-motion')) return 'vendor-motion';
               if (id.includes('lucide-react')) return 'vendor-ui';
-              if (id.includes('@google/genai')) return 'vendor-genai';
-              if (id.includes('react-helmet')) return 'vendor-helmet';
-              if (id.includes('react-hook-form') || id.includes('@hookform') || id.includes('/zod/')) {
+              if (id.includes('react-hook-form') || id.includes(`${path.sep}zod${path.sep}`) || id.includes('/zod/')) {
                 return 'vendor-forms';
               }
-              if (id.includes('@paystack')) return 'vendor-paystack';
+              // Keep react-helmet-async with React to avoid cross-chunk TDZ
+              if (
+                id.includes('react-dom') ||
+                id.includes('react-router') ||
+                id.includes('react-helmet') ||
+                /[/\\]node_modules[/\\]react[/\\]/.test(id)
+              ) {
+                return 'vendor-react';
+              }
             },
           },
         },
