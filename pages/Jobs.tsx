@@ -12,13 +12,14 @@ import { supabase } from '../services/supabase';
 import PageHelmet from '../components/PageHelmet';
 
 const Jobs: React.FC = () => {
-  const { user } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
   const isWorker = user?.role === 'worker';
   const [jobs, setJobs] = useState<Job[]>([]);
   const [myJobs, setMyJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [myJobsError, setMyJobsError] = useState<string | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'browse' | 'my-jobs'>('browse');
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -45,13 +46,6 @@ const Jobs: React.FC = () => {
   const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    fetchJobs();
-    if (user?.id) {
-      fetchMyJobs();
-    }
-  }, [user?.id, categoryFilter, countryFilter]);
-
   const fetchJobs = async () => {
     setLoading(true);
     setFetchError(null);
@@ -65,17 +59,47 @@ const Jobs: React.FC = () => {
       setJobs([]);
     } else if (result.data) {
       setJobs(result.data);
+    } else {
+      setJobs([]);
     }
     setLoading(false);
   };
 
   const fetchMyJobs = async () => {
-    if (!user?.id) return;
-    const result = await getJobsByPoster(user.id);
-    if (result.data) {
-      setMyJobs(result.data);
+    if (!user?.id) {
+      setMyJobs([]);
+      setMyJobsError(null);
+      return;
     }
+    setMyJobsError(null);
+    const result = await getJobsByPoster(user.id);
+    if (result.error) {
+      setMyJobsError(result.error.message || 'Failed to load your posted jobs.');
+      setMyJobs([]);
+      return;
+    }
+    setMyJobs(result.data || []);
   };
+
+  // Wait for auth so we do not fetch "my jobs" before the session user is ready
+  useEffect(() => {
+    if (authLoading) return;
+    fetchJobs();
+    if (user?.id) {
+      fetchMyJobs();
+    } else {
+      setMyJobs([]);
+      setMyJobsError(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: filters + auth identity
+  }, [authLoading, user?.id, categoryFilter, countryFilter]);
+
+  // Refetch posted jobs when opening the My Posted Jobs tab (survives remount / filter state)
+  useEffect(() => {
+    if (authLoading || activeTab !== 'my-jobs' || !user?.id) return;
+    fetchMyJobs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeTab, authLoading, user?.id]);
 
   // Handle media file selection
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -182,23 +206,31 @@ const Jobs: React.FC = () => {
         return;
       }
 
-      if (result.data) {
-        setMyJobs(prev => [result.data!, ...prev]);
-        setShowCreateModal(false);
-        setCreateError(null);
-        setFormData({
-          title: '',
-          description: '',
-          category: '',
-          location: '',
-          country: user?.country || 'GH',
-          budget_min: '',
-          budget_max: '',
-        });
-        setMediaFiles([]);
-        setMediaPreviews([]);
-        setActiveTab('my-jobs');
+      if (!result.data) {
+        setCreateError('Job was not saved. Check that you are signed in and your profile exists.');
+        setCreating(false);
+        return;
       }
+
+      const created = result.data;
+      setMyJobs(prev => [created, ...prev.filter(j => j.id !== created.id)]);
+      setJobs(prev => [created, ...prev.filter(j => j.id !== created.id)]);
+      setShowCreateModal(false);
+      setCreateError(null);
+      setFormData({
+        title: '',
+        description: '',
+        category: '',
+        location: '',
+        country: user?.country || 'GH',
+        budget_min: '',
+        budget_max: '',
+      });
+      setMediaFiles([]);
+      setMediaPreviews([]);
+      setActiveTab('my-jobs');
+      // Confirm persist from DB (catches silent RLS / filter mismatches)
+      void fetchMyJobs();
     } catch (err: any) {
       console.error('Error creating job:', err);
       setCreateError(err.message || 'An unexpected error occurred. Please try again.');
@@ -246,10 +278,8 @@ const Jobs: React.FC = () => {
     }
   };
 
+  // Browse shows all open jobs (including your own — previously hidden for workers, which looked like "jobs disappearing")
   const filteredJobs = (activeTab === 'browse' ? jobs : myJobs).filter(job => {
-    if (activeTab === 'browse' && isWorker && job.poster_user_id === user?.id) {
-      return false;
-    }
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
     return (
@@ -358,8 +388,24 @@ const Jobs: React.FC = () => {
           </div>
         )}
 
+        {myJobsError && activeTab === 'my-jobs' && (
+          <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-xl text-sm flex items-center justify-between gap-3">
+            <span className="flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 flex-shrink-0" />
+              {myJobsError}
+            </span>
+            <button
+              onClick={() => fetchMyJobs()}
+              className="inline-flex items-center gap-1 text-red-700 font-medium hover:underline"
+            >
+              <RefreshCw className="w-4 h-4" />
+              Retry
+            </button>
+          </div>
+        )}
+
         {/* Jobs List */}
-        {loading ? (
+        {authLoading || loading ? (
           <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl">
             <Loader2 className="w-8 h-8 text-forge-orange animate-spin mb-3" />
             <p className="text-gray-500 text-sm">Loading jobs...</p>
@@ -423,7 +469,15 @@ const Jobs: React.FC = () => {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(job.status)}`}>
                         {getStatusLabel(job.status)}
                       </span>
-                      {isWorker && activeTab === 'browse' && job.status === 'open' && (
+                      {job.poster_user_id === user?.id && (
+                        <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
+                          Your job
+                        </span>
+                      )}
+                      {isWorker &&
+                        activeTab === 'browse' &&
+                        job.status === 'open' &&
+                        job.poster_user_id !== user?.id && (
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-forge-orange">
                           Open to apply
                         </span>

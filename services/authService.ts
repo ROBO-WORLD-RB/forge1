@@ -91,6 +91,20 @@ function signupRole(role: UserRole): 'worker' | 'customer' {
   return role === 'worker' ? 'worker' : 'customer';
 }
 
+/** Normalize username for profiles.username (always @prefix, unique-ish). */
+function buildSignupUsername(
+  metadata: UserMetadata,
+  userId: string
+): string {
+  const raw = (metadata.username || '').replace(/^@+/, '').toLowerCase().replace(/[^a-z0-9_]/g, '');
+  const fromNames =
+    metadata.firstName && metadata.lastName
+      ? `${metadata.firstName}${metadata.lastName}`.toLowerCase().replace(/[^a-z0-9_]/g, '')
+      : '';
+  const base = raw || fromNames || `user${userId.replace(/-/g, '').slice(0, 8)}`;
+  return `@${base}`;
+}
+
 function mapSignUpError(error: { message: string; code?: string }): AuthError {
   const msg = error.message.toLowerCase();
   if (
@@ -103,7 +117,93 @@ function mapSignUpError(error: { message: string; code?: string }): AuthError {
       code: 'user_already_exists',
     };
   }
+  // Supabase Auth when handle_new_user() / profile INSERT fails (unique phone/username, missing trigger, etc.)
+  if (
+    msg.includes('database error saving new user') ||
+    msg.includes('database error creating new user') ||
+    msg.includes('unable to sign up new user') ||
+    msg.includes('database couldn') ||
+    msg.includes("couldn't save new user") ||
+    msg.includes('could not save new user')
+  ) {
+    return {
+      message:
+        'Unable to create your account. Your phone number or username may already be in use, or the database signup trigger needs updating. Try a different phone/username, or run migration 003 in Supabase.',
+      code: 'database_signup_failed',
+    };
+  }
   return { message: error.message, code: error.code };
+}
+
+/**
+ * After Auth signup: prefer the SECURITY DEFINER trigger row, then patch safe fields.
+ * Never upsert `role` (blocked / RLS). Insert only when trigger missed and session exists.
+ */
+async function ensureProfileAfterSignup(
+  userId: string,
+  metadata: UserMetadata,
+  role: 'worker' | 'customer',
+  hasSession: boolean
+): Promise<AuthError | null> {
+  const username = buildSignupUsername(metadata, userId);
+  const phone = metadata.phone?.trim() ? metadata.phone.trim() : null;
+
+  const existing = await getUserProfile(userId);
+  if (existing) {
+    if (!hasSession) return null;
+    const updated = await updateUserProfile(userId, {
+      phone: phone ?? existing.phone ?? undefined,
+      first_name: metadata.firstName || existing.first_name || undefined,
+      last_name: metadata.lastName || existing.last_name || undefined,
+      username: username || existing.username || undefined,
+      country: metadata.country || existing.country || undefined,
+      profile_completed:
+        role === 'customer' ? true : (existing.profile_completed ?? false),
+    });
+    if (!updated) {
+      console.warn('Profile exists but safe-field update failed after signup');
+    }
+    return null;
+  }
+
+  if (!hasSession) {
+    // Email confirmation required — trigger should have created the row; if not, user is stuck until migrate.
+    console.error('No profile after signup and no session (email confirm?). Run migration 003.');
+    return null;
+  }
+
+  const { error: insertError } = await (supabase.from('profiles') as any).insert({
+    id: userId,
+    phone,
+    role,
+    first_name: metadata.firstName || null,
+    last_name: metadata.lastName || null,
+    username,
+    country: metadata.country,
+    profile_completed: role === 'customer',
+    worker_status: role === 'worker' ? 'pending' : 'active',
+    verified: false,
+  });
+
+  if (insertError) {
+    captureError(new Error(insertError.message), { tags: { operation: 'ensureProfileAfterSignup' } });
+    const lower = insertError.message.toLowerCase();
+    if (lower.includes('duplicate') || lower.includes('unique')) {
+      return {
+        message:
+          'That phone number or username is already registered. Try a different one, or sign in.',
+        code: 'profile_conflict',
+      };
+    }
+    return {
+      message:
+        insertError.message ||
+        'Account was created but your profile could not be saved. Please contact support.',
+      code: 'profile_create_failed',
+    };
+  }
+
+  return null;
 }
 
 function mapSignInError(error: { message: string; code?: string }): AuthError {
@@ -218,34 +318,19 @@ export async function signUp(
       };
     }
 
-    // If user was created successfully, create profile in profiles table
     if (data.user) {
-      // Use provided username or generate from first/last name
-      const username = metadata.username 
-        ? `@${metadata.username.replace(/^@/, '')}`
-        : metadata.firstName && metadata.lastName
-          ? `@${metadata.firstName.toLowerCase()}${metadata.lastName.toLowerCase()}`.replace(/\s/g, '')
-          : `@user${Date.now().toString(36)}`;
-
-      const profileData = {
-        id: data.user.id,
-        phone: metadata.phone,
-        first_name: metadata.firstName || null,
-        last_name: metadata.lastName || null,
-        username,
-        country: metadata.country,
-        profile_completed: role === 'customer',
-      };
-
-      // Use upsert to work around Supabase trigger already creating the profile
-      const { error: profileError } = await (supabase
-        .from('profiles') as any)
-        .upsert(profileData, { onConflict: 'id' });
-
+      const profileError = await ensureProfileAfterSignup(
+        data.user.id,
+        metadata,
+        role,
+        Boolean(data.session)
+      );
       if (profileError) {
-        // Log the error but don't fail the signup - profile can be created later
-        console.error('Failed to create profile:', profileError.message);
-        captureError(new Error(profileError.message), { tags: { operation: 'createProfile' } });
+        return {
+          user: null,
+          session: null,
+          error: profileError,
+        };
       }
     }
 
@@ -594,22 +679,20 @@ export async function completeOAuthSignup(
       return { success: true, isNewUser: false };
     }
 
-    // Create new profile with Google data (role/worker_status set by trigger + assign_initial_role)
-    const profileData = {
+    // Insert with role/worker_status so RLS INSERT policy passes (trigger normally created the row)
+    const { error: profileError } = await (supabase.from('profiles') as any).insert({
       id: userId,
-      phone: '',
+      phone: null,
+      role,
       first_name: firstName || null,
       last_name: lastName || null,
       username,
       country,
       avatar_url: avatarUrl,
       profile_completed: role === 'customer',
-    };
-
-    // Use upsert to avoid conflicts
-    const { error: profileError } = await (supabase
-      .from('profiles') as any)
-      .upsert(profileData, { onConflict: 'id' });
+      worker_status: role === 'worker' ? 'pending' : 'active',
+      verified: false,
+    });
 
     if (profileError) {
       console.error('Failed to create profile:', profileError.message);

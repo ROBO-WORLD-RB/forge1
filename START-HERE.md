@@ -12,9 +12,9 @@ You’re close. Your local config is wired up; the main thing left before the ap
 | ✅ Done | **`npm install`** — `node_modules` is present |
 | ✅ Done | App has been built before (`dist/` exists) |
 | ✅ Done | Code fixes are in the repo |
-| ⬜ **Do this next** | **Database schema** — tables, RLS, and storage (run in Supabase Dashboard) |
+| 👉 **Do this next** | **Database schema** - tables, RLS, and storage (run in Supabase Dashboard) |
 | ⬜ Later | Enable Realtime on `messages`, Paystack webhook, first admin user |
-| ⬜ Later | Production auth redirect URLs (local URLs documented in Step 2) |
+| ⏳ Your action | **Production auth redirects** - add https://forge-9ieq.onrender.com/auth/callback and https://forge-9ieq.onrender.com/auth/reset-password in Supabase (see below) |
 | ⬜ Optional | Supabase CLI (`supabase link`) — not required if you use the SQL Editor |
 
 > **Bottom line:** Without the database schema, sign-up, worker search, chat, and payments have nothing to talk to. That’s your one blocker right now.
@@ -35,8 +35,19 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | 2 | `supabase/migrations/001_storage_and_rls_fixes.sql` |
    | 3 | `supabase/migrations/add_worker_location.sql` |
    | 4 | `supabase/migrations/002_security_hardening.sql` |
+   | 5 | `supabase/migrations/003_signup_profile_and_jobs_fixes.sql` ← **required if signup fails or posted jobs vanish** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
+
+### Fix production signup / jobs (if already live)
+
+If the app is already deployed and you see **"Unable to create your account"** / **"Database error saving new user"** on signup, or **posted jobs disappear** after leaving the Jobs page:
+
+1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/siutunqbdteyrycrbzub/sql/new)
+2. Paste and **Run** the entire file: [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql)
+3. Soft-refresh the production app and retry signup + post a job → leave Jobs → return → **My Posted Jobs** should still list it
+
+**What 003 fixes in the database:** empty `phone`/`username` collisions aborting `handle_new_user()` (Auth signup dies), and re-affirm jobs RLS so posters can SELECT their rows after INSERT.
 
 **If a storage bucket insert fails:** Dashboard → **Storage** → create `avatars` (public), `job-media` (public), and `verification-documents` (private), then re-run file **001** for the policies.
 
@@ -76,7 +87,7 @@ You’re close. Your local config is wired up; the main thing left before the ap
 
 If Google is not enabled in Supabase, the app shows a clear error instead of failing silently.
 
-> When you deploy, add the same two paths for your production domain (e.g. `https://forge.onrender.com/auth/callback` and `.../auth/reset-password`). See [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md) for Google OAuth and production URLs.
+> When you deploy, add the same two paths for your production domain (e.g. `https://forge-9ieq.onrender.com/auth/callback` and `.../auth/reset-password`). See [LAUNCH-CHECKLIST.md](./LAUNCH-CHECKLIST.md) for Google OAuth and production URLs.
 
 ---
 
@@ -143,6 +154,25 @@ Highlights still ahead:
 
 ---
 
+## Live production URL (Render)
+
+| Item | Value |
+|------|-------|
+| **Platform** | Render (static site `forge`) |
+| **Live URL** | [https://forge-9ieq.onrender.com](https://forge-9ieq.onrender.com) |
+| **Status** | live (HTTP 200 verified) |
+| **Dashboard** | [srv-d9bqtebbc2fs73asbb2g](https://dashboard.render.com/static/srv-d9bqtebbc2fs73asbb2g) |
+
+**Add these in Supabase → Authentication → URL Configuration now:**
+
+1. **Site URL:** `https://forge-9ieq.onrender.com`
+2. **Redirect URLs** (add alongside localhost):
+   - `https://forge-9ieq.onrender.com/auth/callback`
+   - `https://forge-9ieq.onrender.com/auth/reset-password`
+
+Env vars set on Render (names only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_GEMINI_API_KEY`.
+
+---
 ## Render deploy (static site)
 
 Forge is a Vite SPA — production is just the `dist/` folder on a static host. This repo ships a [`render.yaml`](./render.yaml) Blueprint for [Render](https://render.com).
@@ -155,7 +185,7 @@ Forge is a Vite SPA — production is just the `dist/` folder on a static host. 
    - **Required:** `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`
    - **Optional:** `VITE_SENTRY_DSN`, AI keys, etc. — see [`.env.local.example`](./.env.local.example)
 4. If you missed step 3, add the vars and click **Manual Deploy** (Vite only reads env at build time)
-5. In Supabase → **Authentication** → **URL Configuration**, set **Site URL** and add redirect URLs for your Render domain (e.g. `https://forge.onrender.com/auth/callback`)
+5. In Supabase → **Authentication** → **URL Configuration**, set **Site URL** and add redirect URLs for your Render domain (e.g. `https://forge-9ieq.onrender.com/auth/callback`)
 
 ### What `render.yaml` configures
 

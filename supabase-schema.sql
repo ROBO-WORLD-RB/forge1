@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   first_name TEXT,
   last_name TEXT,
   username TEXT UNIQUE,
-  phone TEXT UNIQUE,
+  phone TEXT,
   bio TEXT,
   location TEXT,
   country TEXT DEFAULT 'GH',
@@ -247,6 +247,11 @@ CREATE TABLE IF NOT EXISTS verification_documents (
 CREATE INDEX IF NOT EXISTS idx_worker_profiles_country ON worker_profiles(country);
 CREATE INDEX IF NOT EXISTS idx_worker_profiles_skills ON worker_profiles USING GIN(skills);
 CREATE INDEX IF NOT EXISTS idx_jobs_status ON jobs(status);
+-- Partial unique: many users may have NULL phone (OAuth); only real numbers must be unique
+CREATE UNIQUE INDEX IF NOT EXISTS profiles_phone_unique_not_null
+  ON profiles (phone)
+  WHERE phone IS NOT NULL AND length(btrim(phone)) > 0;
+
 CREATE INDEX IF NOT EXISTS idx_jobs_country ON jobs(country);
 CREATE INDEX IF NOT EXISTS idx_jobs_category ON jobs(category);
 CREATE INDEX IF NOT EXISTS idx_bookings_worker ON bookings(worker_user_id);
@@ -305,9 +310,9 @@ DROP POLICY IF EXISTS "Users can create jobs" ON jobs;
 DROP POLICY IF EXISTS "Users can update own jobs" ON jobs;
 DROP POLICY IF EXISTS "Users can delete own jobs" ON jobs;
 CREATE POLICY "Jobs are viewable by everyone" ON jobs FOR SELECT USING (true);
-CREATE POLICY "Users can create jobs" ON jobs FOR INSERT WITH CHECK (auth.uid() = poster_user_id);
-CREATE POLICY "Users can update own jobs" ON jobs FOR UPDATE USING (auth.uid() = poster_user_id);
-CREATE POLICY "Users can delete own jobs" ON jobs FOR DELETE USING (auth.uid() = poster_user_id);
+CREATE POLICY "Users can create jobs" ON jobs FOR INSERT TO authenticated WITH CHECK (auth.uid() = poster_user_id);
+CREATE POLICY "Users can update own jobs" ON jobs FOR UPDATE TO authenticated USING (auth.uid() = poster_user_id) WITH CHECK (auth.uid() = poster_user_id);
+CREATE POLICY "Users can delete own jobs" ON jobs FOR DELETE TO authenticated USING (auth.uid() = poster_user_id);
 
 -- Bookings
 DROP POLICY IF EXISTS "Users can view own bookings" ON bookings;
@@ -404,6 +409,10 @@ AS $$
 DECLARE
   meta_role TEXT;
   assigned_role TEXT;
+  final_phone TEXT;
+  base_username TEXT;
+  final_username TEXT;
+  id_suffix TEXT;
 BEGIN
   meta_role := NEW.raw_user_meta_data->>'role';
 
@@ -413,23 +422,70 @@ BEGIN
     assigned_role := 'customer';
   END IF;
 
-  INSERT INTO public.profiles (
-    id, phone, role, first_name, last_name, username, country,
-    profile_completed, worker_status, verified
-  )
-  VALUES (
-    NEW.id,
-    COALESCE(NEW.phone, NEW.raw_user_meta_data->>'phone', ''),
-    assigned_role,
-    NEW.raw_user_meta_data->>'firstName',
-    NEW.raw_user_meta_data->>'lastName',
-    NEW.raw_user_meta_data->>'username',
-    COALESCE(NEW.raw_user_meta_data->>'country', 'GH'),
-    (assigned_role = 'customer'),
-    CASE WHEN assigned_role = 'worker' THEN 'pending' ELSE 'active' END,
-    false
-  )
-  ON CONFLICT (id) DO NOTHING;
+  -- Never store '' for phone — UNIQUE treats '' as a real value (one empty slot only)
+  final_phone := NULLIF(
+    btrim(COALESCE(NEW.phone, NEW.raw_user_meta_data->>'phone', '')),
+    ''
+  );
+
+  id_suffix := substr(replace(NEW.id::text, '-', ''), 1, 8);
+
+  base_username := NULLIF(btrim(COALESCE(NEW.raw_user_meta_data->>'username', '')), '');
+  IF base_username IS NOT NULL THEN
+    base_username := lower(regexp_replace(base_username, '^@+', '', 'g'));
+    base_username := regexp_replace(base_username, '[^a-z0-9_]', '', 'g');
+  END IF;
+
+  IF base_username IS NULL OR base_username = '' THEN
+    base_username := 'user' || id_suffix;
+  END IF;
+
+  final_username := '@' || base_username;
+
+  IF EXISTS (
+    SELECT 1 FROM public.profiles WHERE username = final_username
+  ) THEN
+    final_username := '@' || base_username || '_' || id_suffix;
+  END IF;
+
+  BEGIN
+    INSERT INTO public.profiles (
+      id, phone, role, first_name, last_name, username, country,
+      profile_completed, worker_status, verified
+    )
+    VALUES (
+      NEW.id,
+      final_phone,
+      assigned_role,
+      NEW.raw_user_meta_data->>'firstName',
+      NEW.raw_user_meta_data->>'lastName',
+      final_username,
+      COALESCE(NEW.raw_user_meta_data->>'country', 'GH'),
+      (assigned_role = 'customer'),
+      CASE WHEN assigned_role = 'worker' THEN 'pending' ELSE 'active' END,
+      false
+    )
+    ON CONFLICT (id) DO NOTHING;
+  EXCEPTION
+    WHEN unique_violation THEN
+      INSERT INTO public.profiles (
+        id, phone, role, first_name, last_name, username, country,
+        profile_completed, worker_status, verified
+      )
+      VALUES (
+        NEW.id,
+        NULL,
+        assigned_role,
+        NEW.raw_user_meta_data->>'firstName',
+        NEW.raw_user_meta_data->>'lastName',
+        '@user' || id_suffix || substr(replace(NEW.id::text, '-', ''), 9, 4),
+        COALESCE(NEW.raw_user_meta_data->>'country', 'GH'),
+        (assigned_role = 'customer'),
+        CASE WHEN assigned_role = 'worker' THEN 'pending' ELSE 'active' END,
+        false
+      )
+      ON CONFLICT (id) DO NOTHING;
+  END;
 
   RETURN NEW;
 END;

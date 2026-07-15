@@ -20,14 +20,7 @@ vi.mock('./supabase', () => {
     onAuthStateChange: vi.fn(() => ({ data: { subscription: { unsubscribe: vi.fn() } } })),
   };
   
-  const mockFrom = vi.fn(() => ({
-    insert: vi.fn().mockReturnThis(),
-    upsert: vi.fn().mockReturnThis(),
-    select: vi.fn().mockReturnThis(),
-    eq: vi.fn().mockReturnThis(),
-    single: vi.fn().mockReturnThis(),
-    match: vi.fn().mockReturnThis(),
-  }));
+  const mockFrom = vi.fn();
   
   return {
     supabase: {
@@ -36,6 +29,38 @@ vi.mock('./supabase', () => {
     },
   };
 });
+
+vi.mock('./monitoringService', () => ({
+  startTransaction: () => ({ finish: vi.fn() }),
+  captureError: vi.fn(),
+}));
+
+vi.mock('../utils/promiseTimeout', () => ({
+  withTimeout: (promise: Promise<unknown>) => promise,
+  withTimeoutFallback: (promise: Promise<unknown>) => promise,
+}));
+
+/** Chain for getUserProfile → not found, then insert for ensureProfileAfterSignup */
+function mockProfileMissingThenInsert(insertImpl?: (data: any) => Promise<{ error: any }>) {
+  const insert = vi.fn().mockImplementation(async (data: any) => {
+    if (insertImpl) return insertImpl(data);
+    return { error: null };
+  });
+
+  vi.mocked(supabase.from)
+    .mockReturnValueOnce({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: null, error: { message: 'not found', code: 'PGRST116' } }),
+        }),
+      }),
+    } as any)
+    .mockReturnValueOnce({
+      insert,
+    } as any);
+
+  return insert;
+}
 
 // Import after mocking
 import { signUp, signIn } from './authService';
@@ -126,10 +151,7 @@ describe('Auth Service Property Tests', () => {
               error: null,
             });
 
-            // Mock profile insert
-            vi.mocked(supabase.from).mockReturnValueOnce({
-              upsert: vi.fn().mockResolvedValueOnce({ error: null }),
-            } as any);
+            mockProfileMissingThenInsert();
 
             const result = await signUp(email, password, metadata);
 
@@ -182,19 +204,15 @@ describe('Auth Service Property Tests', () => {
               error: null,
             });
 
-            // Mock profile upsert and capture the data
-            const mockUpsert = vi.fn().mockImplementation((data: any) => {
+            const mockInsert = mockProfileMissingThenInsert(async (data: any) => {
               capturedProfileData = data;
-              return Promise.resolve({ error: null });
+              return { error: null };
             });
-            
-            vi.mocked(supabase.from).mockReturnValueOnce({
-              upsert: mockUpsert,
-            } as any);
 
             await signUp(email, password, metadata);
 
-            // Verify profile data matches input metadata (role is stored in auth metadata, not profiles)
+            // Trigger miss path: client inserts full RLS-compliant profile (including role)
+            expect(mockInsert).toHaveBeenCalled();
             expect(capturedProfileData).not.toBeNull();
             expect(capturedProfileData.id).toBe(mockUserId);
             expect(capturedProfileData.phone).toBe(metadata.phone);
@@ -202,11 +220,11 @@ describe('Auth Service Property Tests', () => {
             expect(capturedProfileData.first_name).toBe(metadata.firstName || null);
             expect(capturedProfileData.last_name).toBe(metadata.lastName || null);
             expect(capturedProfileData.username).toBeDefined();
-            // Customers (and admin) have profile_completed=true; workers have false
             const expectedRole = metadata.role === 'worker' ? 'worker' : 'customer';
+            expect(capturedProfileData.role).toBe(expectedRole);
             expect(capturedProfileData.profile_completed).toBe(expectedRole === 'customer');
+            expect(capturedProfileData.verified).toBe(false);
 
-            // Role is passed to Supabase Auth options, not the profiles table
             expect(vi.mocked(supabase.auth.signUp)).toHaveBeenCalledWith(
               expect.objectContaining({
                 options: expect.objectContaining({
@@ -236,9 +254,27 @@ describe('Auth Service Property Tests', () => {
 
             const result = await signUp(email, password, metadata);
 
-            // Verify error is returned
+            // Verify error is returned (some Auth DB failures are remapped to a clearer message)
             expect(result.error).not.toBeNull();
-            expect(result.error?.message).toBe(errorMessage);
+            const lower = errorMessage.toLowerCase();
+            const isDbSignup =
+              lower.includes('database error saving new user') ||
+              lower.includes('database error creating new user') ||
+              lower.includes('unable to sign up new user') ||
+              lower.includes('database couldn') ||
+              lower.includes("couldn't save new user") ||
+              lower.includes('could not save new user');
+            if (isDbSignup) {
+              expect(result.error?.code).toBe('database_signup_failed');
+            } else if (
+              lower.includes('already registered') ||
+              lower.includes('already been registered') ||
+              lower.includes('user already exists')
+            ) {
+              expect(result.error?.code).toBe('user_already_exists');
+            } else {
+              expect(result.error?.message).toBe(errorMessage);
+            }
             expect(result.user).toBeNull();
             expect(result.session).toBeNull();
           }

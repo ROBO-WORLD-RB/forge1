@@ -61,7 +61,8 @@ Choose **one** path:
   1. [`supabase/migrations/001_storage_and_rls_fixes.sql`](./supabase/migrations/001_storage_and_rls_fixes.sql) — storage buckets + RLS fixes
   2. [`supabase/migrations/add_worker_location.sql`](./supabase/migrations/add_worker_location.sql) — worker geolocation columns
   3. [`supabase/migrations/002_security_hardening.sql`](./supabase/migrations/002_security_hardening.sql) — signup/admin role hardening + profile RLS
-- [ ] **P0** If you used Option A (`supabase-schema.sql`) on a fresh DB, still run **001** and **add_worker_location** — they add storage buckets, extra RLS, and location columns. Security hardening from **002** is already included in `supabase-schema.sql`; run **002** only if your DB was created from an older schema copy.
+  4. [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql) — signup trigger (phone/username) + jobs RLS
+- [ ] **P0** If you used Option A (`supabase-schema.sql`) on a fresh DB, still run **001**, **add_worker_location**, and **003**. Security hardening from **002** is already included in current `supabase-schema.sql`; run **002** only if your DB was created from an older schema copy. **003** must still be run on any DB that was created before that migration existed (fixes “Database error saving new user” and job reload).
 
 > **YOU MUST DO THIS:** Skipping schema setup means sign-up, bookings, chat, and payments have no tables or policies.
 
@@ -175,9 +176,9 @@ Forge uses Paystack for subscriptions, bookings, and worker onboarding fees. The
 - [ ] **P0** Set **Site URL** to your production domain (e.g. `https://forge.yourdomain.com`)
 - [ ] **P0** Add **Redirect URLs** (all environments you use):
   - `http://localhost:3000/auth/callback` (local dev)
-  - `https://<your-production-domain>/auth/callback`
+  - `https://forge-9ieq.onrender.com/auth/callback`
   - `http://localhost:3000/auth/reset-password` (password reset)
-  - `https://<your-production-domain>/auth/reset-password`
+  - `https://forge-9ieq.onrender.com/auth/reset-password`
 
 ### Google OAuth redirect URI (Google Cloud Console)
 
@@ -254,6 +255,23 @@ See [`supabase/functions/subscription-expiry-cron/README.md`](./supabase/functio
 
 ## P0 — Deploy frontend
 
+
+### Live deployment (updated)
+
+| Item | Value |
+|------|-------|
+| **Platform** | Render static site `forge` |
+| **Live URL** | [https://forge-9ieq.onrender.com](https://forge-9ieq.onrender.com) |
+| **Deploy status** | live |
+| **Service ID** | `srv-d9bqtebbc2fs73asbb2g` |
+
+**You still must** set Supabase **Site URL** to `https://forge-9ieq.onrender.com` and add redirect URLs:
+
+- `https://forge-9ieq.onrender.com/auth/callback`
+- `https://forge-9ieq.onrender.com/auth/reset-password`
+
+Render env vars already set: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_GEMINI_API_KEY`.
+
 Forge builds to static files in `dist/`. There is no Node server in production unless you add one.
 
 ### Build locally (or in CI)
@@ -279,7 +297,7 @@ This repo includes [`render.yaml`](./render.yaml) for Blueprint deploy. It confi
 - [ ] **P0** **Before the first build**, open the static site service → **Environment** → add all `VITE_*` vars (same values as `.env.local`). Vite bakes them in at compile time — if you add them after the first deploy, trigger a **Manual Deploy**
 - [ ] **P0** Minimum required: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`
 - [ ] **P0** Optional: `VITE_SENTRY_DSN`, `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, `SENTRY_PROJECT` (source maps on build)
-- [ ] **P0** After deploy, update Supabase **Site URL** and **Redirect URLs** to your Render URL (e.g. `https://forge.onrender.com/auth/callback`)
+- [ ] **P0** After deploy, update Supabase **Site URL** and **Redirect URLs** to your Render URL (e.g. `https://forge-9ieq.onrender.com/auth/callback`)
 
 **Option B — Manual Static Site (no Blueprint):**
 
