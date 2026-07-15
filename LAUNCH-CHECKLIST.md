@@ -61,8 +61,9 @@ Choose **one** path:
   1. [`supabase/migrations/001_storage_and_rls_fixes.sql`](./supabase/migrations/001_storage_and_rls_fixes.sql) — storage buckets + RLS fixes
   2. [`supabase/migrations/add_worker_location.sql`](./supabase/migrations/add_worker_location.sql) — worker geolocation columns
   3. [`supabase/migrations/002_security_hardening.sql`](./supabase/migrations/002_security_hardening.sql) — signup/admin role hardening + profile RLS
-  4. [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql) — signup trigger (phone/username) + jobs RLS
-- [ ] **P0** If you used Option A (`supabase-schema.sql`) on a fresh DB, still run **001**, **add_worker_location**, and **003**. Security hardening from **002** is already included in current `supabase-schema.sql`; run **002** only if your DB was created from an older schema copy. **003** must still be run on any DB that was created before that migration existed (fixes “Database error saving new user” and job reload).
+  4. [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql) — signup trigger (phone) + jobs RLS
+  5. [`supabase/migrations/004_fix_username_generation.sql`](./supabase/migrations/004_fix_username_generation.sql) — collision-proof usernames (`@user` + full UUID hex)
+- [ ] **P0** If you used Option A (`supabase-schema.sql`) on a fresh DB, still run **001**, **add_worker_location**, **003**, and **004**. Security hardening from **002** is already included in current `supabase-schema.sql`; run **002** only if your DB was created from an older schema copy. **003** fixes empty-phone / jobs RLS; **004** fixes `profiles_username_key` / `@user000000000000` (run **004** even if **003** already applied or partially applied — do not re-run broken username logic from older copies of **003**).
 
 > **YOU MUST DO THIS:** Skipping schema setup means sign-up, bookings, chat, and payments have no tables or policies.
 
@@ -400,7 +401,7 @@ Phone login uses Supabase Phone auth. For reliable SMS in Ghana/Nigeria you may 
 | Task | File / location |
 |------|-----------------|
 | Full DB schema | `supabase-schema.sql` |
-| Migrations | `supabase/migrations/001_storage_and_rls_fixes.sql`, `add_worker_location.sql`, `002_security_hardening.sql` |
+| Migrations | `supabase/migrations/001_storage_and_rls_fixes.sql`, `add_worker_location.sql`, `002_security_hardening.sql`, `003_signup_profile_and_jobs_fixes.sql`, `004_fix_username_generation.sql` |
 | Env template | `.env.local.example` |
 | Paystack webhook deploy | `supabase/functions/paystack-webhook/` |
 | Subscription expiry cron | `supabase/functions/subscription-expiry-cron/` |

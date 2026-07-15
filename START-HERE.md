@@ -35,7 +35,8 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | 2 | `supabase/migrations/001_storage_and_rls_fixes.sql` |
    | 3 | `supabase/migrations/add_worker_location.sql` |
    | 4 | `supabase/migrations/002_security_hardening.sql` |
-   | 5 | `supabase/migrations/003_signup_profile_and_jobs_fixes.sql` ← **required if signup fails or posted jobs vanish** |
+   | 5 | `supabase/migrations/003_signup_profile_and_jobs_fixes.sql` ← phone/username signup + jobs RLS |
+   | 6 | `supabase/migrations/004_fix_username_generation.sql` ← **required if signup fails with `profiles_username_key` / `@user000000000000`** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
 
@@ -44,10 +45,13 @@ You’re close. Your local config is wired up; the main thing left before the ap
 If the app is already deployed and you see **"Unable to create your account"** / **"Database error saving new user"** on signup, or **posted jobs disappear** after leaving the Jobs page:
 
 1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/siutunqbdteyrycrbzub/sql/new)
-2. Paste and **Run** the entire file: [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql)
-3. Soft-refresh the production app and retry signup + post a job → leave Jobs → return → **My Posted Jobs** should still list it
+2. If you have **not** run 003 yet: paste and **Run** [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql) (phone uniqueness + jobs RLS). If 003 already ran (even partially), skip to step 3.
+3. Paste and **Run** the entire file: [`supabase/migrations/004_fix_username_generation.sql`](./supabase/migrations/004_fix_username_generation.sql) — replaces `handle_new_user()` with collision-proof usernames. **Do not re-run broken 003** to fix `@user000000000000`; run **004** instead.
+4. Soft-refresh the production app and retry signup + post a job → leave Jobs → return → **My Posted Jobs** should still list it
 
-**What 003 fixes in the database:** empty `phone`/`username` collisions aborting `handle_new_user()` (Auth signup dies), and re-affirm jobs RLS so posters can SELECT their rows after INSERT.
+**What 003 fixes:** empty `phone` collisions aborting signup, and jobs RLS so posters can SELECT their rows after INSERT.
+
+**What 004 fixes:** username generation that truncated UUID hex to zeros (`@user000000000000`), causing `profiles_username_key` duplicate errors on the next signup.
 
 **If a storage bucket insert fails:** Dashboard → **Storage** → create `avatars` (public), `job-media` (public), and `verification-documents` (private), then re-run file **001** for the policies.
 

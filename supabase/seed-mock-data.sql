@@ -66,15 +66,21 @@ CREATE TABLE IF NOT EXISTS worker_endorsements (
 );
 
 -- 2. Create Auth Users (Required for foreign key constraints)
+-- Disable signup trigger so zero-padded mock UUIDs do not auto-create colliding
+-- @user0000… profiles; section 4 inserts the intended usernames explicitly.
+ALTER TABLE auth.users DISABLE TRIGGER on_auth_user_created;
+
 INSERT INTO auth.users (id, email, encrypted_password, email_confirmed_at, raw_app_meta_data, raw_user_meta_data, created_at, updated_at, role, aud, confirmation_token, recovery_token, email_change_token_new, email_change)
 VALUES
-('00000000-0000-0000-0000-000000000001', 'kofi@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
-('00000000-0000-0000-0000-000000000002', 'ama@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
-('00000000-0000-0000-0000-000000000003', 'chidi@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
-('00000000-0000-0000-0000-000000000004', 'zainab@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
-('00000000-0000-0000-0000-000000000005', 'kwesi@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"customer"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
-('00000000-0000-0000-0000-000000000006', 'nneka@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"customer"}', now(), now(), 'authenticated', 'authenticated', '', '', '', '')
+('00000000-0000-0000-0000-000000000001', 'kofi@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker","username":"kofisparks","firstName":"Kofi","lastName":"Mensah","phone":"+233501234567","country":"GH"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
+('00000000-0000-0000-0000-000000000002', 'ama@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker","username":"ama_decor","firstName":"Ama","lastName":"Osei","phone":"+233501234568","country":"GH"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
+('00000000-0000-0000-0000-000000000003', 'chidi@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker","username":"chidi_pipes","firstName":"Chidi","lastName":"Okonkwo","phone":"+234801234567","country":"NG"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
+('00000000-0000-0000-0000-000000000004', 'zainab@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"worker","username":"zainab_events","firstName":"Zainab","lastName":"Bello","phone":"+234801234568","country":"NG"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
+('00000000-0000-0000-0000-000000000005', 'kwesi@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"customer","username":"kwesi_appiah","firstName":"Kwesi","lastName":"Appiah","phone":"+233501234569","country":"GH"}', now(), now(), 'authenticated', 'authenticated', '', '', '', ''),
+('00000000-0000-0000-0000-000000000006', 'nneka@example.com', crypt('password123', gen_salt('bf')), now(), '{"provider":"email","providers":["email"]}', '{"role":"customer","username":"nneka_eze","firstName":"Nneka","lastName":"Eze","phone":"+234801234569","country":"NG"}', now(), now(), 'authenticated', 'authenticated', '', '', '', '')
 ON CONFLICT (id) DO NOTHING;
+
+ALTER TABLE auth.users ENABLE TRIGGER on_auth_user_created;
 
 -- 3. Ensure Categories exist
 INSERT INTO service_categories (name, slug, icon) VALUES
@@ -97,7 +103,7 @@ ON CONFLICT (slug) DO UPDATE SET
   name = EXCLUDED.name,
   icon = EXCLUDED.icon;
 
--- 4. Create Public Profiles
+-- 4. Create Public Profiles (upsert so re-runs replace any trigger-generated stubs)
 INSERT INTO profiles (id, phone, role, first_name, last_name, username, bio, location, country, avatar_url, profile_completed, worker_status)
 VALUES
 ('00000000-0000-0000-0000-000000000001', '+233501234567', 'worker', 'Kofi', 'Mensah', '@kofisparks', 'Expert electrician with 10 years experience in domestic and industrial wiring.', 'Accra', 'GH', 'https://images.unsplash.com/photo-1540560085334-6e0ad303d291?w=400&auto=format&fit=crop&q=60', true, 'active'),
@@ -106,7 +112,18 @@ VALUES
 ('00000000-0000-0000-0000-000000000004', '+234801234568', 'worker', 'Zainab', 'Bello', '@zainab_events', 'Professional event planner with a knack for details and elegance.', 'Abuja', 'NG', 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&auto=format&fit=crop&q=60', true, 'active'),
 ('00000000-0000-0000-0000-000000000005', '+233501234569', 'customer', 'Kwesi', 'Appiah', '@kwesi_appiah', null, 'Accra', 'GH', null, true, 'active'),
 ('00000000-0000-0000-0000-000000000006', '+234801234569', 'customer', 'Nneka', 'Eze', '@nneka_eze', null, 'Lagos', 'NG', null, true, 'active')
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (id) DO UPDATE SET
+  phone = EXCLUDED.phone,
+  role = EXCLUDED.role,
+  first_name = EXCLUDED.first_name,
+  last_name = EXCLUDED.last_name,
+  username = EXCLUDED.username,
+  bio = EXCLUDED.bio,
+  location = EXCLUDED.location,
+  country = EXCLUDED.country,
+  avatar_url = EXCLUDED.avatar_url,
+  profile_completed = EXCLUDED.profile_completed,
+  worker_status = EXCLUDED.worker_status;
 
 -- 5. Create Worker Profiles
 INSERT INTO worker_profiles (user_id, name, role, location, country, bio, hourly_rate_min, hourly_rate_max, currency, skills, tier, verified)

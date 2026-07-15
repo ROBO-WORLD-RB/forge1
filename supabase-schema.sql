@@ -412,7 +412,8 @@ DECLARE
   final_phone TEXT;
   base_username TEXT;
   final_username TEXT;
-  id_suffix TEXT;
+  id_hex TEXT;
+  attempt INT := 0;
 BEGIN
   meta_role := NEW.raw_user_meta_data->>'role';
 
@@ -428,7 +429,8 @@ BEGIN
     ''
   );
 
-  id_suffix := substr(replace(NEW.id::text, '-', ''), 1, 8);
+  -- Full UUID without dashes (32 hex chars) — unique per auth.users row
+  id_hex := replace(NEW.id::text, '-', '');
 
   base_username := NULLIF(btrim(COALESCE(NEW.raw_user_meta_data->>'username', '')), '');
   IF base_username IS NOT NULL THEN
@@ -437,16 +439,29 @@ BEGIN
   END IF;
 
   IF base_username IS NULL OR base_username = '' THEN
-    base_username := 'user' || id_suffix;
+    -- Guaranteed unique: @user + full 32-char hex of the auth user id
+    final_username := '@user' || id_hex;
+  ELSE
+    final_username := '@' || base_username;
   END IF;
 
-  final_username := '@' || base_username;
-
-  IF EXISTS (
+  -- Resolve collisions (chosen username taken, or rare race)
+  WHILE EXISTS (
     SELECT 1 FROM public.profiles WHERE username = final_username
-  ) THEN
-    final_username := '@' || base_username || '_' || id_suffix;
-  END IF;
+  ) AND attempt < 32
+  LOOP
+    attempt := attempt + 1;
+    IF attempt = 1 THEN
+      final_username :=
+        '@' || COALESCE(NULLIF(base_username, ''), 'user')
+        || '_' || id_hex;
+    ELSE
+      final_username :=
+        '@' || COALESCE(NULLIF(base_username, ''), 'user')
+        || '_' || substr(id_hex, 1, 8)
+        || substr(md5(random()::text || clock_timestamp()::text || attempt::text), 1, 8);
+    END IF;
+  END LOOP;
 
   BEGIN
     INSERT INTO public.profiles (
@@ -478,7 +493,8 @@ BEGIN
         assigned_role,
         NEW.raw_user_meta_data->>'firstName',
         NEW.raw_user_meta_data->>'lastName',
-        '@user' || id_suffix || substr(replace(NEW.id::text, '-', ''), 9, 4),
+        '@user' || id_hex || '_'
+          || substr(md5(random()::text || clock_timestamp()::text), 1, 8),
         COALESCE(NEW.raw_user_meta_data->>'country', 'GH'),
         (assigned_role = 'customer'),
         CASE WHEN assigned_role = 'worker' THEN 'pending' ELSE 'active' END,
