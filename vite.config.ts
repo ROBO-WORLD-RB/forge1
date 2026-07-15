@@ -141,7 +141,9 @@ export default defineConfig(({ mode }) => {
           },
         }),
         VitePWA({
-          registerType: 'prompt',
+          // autoUpdate activates the new SW immediately so a bad navigateFallback
+          // cannot leave clients stuck on a cached offline.html page.
+          registerType: 'autoUpdate',
           includeAssets: ['icons/*.svg', 'icons/*.png', 'manifest.json', 'offline.html'],
           manifest: {
             name: 'FORGE - Blue-Collar Marketplace',
@@ -172,8 +174,15 @@ export default defineConfig(({ mode }) => {
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
-            navigateFallback: '/offline.html',
-            navigateFallbackDenylist: [/^\/api\//],
+            // SPA shell — never use offline.html here. That made every soft
+            // navigation (OAuth /auth/callback, /dashboard, etc.) show
+            // "You're Offline" while the user was actually online.
+            navigateFallback: 'index.html',
+            navigateFallbackDenylist: [
+              /^\/api\//,
+              /^\/offline\.html$/,
+              /\/[^/?]+\.[^/]+$/, // static files with extensions
+            ],
             runtimeCaching: [
               {
                 urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
