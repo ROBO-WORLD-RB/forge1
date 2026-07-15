@@ -1,5 +1,5 @@
 /* @refresh reset */
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { User, UserRole, WorkerTier } from '../types';
 import { 
   signOut, 
@@ -19,6 +19,9 @@ interface AuthContextType {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+/** Absolute ceiling so route gates never show a spinner forever. */
+const AUTH_BOOTSTRAP_HARD_TIMEOUT_MS = 12000;
 
 /**
  * Convert Supabase user and profile to app User type
@@ -95,69 +98,91 @@ function mapToAppUser(
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const mountedRef = useRef(true);
 
   useEffect(() => {
-    // Initialize auth state
+    mountedRef.current = true;
+
+    // Hard ceiling — even if getUser/profile somehow never settle, unlock the UI.
+    const hardTimer = window.setTimeout(() => {
+      if (mountedRef.current) {
+        console.warn('Auth bootstrap hard timeout — clearing loading state');
+        setIsLoading(false);
+      }
+    }, AUTH_BOOTSTRAP_HARD_TIMEOUT_MS);
+
     const initAuth = async () => {
       try {
         const supabaseUser = await getUser();
+        if (!mountedRef.current) return;
         if (supabaseUser) {
+          // Profile failure must not block auth; map with metadata fallbacks.
           const profile = await getUserProfile(supabaseUser.id);
-          const appUser = mapToAppUser(supabaseUser, profile);
-          setUser(appUser);
+          if (!mountedRef.current) return;
+          setUser(mapToAppUser(supabaseUser, profile));
         } else {
           setUser(null);
         }
       } catch (error) {
-        console.error("Auth initialization failed", error);
-        setUser(null);
+        console.error('Auth initialization failed', error);
+        if (mountedRef.current) setUser(null);
       } finally {
-        setIsLoading(false);
+        if (mountedRef.current) setIsLoading(false);
+        window.clearTimeout(hardTimer);
       }
     };
 
     initAuth();
 
     // Subscribe to auth state changes
-    const subscription = onAuthStateChange(async (event, session) => {
+    const subscription = onAuthStateChange(async (event, session: Session | null) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        setIsLoading(true);
+        if (mountedRef.current) setIsLoading(true);
         try {
           const profile = await getUserProfile(session.user.id);
-          const appUser = mapToAppUser(session.user, profile);
-          setUser(appUser);
+          if (!mountedRef.current) return;
+          // Always set a user from the session, even when profile is null/failed.
+          setUser(mapToAppUser(session.user, profile));
         } catch (error) {
-          console.error("Failed to load user profile", error);
+          console.error('Failed to load user profile', error);
+          if (mountedRef.current) {
+            setUser(mapToAppUser(session.user, null));
+          }
         } finally {
-          setIsLoading(false);
+          if (mountedRef.current) setIsLoading(false);
         }
       } else if (event === 'SIGNED_OUT') {
-        setUser(null);
+        if (mountedRef.current) {
+          setUser(null);
+          setIsLoading(false);
+        }
       } else if (event === 'TOKEN_REFRESHED' && session?.user) {
         // Token refreshed, user is still authenticated
-        // Optionally refresh profile data
       } else if (event === 'USER_UPDATED' && session?.user) {
-        // User data updated, refresh profile
         try {
           const profile = await getUserProfile(session.user.id);
-          const appUser = mapToAppUser(session.user, profile);
-          setUser(appUser);
+          if (!mountedRef.current) return;
+          setUser(mapToAppUser(session.user, profile));
         } catch (error) {
-          console.error("Failed to refresh user profile", error);
+          console.error('Failed to refresh user profile', error);
+          if (mountedRef.current) {
+            setUser(mapToAppUser(session.user, null));
+          }
         }
       }
     });
 
-    // Cleanup subscription on unmount
     return () => {
+      mountedRef.current = false;
+      window.clearTimeout(hardTimer);
       subscription.unsubscribe();
     };
   }, []);
 
   const login = (newUser: User, _token: string) => {
-    // This is called after successful login from the login page
-    // The onAuthStateChange will also fire, but we set user immediately for better UX
+    // Called after successful login — set user immediately for better UX.
     setUser(newUser);
+    setIsLoading(false);
   };
 
   const logout = async () => {
@@ -166,7 +191,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await signOut();
       setUser(null);
     } catch (error) {
-      console.error("Logout failed", error);
+      console.error('Logout failed', error);
     } finally {
       setIsLoading(false);
     }
@@ -177,13 +202,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const supabaseUser = await getUser();
       if (supabaseUser) {
         const profile = await getUserProfile(supabaseUser.id);
-        const appUser = mapToAppUser(supabaseUser, profile);
-        setUser(appUser);
+        setUser(mapToAppUser(supabaseUser, profile));
       } else {
         setUser(null);
       }
     } catch (error) {
-      console.error("Failed to refresh user", error);
+      console.error('Failed to refresh user', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

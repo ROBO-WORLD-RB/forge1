@@ -9,6 +9,13 @@ import type { User as SupabaseUser, Session, AuthChangeEvent, Subscription } fro
 import type { Profile, UserRole } from '../types/database';
 import { startTransaction, captureError } from './monitoringService';
 import { getOAuthCallbackUrl, mapOAuthError } from '../utils/oauth';
+import { withTimeout, withTimeoutFallback } from '../utils/promiseTimeout';
+
+/** Wall-clock budgets so auth UI never spins forever on a hung Supabase call. */
+export const AUTH_GET_USER_TIMEOUT_MS = 8000;
+export const AUTH_PROFILE_TIMEOUT_MS = 8000;
+export const AUTH_SESSION_WAIT_MS = 8000;
+export const AUTH_GET_SESSION_ATTEMPT_MS = 3000;
 
 export interface UserMetadata {
   phone: string;
@@ -131,16 +138,32 @@ function isDuplicateSignUpUser(user: SupabaseUser | null, session: Session | nul
 /**
  * Wait for OAuth / URL session to be established after PKCE code exchange.
  * getSession() awaits the auth client initializePromise (detectSessionInUrl).
+ * Hard wall-clock budget — each attempt and the overall wait are timed out.
  */
-export async function waitForAuthSession(maxAttempts = 25, delayMs = 200): Promise<Session | null> {
-  for (let i = 0; i < maxAttempts; i++) {
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error('OAuth session error:', error.message);
-      return null;
+export async function waitForAuthSession(
+  maxMs = AUTH_SESSION_WAIT_MS,
+  delayMs = 200
+): Promise<Session | null> {
+  const deadline = Date.now() + maxMs;
+
+  while (Date.now() < deadline) {
+    try {
+      const { data, error } = await withTimeout(
+        supabase.auth.getSession(),
+        AUTH_GET_SESSION_ATTEMPT_MS,
+        'getSession'
+      );
+      if (error) {
+        console.error('OAuth session error:', error.message);
+        return null;
+      }
+      if (data.session) return data.session;
+    } catch (err) {
+      console.warn('waitForAuthSession attempt failed:', err);
     }
-    if (session) return session;
-    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    await new Promise((resolve) => setTimeout(resolve, Math.min(delayMs, remaining)));
   }
   return null;
 }
@@ -338,11 +361,25 @@ export async function signOut(): Promise<void> {
 }
 
 /**
- * Get the currently authenticated user
+ * Get the currently authenticated user (network-validated).
+ * Timed out so AuthProvider cannot hang forever on a stalled auth API.
  */
 export async function getUser(): Promise<SupabaseUser | null> {
-  const { data: { user } } = await supabase.auth.getUser();
-  return user;
+  try {
+    const { data, error } = await withTimeout(
+      supabase.auth.getUser(),
+      AUTH_GET_USER_TIMEOUT_MS,
+      'getUser'
+    );
+    if (error) {
+      console.error('getUser error:', error.message);
+      return null;
+    }
+    return data.user;
+  } catch (err) {
+    console.error('getUser failed:', err);
+    return null;
+  }
 }
 
 /**
@@ -357,22 +394,30 @@ export function onAuthStateChange(
 }
 
 /**
- * Get the user's profile from the profiles table
+ * Get the user's profile from the profiles table.
+ * Always resolves within AUTH_PROFILE_TIMEOUT_MS (null on error/timeout).
  */
 export async function getUserProfile(userId: string): Promise<Profile | null> {
-  // Use type assertion to work around Supabase type inference issues
-  const { data, error } = await (supabase
-    .from('profiles') as any)
-    .select('*')
-    .eq('id', userId)
-    .single();
+  return withTimeoutFallback(
+    (async () => {
+      // Use type assertion to work around Supabase type inference issues
+      const { data, error } = await (supabase
+        .from('profiles') as any)
+        .select('*')
+        .eq('id', userId)
+        .single();
 
-  if (error) {
-    console.error('Failed to get profile:', error.message);
-    return null;
-  }
+      if (error) {
+        console.error('Failed to get profile:', error.message);
+        return null;
+      }
 
-  return data;
+      return data as Profile;
+    })(),
+    AUTH_PROFILE_TIMEOUT_MS,
+    null,
+    'getUserProfile'
+  );
 }
 
 /**

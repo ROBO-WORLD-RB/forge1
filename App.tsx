@@ -1,4 +1,4 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { BrowserRouter as Router, Routes, Route, Link, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
@@ -14,47 +14,73 @@ import AIChat from './components/AIChat';
 import { InstallPrompt } from './components/InstallPrompt';
 import { initialize as initSentry, SentryErrorBoundary } from './services/monitoringService';
 import { getDefaultDashboardPath, getSafeRedirectPath, resolvePostAuthPath } from './utils/authRedirect';
+import { lazyWithRetry } from './utils/lazyWithRetry';
 
-const Home = lazy(() => import('./pages/Home'));
-const WorkerSearch = lazy(() => import('./pages/WorkerSearch'));
-const WorkerProfile = lazy(() => import('./pages/WorkerProfile'));
-const UserProfile = lazy(() => import('./pages/UserProfile'));
-const Messages = lazy(() => import('./pages/Messages'));
-const Jobs = lazy(() => import('./pages/Jobs'));
-const JobDetail = lazy(() => import('./pages/JobDetail'));
-const Bookings = lazy(() => import('./pages/Bookings'));
-const Notifications = lazy(() => import('./pages/Notifications'));
-const Subscription = lazy(() => import('./pages/Subscription'));
-const Login = lazy(() => import('./pages/auth/Login'));
-const Signup = lazy(() => import('./pages/auth/Signup'));
-const AuthCallback = lazy(() => import('./pages/auth/AuthCallback'));
-const WorkerOnboarding = lazy(() => import('./pages/auth/WorkerOnboarding'));
-const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
-const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
-const ProfileEdit = lazy(() => import('./pages/ProfileEdit'));
-const CustomerDashboard = lazy(() => import('./pages/dashboard/CustomerDashboard'));
-const WorkerDashboard = lazy(() => import('./pages/dashboard/WorkerDashboard'));
-const OnboardingPayment = lazy(() => import('./pages/auth/OnboardingPayment'));
-const AdminDashboard = lazy(() => import('./pages/admin/AdminDashboard'));
+const Home = lazyWithRetry(() => import('./pages/Home'));
+const WorkerSearch = lazyWithRetry(() => import('./pages/WorkerSearch'));
+const WorkerProfile = lazyWithRetry(() => import('./pages/WorkerProfile'));
+const UserProfile = lazyWithRetry(() => import('./pages/UserProfile'));
+const Messages = lazyWithRetry(() => import('./pages/Messages'));
+const Jobs = lazyWithRetry(() => import('./pages/Jobs'));
+const JobDetail = lazyWithRetry(() => import('./pages/JobDetail'));
+const Bookings = lazyWithRetry(() => import('./pages/Bookings'));
+const Notifications = lazyWithRetry(() => import('./pages/Notifications'));
+const Subscription = lazyWithRetry(() => import('./pages/Subscription'));
+const Login = lazyWithRetry(() => import('./pages/auth/Login'));
+const Signup = lazyWithRetry(() => import('./pages/auth/Signup'));
+const AuthCallback = lazyWithRetry(() => import('./pages/auth/AuthCallback'));
+const WorkerOnboarding = lazyWithRetry(() => import('./pages/auth/WorkerOnboarding'));
+const ForgotPassword = lazyWithRetry(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword = lazyWithRetry(() => import('./pages/auth/ResetPassword'));
+const ProfileEdit = lazyWithRetry(() => import('./pages/ProfileEdit'));
+const CustomerDashboard = lazyWithRetry(() => import('./pages/dashboard/CustomerDashboard'));
+const WorkerDashboard = lazyWithRetry(() => import('./pages/dashboard/WorkerDashboard'));
+const OnboardingPayment = lazyWithRetry(() => import('./pages/auth/OnboardingPayment'));
+const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
 
-const PageLoader = () => (
-  <div className="min-h-screen flex items-center justify-center bg-white">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange" />
-  </div>
-);
+const PAGE_LOAD_TIMEOUT_MS = 12000;
+
+const PageLoader = () => {
+  const [timedOut, setTimedOut] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setTimedOut(true), PAGE_LOAD_TIMEOUT_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (timedOut) {
+    return (
+      <div className="min-h-[50vh] flex flex-col items-center justify-center bg-white px-6 text-center gap-4">
+        <p className="text-gray-700 font-medium">This page is taking too long to load.</p>
+        <p className="text-sm text-gray-500 max-w-sm">
+          A stalled network request or outdated app cache can cause this. Reloading usually fixes it.
+        </p>
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+          className="px-4 py-2 rounded-lg bg-forge-orange text-white font-medium hover:opacity-90"
+        >
+          Reload page
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex items-center justify-center bg-white">
+      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange" />
+    </div>
+  );
+};
+
+const AuthGateLoader = () => <PageLoader />;
 
 // Guest Route — redirect authenticated users away from login/signup
 const GuestRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange" />
-      </div>
-    );
-  }
+  if (isLoading) return <AuthGateLoader />;
 
   if (isAuthenticated && user) {
     const from = (location.state as { from?: import('react-router-dom').Location })?.from;
@@ -71,7 +97,7 @@ const AdminRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange"></div></div>;
+  if (isLoading) return <AuthGateLoader />;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -89,7 +115,7 @@ const WorkerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange"></div></div>;
+  if (isLoading) return <AuthGateLoader />;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -115,7 +141,7 @@ const CustomerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =>
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange"></div></div>;
+  if (isLoading) return <AuthGateLoader />;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -133,7 +159,7 @@ const WorkerOnboardingRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange"></div></div>;
+  if (isLoading) return <AuthGateLoader />;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -158,7 +184,7 @@ const WorkerPaymentRoute: React.FC<{ children: React.ReactNode }> = ({ children 
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange"></div></div>;
+  if (isLoading) return <AuthGateLoader />;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;
@@ -184,7 +210,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   const { isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="min-h-screen flex items-center justify-center bg-white"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-forge-orange"></div></div>;
+  if (isLoading) return <AuthGateLoader />;
 
   if (!isAuthenticated) {
     return <Navigate to="/auth/login" state={{ from: location }} replace />;

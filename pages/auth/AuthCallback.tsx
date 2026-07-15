@@ -8,6 +8,10 @@ import PageHelmet from '../../components/PageHelmet';
 import { getSafeRedirectPathFromString, resolvePostAuthPath } from '../../utils/authRedirect';
 import { getOAuthCallbackUrl, parseOAuthCallbackError } from '../../utils/oauth';
 import { isSupabaseConfigured } from '../../services/supabase';
+import { withTimeout } from '../../utils/promiseTimeout';
+
+/** Entire OAuth callback must finish or surface an error — never spin forever. */
+const AUTH_CALLBACK_HARD_TIMEOUT_MS = 15000;
 
 /**
  * OAuth Callback Page
@@ -20,9 +24,11 @@ const AuthCallback: React.FC = () => {
 
   useEffect(() => {
     let cancelled = false;
+    let settled = false;
 
     const finishWithError = (message: string) => {
-      if (cancelled) return;
+      if (cancelled || settled) return;
+      settled = true;
       setError(message);
       setTimeout(() => navigate('/auth/login', { replace: true, state: { oauthError: message } }), 3000);
     };
@@ -43,6 +49,7 @@ const AuthCallback: React.FC = () => {
         }
 
         const session = await waitForAuthSession();
+        if (settled || cancelled) return;
         if (!session?.user) {
           finishWithError(
             `Sign-in did not complete. Add this Redirect URL in Supabase → Authentication → URL Configuration:\n${getOAuthCallbackUrl()}`
@@ -52,11 +59,12 @@ const AuthCallback: React.FC = () => {
 
         const user = session.user;
 
-        const { success, error: profileError } = await completeOAuthSignup(
-          user.id,
-          user.email || '',
-          user.user_metadata
+        const { success, error: profileError } = await withTimeout(
+          completeOAuthSignup(user.id, user.email || '', user.user_metadata),
+          8000,
+          'completeOAuthSignup'
         );
+        if (settled || cancelled) return;
 
         if (!success && profileError) {
           finishWithError('Failed to set up user profile. Please try again.');
@@ -68,28 +76,28 @@ const AuthCallback: React.FC = () => {
           await new Promise((r) => setTimeout(r, 500));
           profile = await getUserProfile(user.id);
         }
+        if (settled || cancelled) return;
 
-        if (!profile) {
-          finishWithError('Failed to load user profile. Please sign in again.');
-          return;
-        }
-
-        const role = (profile.role || 'customer') as UserRole;
+        // Proceed with session metadata if profiles table is slow/missing —
+        // blocking forever left users on an orange spinner after Google login.
+        const role = (profile?.role || user.user_metadata?.role || 'customer') as UserRole;
 
         const appUser = {
           id: user.id,
-          phone: profile.phone || user.user_metadata?.phone || '',
+          phone: profile?.phone || user.user_metadata?.phone || '',
           email: user.email,
           role,
-          firstName: profile.first_name || undefined,
-          lastName: profile.last_name || undefined,
-          profileCompleted: profile.profile_completed ?? false,
-          avatarUrl: profile.avatar_url || undefined,
-          workerStatus: profile.worker_status || 'pending',
+          firstName: profile?.first_name || user.user_metadata?.first_name || undefined,
+          lastName: profile?.last_name || user.user_metadata?.last_name || undefined,
+          profileCompleted: profile?.profile_completed ?? false,
+          avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined,
+          workerStatus: profile?.worker_status || 'pending',
         };
 
+        settled = true;
         login(appUser, session.access_token);
-        await refreshUser();
+        // Don't block navigation if profile refresh is slow
+        void refreshUser();
 
         const fromPath = localStorage.getItem('oauth_redirect_from');
         localStorage.removeItem('oauth_redirect_from');
@@ -101,7 +109,6 @@ const AuthCallback: React.FC = () => {
           role === UserRole.WORKER ? '/dashboard/worker' : '/dashboard/customer'
         );
 
-        if (cancelled) return;
         navigate(resolvePostAuthPath(appUser, safeFrom), { replace: true });
       } catch (err: any) {
         console.error('OAuth callback error:', err);
@@ -109,10 +116,19 @@ const AuthCallback: React.FC = () => {
       }
     };
 
-    handleCallback();
+    const hardTimer = window.setTimeout(() => {
+      finishWithError(
+        'Sign-in timed out. Check your connection and Supabase Auth redirect URLs, then try again.'
+      );
+    }, AUTH_CALLBACK_HARD_TIMEOUT_MS);
+
+    handleCallback().finally(() => {
+      window.clearTimeout(hardTimer);
+    });
 
     return () => {
       cancelled = true;
+      window.clearTimeout(hardTimer);
     };
   }, [navigate, login, refreshUser]);
 

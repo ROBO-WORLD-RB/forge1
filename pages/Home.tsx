@@ -61,7 +61,8 @@ const Home: React.FC = () => {
           return;
         }
 
-        const timeoutMs = 15000;
+        // Fast fallback — never leave Popular Services on a skeleton for long.
+        const timeoutMs = 3000;
         const { data, error } = await Promise.race([
           getCategories(),
           new Promise<{ data: null; error: Error }>((resolve) =>

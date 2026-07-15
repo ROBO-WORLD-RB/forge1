@@ -174,6 +174,11 @@ export default defineConfig(({ mode }) => {
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+            // Drop old precache entries after redeploy so clients don't keep
+            // requesting hashed chunks that no longer exist (ChunkLoadError).
+            cleanupOutdatedCaches: true,
+            clientsClaim: true,
+            skipWaiting: true,
             // SPA shell — never use offline.html here. That made every soft
             // navigation (OAuth /auth/callback, /dashboard, etc.) show
             // "You're Offline" while the user was actually online.

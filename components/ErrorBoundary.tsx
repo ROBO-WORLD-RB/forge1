@@ -4,6 +4,7 @@ import { trackError } from '../utils/analytics';
 import { captureError } from '../services/monitoringService';
 import { AlertTriangle, RefreshCw } from 'lucide-react';
 import Button from './Button';
+import { recoverFromChunkLoadError } from '../utils/lazyWithRetry';
 
 interface Props {
   children: ReactNode;
@@ -26,6 +27,11 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+    // Stale SW / post-deploy chunk mismatch — reload once before showing UI.
+    if (recoverFromChunkLoadError(error)) {
+      return;
+    }
+
     logger.error('React Error Boundary caught error', {
       error: error.message,
       stack: error.stack,
