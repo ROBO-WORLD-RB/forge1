@@ -122,7 +122,19 @@ Open **http://localhost:3000**
 2. Link opens `/auth/reset-password` — must be listed in Supabase redirect URLs (see Step 2)
 3. Set a new password → redirected to sign in
 
-> **Phone OTP in dev:** Twilio is optional locally. In `npm run dev`, the 6-digit code appears on the verify screen and in the browser console — use **Fill code** to auto-enter it.
+> **Phone OTP (signup verify step):** Uses the app’s `smsService` (Twilio or Africa’s Talking), **not** Supabase Phone Auth.
+>
+> - If SMS env vars are missing or send fails, the **6-digit code is shown on-screen** (dev and production beta) — use **Fill code**.
+> - When Twilio/AT is configured and SMS succeeds, the code is **hidden** (user receives SMS only).
+>
+> **Render env vars for real SMS** (Dashboard → `forge` → Environment → rebuild after adding). Use **either** Twilio **or** Africa’s Talking:
+>
+> | Provider | Variable names |
+> |----------|----------------|
+> | Twilio (preferred) | `VITE_TWILIO_ACCOUNT_SID` (must start with `AC`), `VITE_TWILIO_AUTH_TOKEN`, `VITE_TWILIO_PHONE_NUMBER` |
+> | Africa’s Talking | `VITE_AT_API_KEY`, `VITE_AT_USERNAME` |
+>
+> Values come from your Twilio / Africa’s Talking dashboard — do not commit them. Note: `VITE_*` keys are baked into the client bundle; move to an Edge Function before hard launch.
 
 ---
 
@@ -175,6 +187,8 @@ Highlights still ahead:
    - `https://forge-9ieq.onrender.com/auth/reset-password`
 
 Env vars set on Render (names only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_GEMINI_API_KEY`.
+
+**Still needed for real SMS** (signup “Verify Your Phone”): add Twilio **or** AT vars above, then **Manual Deploy** (Vite reads env at build time). Without them, users see an on-screen beta code instead of an SMS.
 
 ---
 ## Render deploy (static site)

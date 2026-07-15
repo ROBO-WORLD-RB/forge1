@@ -88,7 +88,9 @@ const Signup: React.FC = () => {
   const [otpVerifying, setOtpVerifying] = useState(false);
   const [canResend, setCanResend] = useState(false);
   const [resendTimer, setResendTimer] = useState(60);
-  const [devOtpCode, setDevOtpCode] = useState<string | null>(null);
+  /** Shown when SMS was not delivered (no provider / send failed) — beta unblock */
+  const [fallbackOtpCode, setFallbackOtpCode] = useState<string | null>(null);
+  const [otpSmsWarning, setOtpSmsWarning] = useState<string | null>(null);
   const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Subscription state (for workers)
@@ -124,19 +126,19 @@ const Signup: React.FC = () => {
     }
   }, [step]);
 
-  const fillDevOtp = () => {
-    if (!devOtpCode) return;
-    const digits = devOtpCode.replace(/\D/g, '').slice(0, 6).split('');
+  const fillFallbackOtp = () => {
+    if (!fallbackOtpCode) return;
+    const digits = fallbackOtpCode.replace(/\D/g, '').slice(0, 6).split('');
     const filled = ['', '', '', '', '', ''];
     digits.forEach((d, i) => { filled[i] = d; });
     setOtpCode(filled);
     otpInputRefs.current[Math.min(digits.length, 5)]?.focus();
   };
 
-  const copyDevOtp = async () => {
-    if (!devOtpCode) return;
+  const copyFallbackOtp = async () => {
+    if (!fallbackOtpCode) return;
     try {
-      await navigator.clipboard.writeText(devOtpCode);
+      await navigator.clipboard.writeText(fallbackOtpCode);
     } catch {
       // clipboard may be blocked; dev banner still shows the code
     }
@@ -229,14 +231,24 @@ const Signup: React.FC = () => {
   // Helper to send OTP and move to verify step
   const sendOtpAndProceed = async (phoneToVerify: string = phone) => {
     setOtpSending(true);
+    setError(null);
     try {
       const result = await sendOTP(phoneToVerify, country);
       if (!result.success) {
         setError(result.error || 'Failed to send verification code');
+        setFallbackOtpCode(null);
+        setOtpSmsWarning(null);
         return;
       }
-      if (result.devCode) {
-        setDevOtpCode(result.devCode);
+      const code = result.displayCode || result.devCode || null;
+      if (result.smsDelivered) {
+        setFallbackOtpCode(null);
+        setOtpSmsWarning(null);
+      } else if (code) {
+        setFallbackOtpCode(code);
+        setOtpSmsWarning(
+          result.warning || 'SMS not configured — use this code to continue.'
+        );
       }
       setResendTimer(60);
       setCanResend(false);
@@ -335,8 +347,17 @@ const Signup: React.FC = () => {
         setError(result.error || 'Failed to resend code');
         return;
       }
-      if (result.devCode) {
-        setDevOtpCode(result.devCode);
+      const code = result.displayCode || result.devCode || null;
+      if (result.smsDelivered) {
+        setFallbackOtpCode(null);
+        setOtpSmsWarning(null);
+      } else if (code) {
+        setFallbackOtpCode(code);
+        setOtpSmsWarning(
+          result.warning ||
+            'SMS could not be sent. Use this new code to continue.'
+        );
+        setError(null);
       }
       setOtpCode(['', '', '', '', '', '']);
       setResendTimer(60);
@@ -735,7 +756,10 @@ const Signup: React.FC = () => {
               </div>
               <h2 className="text-2xl font-bold text-forge-navy mb-2">Verify Your Phone</h2>
               <p className="text-gray-500">
-                We sent a 6-digit code to<br />
+                {fallbackOtpCode
+                  ? 'Enter the 6-digit code for'
+                  : 'We sent a 6-digit code to'}
+                <br />
                 <span className="font-medium text-gray-700">{phone}</span>
               </p>
             </div>
@@ -743,34 +767,32 @@ const Signup: React.FC = () => {
             <div className="space-y-6 flex-1">
               {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">{error}</div>}
 
-              {import.meta.env.DEV && devOtpCode && (
+              {fallbackOtpCode && (
                 <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-lg text-sm text-center">
-                  <p className="font-medium">Dev mode — your code</p>
-                  <p className="text-2xl font-bold tracking-widest mt-1">{devOtpCode}</p>
-                  <p className="text-xs mt-1 text-amber-700">Also logged in browser DevTools console</p>
+                  <p className="font-medium">
+                    {otpSmsWarning || 'SMS not configured — use this code'}
+                  </p>
+                  <p className="text-2xl font-bold tracking-widest mt-1">{fallbackOtpCode}</p>
+                  <p className="text-xs mt-1 text-amber-700">
+                    Real SMS needs Twilio or Africa&apos;s Talking env vars on the server.
+                  </p>
                   <div className="flex gap-2 justify-center mt-3">
                     <button
                       type="button"
-                      onClick={fillDevOtp}
+                      onClick={fillFallbackOtp}
                       className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
                     >
                       Fill code
                     </button>
                     <button
                       type="button"
-                      onClick={copyDevOtp}
+                      onClick={copyFallbackOtp}
                       className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
                     >
                       Copy
                     </button>
                   </div>
                 </div>
-              )}
-
-              {import.meta.env.DEV && !devOtpCode && (
-                <p className="text-xs text-center text-amber-700 bg-amber-50 border border-amber-100 rounded-lg p-2">
-                  Dev tip: without Twilio configured, your 6-digit code appears here after sending.
-                </p>
               )}
               
               {/* OTP Input */}
@@ -794,6 +816,7 @@ const Signup: React.FC = () => {
               <div className="text-center">
                 {canResend ? (
                   <button
+                    type="button"
                     onClick={handleResendOtp}
                     disabled={otpSending}
                     className="text-forge-orange font-medium hover:underline disabled:opacity-50"

@@ -334,12 +334,16 @@ This repo includes [`render.yaml`](./render.yaml) for Blueprint deploy. It confi
 
 ### Phone OTP / SMS (production)
 
-Phone login uses Supabase Phone auth. For reliable SMS in Ghana/Nigeria you may need a custom SMS provider configured in Supabase (Twilio, Africa’s Talking, etc.).
+**Signup “Verify Your Phone”** uses the app’s custom [`services/smsService.ts`](./services/smsService.ts) (Twilio or Africa’s Talking), **not** Supabase Phone Auth. OTP is stored in the browser for that session; SMS delivery needs provider credentials at **Vite build time** on Render.
 
-- [ ] **P1** Configure SMS in Supabase Dashboard → **Authentication** → **Providers** → **Phone**
-- [ ] **P1** If using app-level SMS env vars (see `.env.local.example`), prefer moving secrets to **Edge Functions** — client-exposed keys are a security risk:
-  - `VITE_TWILIO_ACCOUNT_SID`, `VITE_TWILIO_AUTH_TOKEN`, `VITE_TWILIO_PHONE_NUMBER`
-  - `VITE_AT_API_KEY`, `VITE_AT_USERNAME`
+**Login “Sign in with OTP”** (separate) uses Supabase Phone auth — configure that in Supabase if you enable it.
+
+- [ ] **P0** On Render → **forge** → **Environment**, add **either** Twilio **or** Africa’s Talking (names only below; values from their dashboards), then **Manual Deploy**:
+  - Twilio: `VITE_TWILIO_ACCOUNT_SID` (must start with `AC`), `VITE_TWILIO_AUTH_TOKEN`, `VITE_TWILIO_PHONE_NUMBER`
+  - Africa’s Talking: `VITE_AT_API_KEY`, `VITE_AT_USERNAME`
+- [ ] **P0** Confirm signup verify: with vars set, SMS arrives and code is **not** shown on-screen; without vars, amber banner shows code (“SMS not configured — use this code”)
+- [ ] **P1** Prefer moving SMS secrets to a **Supabase Edge Function** before hard launch — `VITE_*` keys are exposed in the client bundle
+- [ ] **P1** (Optional) Supabase Dashboard → **Authentication** → **Providers** → **Phone** — only if you use Login OTP via Supabase
 
 ### Seed reference data (optional)
 
