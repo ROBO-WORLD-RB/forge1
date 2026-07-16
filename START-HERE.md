@@ -145,8 +145,7 @@ Open **http://localhost:3000**
 
 1. Sign up as **Skilled Worker** → set password (no phone/email OTP step)
 2. Complete **profile onboarding** (`/auth/onboarding`) — bio, skills, rates
-3. Pay the **onboarding fee** (`/auth/onboarding/payment`) via Paystack test mode
-4. Land on **worker dashboard** once `worker_status` becomes `active` (webhook or manual SQL in dev)
+3. Land on **worker dashboard** — `worker_status` is set to `active` on profile completion (no Paystack step for now)
 
 **Forgot password:**
 
@@ -155,6 +154,8 @@ Open **http://localhost:3000**
 3. Set a new password → redirected to sign in
 
 > **Verification deferred (beta):** Phone OTP and email confirmation gates are **off in the app**. Signup is role → details → (workers: plan) → password → session → `resolvePostAuthPath` (customer dashboard / worker onboarding). Phone is optional. Google OAuth is unchanged.
+>
+> **Onboarding fee deferred (beta):** The ₵10 / ₦2,000 Paystack onboarding payment is **not required**. Paystack code (`OnboardingPayment`, webhooks) remains in the repo for a later rollout. Apply migration `010_skip_onboarding_payment.sql` (or run its SQL) so existing `pending_payment` workers become `active`.
 >
 > **Required for instant access:** Supabase → **Authentication** → **Providers** → **Email** → turn **Confirm email OFF**. If Confirm email stays ON, Supabase returns no session after signup and the user must sign in after confirming (or after you disable the setting).
 >

@@ -36,13 +36,13 @@ describe('authRedirect', () => {
     ).toBe('/auth/onboarding');
   });
 
-  it('routes workers pending payment to payment step', () => {
+  it('routes profile-completed workers to dashboard even if pending_payment', () => {
     expect(
       resolvePostAuthPath(
         { role: UserRole.WORKER, profileCompleted: true, workerStatus: 'pending_payment' },
         '/dashboard/worker'
       )
-    ).toBe('/auth/onboarding/payment');
+    ).toBe('/dashboard/worker');
   });
 
   it('routes completed customers to dashboard', () => {

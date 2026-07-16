@@ -535,10 +535,10 @@ export async function updateUserProfile(
 }
 
 /**
- * Mark worker onboarding complete and advance status to pending_payment.
- * Prefers the SECURITY DEFINER RPC (migration 009) so the write is atomic.
- * Falls back to a direct update that only changes worker_status when still pending
- * (avoids trigger failures on retries when already pending_payment).
+ * Mark worker onboarding complete and set worker_status to active.
+ * Prefers the SECURITY DEFINER RPC (migrations 009/010) so the write is atomic.
+ * Falls back to a direct update that advances pending/pending_payment → active
+ * (onboarding fee deferred for beta; Paystack path kept in repo for later).
  * Throws on failure — callers must not navigate as if success occurred.
  */
 export async function completeWorkerOnboardingProfile(userId: string): Promise<Profile> {
@@ -559,8 +559,12 @@ export async function completeWorkerOnboardingProfile(userId: string): Promise<P
 
   const existing = await getUserProfile(userId);
   const updates: Record<string, unknown> = { profile_completed: true };
-  if (!existing || existing.worker_status === 'pending') {
-    updates.worker_status = 'pending_payment';
+  if (
+    !existing ||
+    existing.worker_status === 'pending' ||
+    existing.worker_status === 'pending_payment'
+  ) {
+    updates.worker_status = 'active';
   }
 
   const { data, error } = await (supabase

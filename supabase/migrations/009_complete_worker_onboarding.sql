@@ -25,7 +25,7 @@ BEGIN
   SET
     profile_completed = true,
     worker_status = CASE
-      WHEN worker_status = 'pending' THEN 'pending_payment'
+      WHEN worker_status IN ('pending', 'pending_payment') THEN 'active'
       ELSE worker_status
     END,
     updated_at = NOW()
@@ -46,4 +46,4 @@ REVOKE ALL ON FUNCTION public.complete_worker_onboarding() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.complete_worker_onboarding() TO authenticated;
 
 COMMENT ON FUNCTION public.complete_worker_onboarding() IS
-  'Marks the calling worker profile_completed and advances pending → pending_payment.';
+  'Marks the calling worker profile_completed and sets pending/pending_payment → active (onboarding fee deferred for beta).';

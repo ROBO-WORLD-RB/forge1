@@ -116,7 +116,7 @@ Migration **001** creates these buckets automatically. If the SQL `INSERT INTO s
 
 ## P0 — Paystack (payments & webhooks)
 
-Forge uses Paystack for subscriptions, bookings, and worker onboarding fees. The **secret key must never** go in Vite env vars.
+Forge uses Paystack for subscriptions and bookings. **Worker onboarding fee is deferred for beta** — workers reach the dashboard after profile completion without paying; Paystack onboarding code stays in the repo for later. The **secret key must never** go in Vite env vars.
 
 ### Get API keys
 
@@ -158,7 +158,7 @@ Forge uses Paystack for subscriptions, bookings, and worker onboarding fees. The
 - [ ] **P0** Add URL: `https://<project-ref>.supabase.co/functions/v1/paystack-webhook`
 - [ ] **P0** Save and send a test event; confirm the Edge Function logs show success
 
-> **YOU MUST DO THIS:** Without the deployed webhook, successful Paystack charges will **not** update subscriptions, bookings, or worker onboarding status in your database. See [`supabase/functions/paystack-webhook/README.md`](./supabase/functions/paystack-webhook/README.md).
+> **YOU MUST DO THIS:** Without the deployed webhook, successful Paystack charges will **not** update subscriptions or bookings in your database. (Worker onboarding fee activation via webhook is deferred for beta.) See [`supabase/functions/paystack-webhook/README.md`](./supabase/functions/paystack-webhook/README.md).
 
 ---
 

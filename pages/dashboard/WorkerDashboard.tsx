@@ -6,7 +6,6 @@ import { getNotifications, markNotificationRead } from '../../services/notificat
 import { getActiveSubscription, checkSubscriptionStatus } from '../../services/subscriptionService';
 import { getUnreadCount } from '../../services/chatService';
 import { getPortfolioItems, createPortfolioItem, deletePortfolioItem, getEndorsements, getProfileByUserId } from '../../services/workerService';
-import PaymentGateModal from '../../components/PaymentGateModal';
 import ShareTools from '../../components/ShareTools';
 import type { Booking, Notification as DBNotification, Subscription } from '../../types/database';
 import type { WorkerProfile, WorkerTier } from '../../types';
@@ -44,9 +43,6 @@ const WorkerDashboard: React.FC = () => {
   // Endorsement states
   const [endorsements, setEndorsements] = useState<any[]>([]);
   const [workerProfile, setWorkerProfile] = useState<WorkerProfile | null>(null);
-
-  // Show payment gate modal if worker hasn't paid yet
-  const showPaymentGate = user?.role === 'worker' && user?.workerStatus === 'pending_payment';
 
   useEffect(() => {
     if (!user) return;
@@ -258,10 +254,7 @@ const WorkerDashboard: React.FC = () => {
     <>
       <PageHelmet title="Worker Dashboard" path="/dashboard/worker" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
-      {/* Payment gate modal for workers who haven't paid onboarding fee */}
-      {showPaymentGate && <PaymentGateModal />}
-
-      <div className={`max-w-6xl mx-auto ${showPaymentGate ? 'blur-sm pointer-events-none select-none' : ''}`}>
+      <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>

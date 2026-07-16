@@ -159,13 +159,13 @@ const WorkerOnboarding: React.FC = () => {
         return;
       }
 
-      // Update auth context BEFORE navigate so WorkerPaymentRoute sees
+      // Update auth context BEFORE navigate so WorkerRoute sees
       // profileCompleted=true (refreshUser alone can race / return null).
       login(
         {
           ...user,
           profileCompleted: true,
-          workerStatus: completedProfile.worker_status || 'pending_payment',
+          workerStatus: completedProfile.worker_status || 'active',
           firstName: formData.name.split(' ')[0] || user.firstName,
           lastName: formData.name.split(' ').slice(1).join(' ') || user.lastName,
           bio: formData.bio || user.bio,
@@ -176,7 +176,8 @@ const WorkerOnboarding: React.FC = () => {
       );
 
       void refreshUser().catch(() => undefined);
-      navigate('/auth/onboarding/payment', { replace: true });
+      // Onboarding fee deferred for beta — go straight to dashboard
+      navigate('/dashboard/worker', { replace: true });
     } catch (err: any) {
       console.error(err);
       setError(

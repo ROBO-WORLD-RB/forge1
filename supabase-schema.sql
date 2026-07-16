@@ -567,9 +567,10 @@ BEGIN
   END IF;
 
   IF NEW.worker_status IS DISTINCT FROM OLD.worker_status THEN
+    -- Beta: skip onboarding fee — allow advance to active from onboarding states
     IF OLD.role = 'worker'
-       AND OLD.worker_status = 'pending'
-       AND NEW.worker_status = 'pending_payment' THEN
+       AND OLD.worker_status IN ('pending', 'pending_payment')
+       AND NEW.worker_status IN ('pending_payment', 'active') THEN
       RETURN NEW;
     END IF;
 
@@ -606,7 +607,7 @@ BEGIN
   SET
     profile_completed = true,
     worker_status = CASE
-      WHEN worker_status = 'pending' THEN 'pending_payment'
+      WHEN worker_status IN ('pending', 'pending_payment') THEN 'active'
       ELSE worker_status
     END,
     updated_at = NOW()

@@ -35,7 +35,7 @@ const ResetPassword = lazyWithRetry(() => import('./pages/auth/ResetPassword'));
 const ProfileEdit = lazyWithRetry(() => import('./pages/ProfileEdit'));
 const CustomerDashboard = lazyWithRetry(() => import('./pages/dashboard/CustomerDashboard'));
 const WorkerDashboard = lazyWithRetry(() => import('./pages/dashboard/WorkerDashboard'));
-const OnboardingPayment = lazyWithRetry(() => import('./pages/auth/OnboardingPayment'));
+// OnboardingPayment kept in pages/auth for later re-enable; route redirects to dashboard for beta
 const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
 
 const PAGE_LOAD_TIMEOUT_MS = 12000;
@@ -125,10 +125,7 @@ const WorkerRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return <Navigate to="/dashboard/customer" replace />;
   }
 
-  if (user?.workerStatus === 'pending_payment') {
-    return <Navigate to="/auth/onboarding/payment" replace />;
-  }
-
+  // Onboarding fee deferred for beta — pending_payment no longer blocks dashboard
   if (!user?.profileCompleted) {
     return <Navigate to="/auth/onboarding" replace />;
   }
@@ -170,17 +167,14 @@ const WorkerOnboardingRoute: React.FC<{ children: React.ReactNode }> = ({ childr
   }
 
   if (user?.profileCompleted) {
-    if (user?.workerStatus === 'pending_payment') {
-      return <Navigate to="/auth/onboarding/payment" replace />;
-    }
     return <Navigate to="/dashboard/worker" replace />;
   }
 
   return <>{children}</>;
 };
 
-// Worker Payment Route — subscription payment step after profile setup
-const WorkerPaymentRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+// Worker Payment Route — onboarding fee deferred for beta; keep route for later re-enable
+const WorkerPaymentRoute: React.FC<{ children?: React.ReactNode }> = () => {
   const { user, isAuthenticated, isLoading } = useAuth();
   const location = useLocation();
 
@@ -198,11 +192,8 @@ const WorkerPaymentRoute: React.FC<{ children: React.ReactNode }> = ({ children 
     return <Navigate to="/auth/onboarding" replace />;
   }
 
-  if (user?.workerStatus !== 'pending_payment') {
-    return <Navigate to="/dashboard/worker" replace />;
-  }
-
-  return <>{children}</>;
+  // Beta: skip onboarding fee — always send completed workers to dashboard
+  return <Navigate to="/dashboard/worker" replace />;
 };
 
 // Protected Route Component
@@ -388,13 +379,9 @@ const AppContent: React.FC = () => {
                 </WorkerOnboardingRoute>
               } 
             />
-            <Route 
-              path="/auth/onboarding/payment" 
-              element={
-                <WorkerPaymentRoute>
-                  <PageTransition><OnboardingPayment /></PageTransition>
-                </WorkerPaymentRoute>
-              } 
+            <Route
+              path="/auth/onboarding/payment"
+              element={<WorkerPaymentRoute />}
             />
             <Route 
               path="/profile/edit" 

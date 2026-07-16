@@ -50,9 +50,7 @@ export function resolvePostAuthPath(
     if (!user.profileCompleted) {
       return '/auth/onboarding';
     }
-    if (user.workerStatus === 'pending_payment') {
-      return '/auth/onboarding/payment';
-    }
+    // Onboarding fee deferred for beta — pending_payment no longer blocks access
   }
 
   return destination;
