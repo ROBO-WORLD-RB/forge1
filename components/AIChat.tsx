@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { MessageSquare, Send, X, Minimize2, Globe, Bot, Loader2, ExternalLink, Cpu, Cloud, RefreshCw } from 'lucide-react';
 import { 
   sendAIMessage, 
@@ -9,7 +10,14 @@ import {
 } from '../services/aiService';
 import { ChatMessage } from '../types';
 
+/** Routes where the FAB would cover primary chat controls (send, composer). */
+const HIDE_FAB_ROUTES = ['/messages'];
+
 const AIChat: React.FC = () => {
+  const location = useLocation();
+  const hideFab = HIDE_FAB_ROUTES.some(
+    (route) => location.pathname === route || location.pathname.startsWith(`${route}/`)
+  );
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -51,6 +59,11 @@ const AIChat: React.FC = () => {
       scrollToBottom();
     }
   }, [messages, isOpen]);
+
+  // Close panel when entering a route where the FAB is hidden
+  useEffect(() => {
+    if (hideFab) setIsOpen(false);
+  }, [hideFab]);
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
@@ -111,11 +124,15 @@ const AIChat: React.FC = () => {
     }
   };
 
+  // Don't cover Messages (or similar) composer / send controls
+  if (hideFab) return null;
+
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-20 md:bottom-8 right-4 z-50 bg-forge-navy hover:bg-forge-orange text-white p-4 rounded-full shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 group"
+        aria-label="Open Forge AI assistant"
+        className="fixed bottom-20 md:bottom-8 right-4 z-40 bg-forge-navy hover:bg-forge-orange text-white p-4 rounded-full shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 group"
       >
         <Bot className="w-6 h-6" />
         <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap font-medium">
@@ -126,7 +143,7 @@ const AIChat: React.FC = () => {
   }
 
   return (
-    <div className="fixed bottom-20 md:bottom-8 right-4 z-50 w-[90vw] md:w-[400px] h-[600px] max-h-[75vh] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+    <div className="fixed bottom-20 md:bottom-8 right-4 z-40 w-[90vw] md:w-[400px] h-[min(600px,75dvh)] max-h-[calc(100dvh-8rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
       {/* Header */}
       <div className="bg-forge-navy text-white p-4 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">

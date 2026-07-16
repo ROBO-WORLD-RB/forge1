@@ -198,12 +198,13 @@ const Messages: React.FC = () => {
   return (
     <>
       <PageHelmet title="Messages" path="/messages" />
-      <div className="min-h-dynamic bg-gray-50 pb-nav">
-      <div className="max-w-6xl mx-auto h-[calc(100dvh-4rem)]">
-        <div className="flex h-full bg-white shadow-sm rounded-xl overflow-hidden m-4">
-          {/* Conversations List */}
-          <div className={`w-full md:w-80 border-r border-gray-200 flex flex-col ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
-            <div className="p-4 border-b border-gray-200">
+      {/* Mobile: full-height column above bottom nav. Desktop: padded side-by-side card. */}
+      <div className="bg-gray-50 h-[calc(100dvh-4rem)] pb-nav md:pb-0 flex flex-col">
+        <div className="flex-1 min-h-0 w-full max-w-6xl mx-auto md:p-4">
+          <div className="flex h-full bg-white overflow-hidden md:rounded-xl md:shadow-sm">
+          {/* Conversations List — full screen on mobile when no thread open */}
+          <div className={`w-full md:w-80 md:border-r border-gray-200 flex flex-col min-h-0 ${selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+            <div className="p-4 border-b border-gray-200 shrink-0">
               <h1 className="text-xl font-bold text-forge-navy mb-3">Messages</h1>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -212,12 +213,12 @@ const Messages: React.FC = () => {
                   placeholder="Search conversations..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  className="w-full pl-9 pr-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-forge-orange"
+                  className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-forge-orange"
                 />
               </div>
             </div>
             
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 min-h-0 overflow-y-auto touch-scroll">
               {conversationsError ? (
                 <div className="p-6 text-center">
                   <AlertCircle className="w-10 h-10 mx-auto mb-3 text-red-400" />
@@ -277,23 +278,25 @@ const Messages: React.FC = () => {
             </div>
           </div>
 
-          {/* Chat Area */}
-          <div className={`flex-1 flex flex-col ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
+          {/* Chat Area — full screen on mobile when a thread is open */}
+          <div className={`flex-1 flex flex-col min-h-0 min-w-0 ${!selectedConversation ? 'hidden md:flex' : 'flex'}`}>
             {selectedConversation ? (
               <>
                 {/* Chat Header */}
-                <div className="p-4 border-b border-gray-200 flex items-center gap-3">
+                <div className="p-3 sm:p-4 border-b border-gray-200 flex items-center gap-3 shrink-0">
                   <button 
+                    type="button"
                     onClick={() => setSelectedConversation(null)}
-                    className="md:hidden p-2 -ml-2 text-gray-600"
+                    className="md:hidden p-2 -ml-1 text-gray-600 hover:text-forge-navy rounded-lg"
+                    aria-label="Back to conversations"
                   >
                     <ArrowLeft className="w-5 h-5" />
                   </button>
-                  <div className="w-10 h-10 rounded-full bg-forge-navy/10 flex items-center justify-center">
+                  <div className="w-10 h-10 rounded-full bg-forge-navy/10 flex items-center justify-center shrink-0">
                     <User className="w-5 h-5 text-forge-navy" />
                   </div>
-                  <div>
-                    <p className="font-medium text-gray-900">
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 truncate">
                       User {getOtherParticipantId(selectedConversation).slice(0, 8)}...
                     </p>
                     <p className="text-xs text-gray-500">
@@ -303,7 +306,7 @@ const Messages: React.FC = () => {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                <div className="flex-1 min-h-0 overflow-y-auto touch-scroll p-4 space-y-4">
                   {messagesLoading ? (
                     <div className="flex flex-col items-center justify-center py-12">
                       <Loader2 className="w-6 h-6 text-forge-orange animate-spin mb-2" />
@@ -315,6 +318,7 @@ const Messages: React.FC = () => {
                       <p className="text-sm text-gray-700 font-medium">Couldn&apos;t load messages</p>
                       <p className="text-xs text-gray-500 mt-1">{messagesError}</p>
                       <button
+                        type="button"
                         onClick={() => selectedConversation && fetchMessages(selectedConversation.id)}
                         className="mt-3 inline-flex items-center gap-1.5 text-forge-orange text-sm font-medium hover:underline"
                       >
@@ -338,12 +342,12 @@ const Messages: React.FC = () => {
                         key={msg.id}
                         className={`flex ${msg.sender_id === user?.id ? 'justify-end' : 'justify-start'}`}
                       >
-                        <div className={`max-w-[70%] ${
+                        <div className={`max-w-[85%] sm:max-w-[70%] ${
                           msg.sender_id === user?.id 
                             ? 'bg-forge-orange text-white rounded-l-xl rounded-tr-xl' 
                             : 'bg-gray-100 text-gray-900 rounded-r-xl rounded-tl-xl'
                         } px-4 py-2`}>
-                          <p className="text-sm">{msg.body}</p>
+                          <p className="text-sm break-words">{msg.body}</p>
                           <div className={`flex items-center gap-1 mt-1 ${
                             msg.sender_id === user?.id ? 'justify-end' : ''
                           }`}>
@@ -365,8 +369,11 @@ const Messages: React.FC = () => {
                   <div ref={messagesEndRef} />
                 </div>
 
-                {/* Message Input */}
-                <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-200">
+                {/* Composer — sticky above bottom nav; send always clear of FAB (FAB hidden on this route) */}
+                <form
+                  onSubmit={handleSendMessage}
+                  className="shrink-0 border-t border-gray-200 bg-white p-3 sm:p-4"
+                >
                   {sendError && (
                     <div className="mb-3 bg-red-50 text-red-600 p-2.5 rounded-lg text-sm flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -380,7 +387,7 @@ const Messages: React.FC = () => {
                       </button>
                     </div>
                   )}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-end gap-2">
                     <input
                       type="text"
                       value={newMessage}
@@ -389,12 +396,14 @@ const Messages: React.FC = () => {
                         if (sendError) setSendError(null);
                       }}
                       placeholder="Type a message..."
-                      className="flex-1 px-4 py-2 rounded-full border border-gray-200 focus:outline-none focus:border-forge-orange"
+                      enterKeyHint="send"
+                      className="flex-1 min-w-0 px-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-forge-orange text-base"
                     />
                     <button
                       type="submit"
                       disabled={!newMessage.trim() || sending}
-                      className="p-3 bg-forge-orange text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      aria-label="Send message"
+                      className="shrink-0 p-3 bg-forge-orange text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {sending ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -412,14 +421,16 @@ const Messages: React.FC = () => {
                     <MessageSquare className="w-8 h-8 text-forge-navy/40" />
                   </div>
                   <p className="text-lg font-medium text-forge-navy">Select a conversation</p>
-                  <p className="text-sm text-gray-500 mt-1">Choose from your existing conversations on the left</p>
+                  <p className="text-sm text-gray-500 mt-1 hidden md:block">
+                    Choose from your existing conversations on the left
+                  </p>
                 </div>
               </div>
             )}
           </div>
+          </div>
         </div>
       </div>
-    </div>
     </>
   );
 };
