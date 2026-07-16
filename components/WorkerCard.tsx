@@ -103,7 +103,7 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, onViewProfile }) => {
             {worker.hourlyRate.currency} {worker.hourlyRate.min}
             <span className="text-xs font-normal text-gray-500">/hr</span>
           </div>
-          <Button size="sm" onClick={() => onViewProfile(worker.id)}>
+          <Button size="sm" onClick={() => onViewProfile(worker.userId)}>
             View Profile
           </Button>
         </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProfile, getProfileByUsername, getPortfolioItems, getEndorsements } from '../services/workerService';
+import { resolvePublicProfile, getPortfolioItems, getEndorsements } from '../services/workerService';
 import { getReviewsForWorker } from '../services/reviewService';
 import { supabase } from '../services/supabase';
 import Button from '../components/Button';
@@ -8,7 +8,7 @@ import BookingModal from '../components/BookingModal';
 import ShareTools from '../components/ShareTools';
 import { useAuth } from '../context/AuthContext';
 import { ShieldCheck, MapPin, Star, MessageSquare, Flag, Loader2, Image as ImageIcon, ThumbsUp } from 'lucide-react';
-import type { WorkerProfile as DBWorkerProfile } from '../types/database';
+import type { WorkerProfile as DBWorkerProfile, Profile as DBProfile } from '../types/database';
 import type { WorkerProfile, WorkerTier, Review as AppReview } from '../types';
 import PageHelmet from '../components/PageHelmet';
 
@@ -47,6 +47,7 @@ const WorkerProfilePage: React.FC = () => {
   
   const targetIdentifier = username || id;
   const [worker, setWorker] = useState<WorkerProfile | null>(null);
+  const [customerProfile, setCustomerProfile] = useState<DBProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isBookingOpen, setIsBookingOpen] = useState(false);
@@ -64,16 +65,11 @@ const WorkerProfilePage: React.FC = () => {
 
       setLoading(true);
       setError(null);
+      setWorker(null);
+      setCustomerProfile(null);
 
       try {
-        let profileResult;
-
-        if (username) {
-          profileResult = await getProfileByUsername(targetIdentifier);
-        } else {
-          profileResult = await getProfile(targetIdentifier);
-        }
-
+        const profileResult = await resolvePublicProfile(targetIdentifier);
         const { data, error: fetchError } = profileResult;
 
         if (fetchError) {
@@ -82,17 +78,22 @@ const WorkerProfilePage: React.FC = () => {
         }
 
         if (!data) {
-          setError('Worker profile not found');
+          setError('Profile not found');
           return;
         }
 
-        const mapped = mapToAppWorkerProfile(data);
-        setUsernameSlug(data.profiles?.username || '');
+        if (data.kind === 'customer') {
+          setCustomerProfile(data.profile);
+          return;
+        }
+
+        const mapped = mapToAppWorkerProfile(data.profile);
+        setUsernameSlug(data.profile.profiles?.username || '');
 
         const [portfoliosRes, endorsementsRes, reviewsRes] = await Promise.all([
-          getPortfolioItems(data.user_id),
-          getEndorsements(data.user_id),
-          getReviewsForWorker(data.id),
+          getPortfolioItems(data.profile.user_id),
+          getEndorsements(data.profile.user_id),
+          getReviewsForWorker(data.profile.id),
         ]);
 
         if (portfoliosRes.data) {
@@ -168,25 +169,102 @@ const WorkerProfilePage: React.FC = () => {
   }
 
   // Error state
-  if (error || !worker) {
+  if (error || (!worker && !customerProfile)) {
     return (
       <>
-        <PageHelmet title="Worker Profile" path="/profile/:id" />
+        <PageHelmet title="Profile" path="/profile/:id" />
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-lg p-8 max-w-md text-center">
             <h2 className="text-xl font-bold text-gray-900 mb-2">
-              {error || 'Worker not found'}
+              {error || 'Profile not found'}
             </h2>
             <p className="text-gray-500 mb-6">
-              The profile you're looking for doesn't exist or couldn't be loaded.
+              The profile you&apos;re looking for doesn&apos;t exist or couldn&apos;t be loaded.
             </p>
-            <Button onClick={() => navigate('/search')}>
-              Back to Search
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <Button variant="secondary" onClick={() => navigate(-1)}>
+                Go Back
+              </Button>
+              <Button onClick={() => navigate('/search')}>
+                Find Workers
+              </Button>
+            </div>
           </div>
         </div>
       </>
     );
+  }
+
+  // Customer account (no worker_profiles row)
+  if (customerProfile) {
+    const fullName = [customerProfile.first_name, customerProfile.last_name]
+      .filter(Boolean)
+      .join(' ') || 'Customer';
+    const avatarUrl = customerProfile.avatar_url
+      || `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=random`;
+
+    return (
+      <>
+        <PageHelmet title={fullName} path="/profile/:id" />
+        <div className="min-h-dynamic bg-gray-50 pb-nav">
+          <div className="h-48 bg-forge-navy relative">
+            <button
+              onClick={() => navigate(-1)}
+              className="absolute top-4 left-4 text-white bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm transition-colors"
+            >
+              &larr; Back
+            </button>
+          </div>
+          <div className="max-w-3xl mx-auto px-4 sm:px-6 relative -mt-20">
+            <div className="bg-white rounded-2xl shadow-lg overflow-hidden p-6 md:p-8">
+              <div className="flex flex-col sm:flex-row gap-6 items-start">
+                <img
+                  src={avatarUrl}
+                  alt={fullName}
+                  className="w-28 h-28 rounded-2xl border-4 border-white shadow-md object-cover bg-gray-200"
+                />
+                <div className="flex-1 space-y-2">
+                  <h1 className="text-3xl font-bold text-gray-900">{fullName}</h1>
+                  <p className="text-lg text-gray-600">Customer on FORGE</p>
+                  {customerProfile.username && (
+                    <span className="inline-block text-sm text-forge-orange bg-orange-50 px-2 py-0.5 rounded font-mono font-medium">
+                      {customerProfile.username}
+                    </span>
+                  )}
+                  {customerProfile.location && (
+                    <p className="text-sm text-gray-500 flex items-center gap-1">
+                      <MapPin className="w-4 h-4" /> {customerProfile.location}
+                    </p>
+                  )}
+                </div>
+              </div>
+              {customerProfile.bio && (
+                <p className="text-gray-600 leading-relaxed mt-6">{customerProfile.bio}</p>
+              )}
+              <p className="text-sm text-gray-500 mt-6 pt-6 border-t border-gray-100">
+                This user has not set up a worker profile. You can still message them from your bookings.
+              </p>
+              {isAuthenticated && (
+                <div className="mt-6">
+                  <Button
+                    size="lg"
+                    variant="secondary"
+                    icon={<MessageSquare className="w-4 h-4" />}
+                    onClick={() => navigate('/messages', { state: { recipientId: customerProfile.id } })}
+                  >
+                    Message
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </>
+    );
+  }
+
+  if (!worker) {
+    return null;
   }
 
   return (

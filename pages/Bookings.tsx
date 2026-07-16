@@ -258,6 +258,12 @@ const Bookings: React.FC = () => {
                       <p className="text-sm text-gray-500 mt-1">
                         Booking #{booking.id.slice(0, 8)}
                       </p>
+                      <Link
+                        to={`/profile/${isWorker ? booking.customer_user_id : booking.worker_user_id}`}
+                        className="text-sm text-forge-orange hover:underline mt-1 inline-block"
+                      >
+                        View {isWorker ? 'customer' : 'worker'} profile
+                      </Link>
                     </div>
                   </div>
                   <div className="text-right text-sm text-gray-500">

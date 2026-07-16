@@ -12,11 +12,12 @@ import type {
   ServiceCategory,
   WorkerPortfolio,
   WorkerEndorsement,
+  Profile,
   Country,
   Currency,
   WorkerTier
 } from '../types/database';
-import { handleDatabaseError, DatabaseError } from './databaseErrors';
+import { handleDatabaseError, DatabaseError, ERROR_CODES } from './databaseErrors';
 import { startTransaction, captureError } from './monitoringService';
 
 /**
@@ -92,6 +93,14 @@ export interface WorkerServiceResult<T> {
   data: T | null;
   error: DatabaseError | null;
 }
+
+/** Resolved profile for public profile pages (worker listing or basic customer account). */
+export type ResolvedPublicProfile =
+  | { kind: 'worker'; profile: DBWorkerWithProfile }
+  | { kind: 'customer'; profile: Profile };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Worker Service interface
@@ -306,13 +315,7 @@ export async function getProfileByUserId(
   }
 
   if (!data) {
-    return {
-      data: null,
-      error: {
-        code: 'NOT_FOUND' as any,
-        message: 'Worker profile not found',
-      },
-    };
+    return { data: null, error: null };
   }
 
   return {
@@ -332,7 +335,71 @@ export async function resolveWorkerProfile(
     return byId;
   }
 
-  return getProfileByUserId(identifier);
+  const byUserId = await getProfileByUserId(identifier);
+  if (byUserId.data) {
+    return byUserId;
+  }
+
+  if (byUserId.error) {
+    return byUserId;
+  }
+  if (byId.error) {
+    return byId;
+  }
+
+  return { data: null, error: null };
+}
+
+/**
+ * Resolve any public profile: worker listing, or basic customer account when no worker_profiles row exists.
+ */
+export async function resolvePublicProfile(
+  identifier: string
+): Promise<WorkerServiceResult<ResolvedPublicProfile>> {
+  const trimmed = identifier.trim();
+  if (!trimmed) {
+    return { data: null, error: null };
+  }
+
+  if (!UUID_RE.test(trimmed)) {
+    const byUsername = await getProfileByUsername(trimmed);
+    if (byUsername.data) {
+      return { data: { kind: 'worker', profile: byUsername.data }, error: null };
+    }
+    if (byUsername.error && byUsername.error.code !== ERROR_CODES.NOT_FOUND) {
+      return { data: null, error: byUsername.error };
+    }
+  }
+
+  const workerResult = await resolveWorkerProfile(trimmed);
+  if (workerResult.data) {
+    return { data: { kind: 'worker', profile: workerResult.data }, error: null };
+  }
+  if (workerResult.error) {
+    return { data: null, error: workerResult.error };
+  }
+
+  const { data: basicProfile, error: profileError } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', trimmed)
+    .maybeSingle();
+
+  if (profileError) {
+    return {
+      data: null,
+      error: handleDatabaseError(profileError),
+    };
+  }
+
+  if (basicProfile) {
+    return {
+      data: { kind: 'customer', profile: basicProfile as Profile },
+      error: null,
+    };
+  }
+
+  return { data: null, error: null };
 }
 
 /**
@@ -750,13 +817,17 @@ export async function getProfileByUsername(
     .from('profiles')
     .select('id')
     .eq('username', cleanUsername)
-    .single();
+    .maybeSingle();
 
-  if (profileError || !profileData) {
+  if (profileError) {
     return {
       data: null,
-      error: handleDatabaseError(profileError || new Error('Profile not found')),
+      error: handleDatabaseError(profileError),
     };
+  }
+
+  if (!profileData) {
+    return { data: null, error: null };
   }
 
   return getProfileByUserId(profileData.id);
