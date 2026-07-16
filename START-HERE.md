@@ -115,7 +115,7 @@ Open **http://localhost:3000**
 
 **Worker onboarding flow (end-to-end):**
 
-1. Sign up as **Skilled Worker** → verify phone OTP → set password
+1. Sign up as **Skilled Worker** → set password (no phone/email OTP step)
 2. Complete **profile onboarding** (`/auth/onboarding`) — bio, skills, rates
 3. Pay the **onboarding fee** (`/auth/onboarding/payment`) via Paystack test mode
 4. Land on **worker dashboard** once `worker_status` becomes `active` (webhook or manual SQL in dev)
@@ -126,19 +126,11 @@ Open **http://localhost:3000**
 2. Link opens `/auth/reset-password` — must be listed in Supabase redirect URLs (see Step 2)
 3. Set a new password → redirected to sign in
 
-> **Phone OTP (signup verify step):** Uses the app’s `smsService` (Twilio or Africa’s Talking), **not** Supabase Phone Auth.
+> **Verification deferred (beta):** Phone OTP and email confirmation gates are **off in the app**. Signup is role → details → (workers: plan) → password → session → `resolvePostAuthPath` (customer dashboard / worker onboarding). Phone is optional. Google OAuth is unchanged.
 >
-> - If SMS env vars are missing or send fails, the **6-digit code is shown on-screen** (dev and production beta) — use **Fill code**.
-> - When Twilio/AT is configured and SMS succeeds, the code is **hidden** (user receives SMS only).
+> **Required for instant access:** Supabase → **Authentication** → **Providers** → **Email** → turn **Confirm email OFF**. If Confirm email stays ON, Supabase returns no session after signup and the user must sign in after confirming (or after you disable the setting).
 >
-> **Render env vars for real SMS** (Dashboard → `forge` → Environment → rebuild after adding). Use **either** Twilio **or** Africa’s Talking:
->
-> | Provider | Variable names |
-> |----------|----------------|
-> | Twilio (preferred) | `VITE_TWILIO_ACCOUNT_SID` (must start with `AC`), `VITE_TWILIO_AUTH_TOKEN`, `VITE_TWILIO_PHONE_NUMBER` |
-> | Africa’s Talking | `VITE_AT_API_KEY`, `VITE_AT_USERNAME` |
->
-> Values come from your Twilio / Africa’s Talking dashboard — do not commit them. Note: `VITE_*` keys are baked into the client bundle; move to an Edge Function before hard launch.
+> `services/smsService.ts` remains in the repo for a future verification rollout; it is unused by signup/login UI for now.
 
 ---
 
@@ -192,7 +184,7 @@ Highlights still ahead:
 
 Env vars set on Render (names only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_GEMINI_API_KEY`.
 
-**Still needed for real SMS** (signup “Verify Your Phone”): add Twilio **or** AT vars above, then **Manual Deploy** (Vite reads env at build time). Without them, users see an on-screen beta code instead of an SMS.
+**Phone/email verification:** deferred for beta — no Twilio/AT vars required for signup/login. Turn **Confirm email OFF** in Supabase for instant post-signup sessions.
 
 ---
 ## Render deploy (static site)

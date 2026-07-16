@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, Link, useLocation, type Location } from 'react-router-dom';
 import { UserRole } from '../../types';
 import { signUp, getUserProfile, signInWithGoogle } from '../../services/authService';
-import { sendOTP, verifyOTP, formatPhoneNumber } from '../../services/smsService';
+import { formatPhoneNumber } from '../../services/smsService';
 import { useAuth } from '../../context/AuthContext';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import PasswordStrengthMeter from '../../components/PasswordStrengthMeter';
-import { Briefcase, User, Phone, ArrowLeft, Eye, EyeOff, Check, Camera, AtSign, Smartphone, Crown, Star, Zap } from 'lucide-react';
+import { Briefcase, User, Phone, ArrowLeft, Eye, EyeOff, Check, Camera, AtSign, Crown, Star, Zap } from 'lucide-react';
 import { getSubscriptionPlans, type SubscriptionPlan } from '../../services/subscriptionService';
 import PageHelmet from '../../components/PageHelmet';
 import { getDefaultDashboardPath, getSafeRedirectPath, resolvePostAuthPath } from '../../utils/authRedirect';
@@ -34,7 +34,8 @@ const GoogleIcon = () => (
   </svg>
 );
 
-type Step = 'role' | 'details' | 'subscription' | 'verify' | 'password' | 'checkEmail';
+/** Phone/email OTP verification deferred — flow is role → details → [subscription] → password → redirect */
+type Step = 'role' | 'details' | 'subscription' | 'password' | 'checkEmail';
 
 const SIGNUP_ROLE_KEY = 'forge_signup_role';
 const SIGNUP_COUNTRY_KEY = 'forge_signup_country';
@@ -98,17 +99,6 @@ const Signup: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
-  // OTP verification state
-  const [otpCode, setOtpCode] = useState(['', '', '', '', '', '']);
-  const [otpSending, setOtpSending] = useState(false);
-  const [otpVerifying, setOtpVerifying] = useState(false);
-  const [canResend, setCanResend] = useState(false);
-  const [resendTimer, setResendTimer] = useState(60);
-  /** Shown when SMS was not delivered (no provider / send failed) — beta unblock */
-  const [fallbackOtpCode, setFallbackOtpCode] = useState<string | null>(null);
-  const [otpSmsWarning, setOtpSmsWarning] = useState<string | null>(null);
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Subscription state (for workers)
   const [selectedPlan, setSelectedPlan] = useState<string>('free');
@@ -123,41 +113,6 @@ const Signup: React.FC = () => {
         setAvatarPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
-    }
-  };
-
-  // Resend timer countdown
-  useEffect(() => {
-    if (step === 'verify' && resendTimer > 0) {
-      const timer = setTimeout(() => setResendTimer(resendTimer - 1), 1000);
-      return () => clearTimeout(timer);
-    } else if (resendTimer === 0) {
-      setCanResend(true);
-    }
-  }, [step, resendTimer]);
-
-  // Focus first OTP input when entering verify step
-  useEffect(() => {
-    if (step === 'verify') {
-      otpInputRefs.current[0]?.focus();
-    }
-  }, [step]);
-
-  const fillFallbackOtp = () => {
-    if (!fallbackOtpCode) return;
-    const digits = fallbackOtpCode.replace(/\D/g, '').slice(0, 6).split('');
-    const filled = ['', '', '', '', '', ''];
-    digits.forEach((d, i) => { filled[i] = d; });
-    setOtpCode(filled);
-    otpInputRefs.current[Math.min(digits.length, 5)]?.focus();
-  };
-
-  const copyFallbackOtp = async () => {
-    if (!fallbackOtpCode) return;
-    try {
-      await navigator.clipboard.writeText(fallbackOtpCode);
-    } catch {
-      // clipboard may be blocked; dev banner still shows the code
     }
   };
 
@@ -220,21 +175,16 @@ const Signup: React.FC = () => {
       return;
     }
 
-    // Validate phone
-    if (!phone.trim()) {
-      setError('Please enter your phone number');
-      return;
-    }
-
     // For customers, auto-generate username if not provided
     if (role === UserRole.CUSTOMER && !username) {
       const autoUsername = `${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/\s/g, '');
       setUsername(autoUsername);
     }
     
-    // Format phone number
-    const formattedPhone = formatPhoneNumber(phone, country);
-    setPhone(formattedPhone);
+    // Format phone when provided (optional — verification deferred)
+    if (phone.trim()) {
+      setPhone(formatPhoneNumber(phone, country));
+    }
     
     // For workers, go to subscription selection first
     if (role === UserRole.WORKER) {
@@ -244,46 +194,14 @@ const Signup: React.FC = () => {
       return;
     }
     
-    // For customers, go directly to OTP verification
-    await sendOtpAndProceed(formattedPhone);
-  };
-
-  // Helper to send OTP and move to verify step
-  const sendOtpAndProceed = async (phoneToVerify: string = phone) => {
-    setOtpSending(true);
-    setError(null);
-    try {
-      const result = await sendOTP(phoneToVerify, country);
-      if (!result.success) {
-        setError(result.error || 'Failed to send verification code');
-        setFallbackOtpCode(null);
-        setOtpSmsWarning(null);
-        return;
-      }
-      const code = result.displayCode || result.devCode || null;
-      if (result.smsDelivered) {
-        setFallbackOtpCode(null);
-        setOtpSmsWarning(null);
-      } else if (code) {
-        setFallbackOtpCode(code);
-        setOtpSmsWarning(
-          result.warning || 'SMS not configured — use this code to continue.'
-        );
-      }
-      setResendTimer(60);
-      setCanResend(false);
-      setStep('verify');
-    } catch (err: any) {
-      setError(err.message || 'Failed to send verification code');
-    } finally {
-      setOtpSending(false);
-    }
+    // Customers skip OTP — go straight to password / account creation
+    setStep('password');
   };
 
   // --- Step 2.5: Subscription Selection (Workers only) ---
-  const handleSubscriptionContinue = async () => {
+  const handleSubscriptionContinue = () => {
     setError(null);
-    await sendOtpAndProceed(phone);
+    setStep('password');
   };
 
   const getPlanIcon = (tier: string) => {
@@ -303,93 +221,7 @@ const Signup: React.FC = () => {
     }
   };
 
-  // --- Step 3: OTP Verification ---
-  const handleOtpChange = (index: number, value: string) => {
-    if (value.length > 1) {
-      // Handle paste
-      const digits = value.replace(/\D/g, '').slice(0, 6).split('');
-      const newOtp = [...otpCode];
-      digits.forEach((digit, i) => {
-        if (index + i < 6) newOtp[index + i] = digit;
-      });
-      setOtpCode(newOtp);
-      const nextIndex = Math.min(index + digits.length, 5);
-      otpInputRefs.current[nextIndex]?.focus();
-    } else {
-      const newOtp = [...otpCode];
-      newOtp[index] = value.replace(/\D/g, '');
-      setOtpCode(newOtp);
-      if (value && index < 5) {
-        otpInputRefs.current[index + 1]?.focus();
-      }
-    }
-  };
-
-  const handleOtpKeyDown = (index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !otpCode[index] && index > 0) {
-      otpInputRefs.current[index - 1]?.focus();
-    }
-  };
-
-  const handleVerifyOtp = async () => {
-    const code = otpCode.join('');
-    if (code.length !== 6) {
-      setError('Please enter the complete 6-digit code');
-      return;
-    }
-
-    setOtpVerifying(true);
-    setError(null);
-
-    try {
-      const result = await verifyOTP(phone, country, code);
-      if (!result.success) {
-        setError(result.error || 'Invalid verification code');
-        return;
-      }
-      setStep('password');
-    } catch (err: any) {
-      setError(err.message || 'Verification failed');
-    } finally {
-      setOtpVerifying(false);
-    }
-  };
-
-  const handleResendOtp = async () => {
-    if (!canResend) return;
-    
-    setOtpSending(true);
-    setError(null);
-    
-    try {
-      const result = await sendOTP(phone, country);
-      if (!result.success) {
-        setError(result.error || 'Failed to resend code');
-        return;
-      }
-      const code = result.displayCode || result.devCode || null;
-      if (result.smsDelivered) {
-        setFallbackOtpCode(null);
-        setOtpSmsWarning(null);
-      } else if (code) {
-        setFallbackOtpCode(code);
-        setOtpSmsWarning(
-          result.warning ||
-            'SMS could not be sent. Use this new code to continue.'
-        );
-        setError(null);
-      }
-      setOtpCode(['', '', '', '', '', '']);
-      setResendTimer(60);
-      setCanResend(false);
-    } catch (err: any) {
-      setError(err.message || 'Failed to resend code');
-    } finally {
-      setOtpSending(false);
-    }
-  };
-
-  // --- Step 3: Password & Registration ---
+  // --- Password & Registration ---
   const getPasswordStrength = (pwd: string) => {
     return {
       minLength: pwd.length >= 8,
@@ -419,9 +251,12 @@ const Signup: React.FC = () => {
     }
 
     try {
-      // Use Supabase auth service for registration
+      const resolvedPhone = phone.trim()
+        ? formatPhoneNumber(phone, country)
+        : '';
+
       const { user: supabaseUser, session, error: authError } = await signUp(email, password, {
-        phone,
+        phone: resolvedPhone,
         role: selectedRole as 'worker' | 'customer' | 'admin',
         country,
         firstName: firstName.trim(),
@@ -458,7 +293,8 @@ const Signup: React.FC = () => {
         return;
       }
 
-      // No session → Supabase "Confirm email" is on. Stay on a clear success screen.
+      // No session → Supabase "Confirm email" is still ON in the dashboard.
+      // App does not gate on verification; turn Confirm email OFF for instant access.
       if (!session) {
         clearSignupIntent();
         setStep('checkEmail');
@@ -473,7 +309,7 @@ const Signup: React.FC = () => {
       // even if profile lag temporarily omits role.
       const appUser = {
         id: supabaseUser.id,
-        phone: profile?.phone || phone,
+        phone: profile?.phone || resolvedPhone,
         email: supabaseUser.email,
         role: resolvedRole,
         firstName: profile?.first_name || firstName.trim() || undefined,
@@ -708,7 +544,7 @@ const Signup: React.FC = () => {
                 </div>
 
                 <Input 
-                  label="Phone Number"
+                  label="Phone Number (optional)"
                   placeholder={country === 'GH' ? '050 123 4567' : '0801 234 5678'}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
@@ -718,7 +554,7 @@ const Signup: React.FC = () => {
               </div>
 
               <div className="pt-4">
-                <Button fullWidth size="lg" type="submit" loading={otpSending} disabled={!email || !firstName || !lastName || !phone}>
+                <Button fullWidth size="lg" type="submit" disabled={!email || !firstName || !lastName}>
                   Continue
                 </Button>
               </div>
@@ -780,117 +616,17 @@ const Signup: React.FC = () => {
                 fullWidth 
                 size="lg" 
                 onClick={handleSubscriptionContinue}
-                loading={otpSending}
               >
-                Continue to Verification
+                Continue
               </Button>
             </div>
           </div>
         )}
 
-        {/* Step 3: Phone Verification */}
-        {step === 'verify' && (
-          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
-            {renderBackBtn(role === UserRole.WORKER ? 'subscription' : 'details')}
-            <div className="mt-12 mb-8 text-center">
-              <div className="w-16 h-16 bg-forge-orange/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Smartphone className="w-8 h-8 text-forge-orange" />
-              </div>
-              <h2 className="text-2xl font-bold text-forge-navy mb-2">Verify Your Phone</h2>
-              <p className="text-gray-500">
-                {fallbackOtpCode
-                  ? 'Enter the 6-digit code for'
-                  : 'We sent a 6-digit code to'}
-                <br />
-                <span className="font-medium text-gray-700">{phone}</span>
-              </p>
-            </div>
-
-            <div className="space-y-6 flex-1">
-              {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm text-center">{error}</div>}
-
-              {fallbackOtpCode && (
-                <div className="bg-amber-50 border border-amber-200 text-amber-900 p-3 rounded-lg text-sm text-center">
-                  <p className="font-medium">
-                    {otpSmsWarning || 'SMS not configured — use this code'}
-                  </p>
-                  <p className="text-2xl font-bold tracking-widest mt-1">{fallbackOtpCode}</p>
-                  <p className="text-xs mt-1 text-amber-700">
-                    Real SMS needs Twilio or Africa&apos;s Talking env vars on the server.
-                  </p>
-                  <div className="flex gap-2 justify-center mt-3">
-                    <button
-                      type="button"
-                      onClick={fillFallbackOtp}
-                      className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
-                    >
-                      Fill code
-                    </button>
-                    <button
-                      type="button"
-                      onClick={copyFallbackOtp}
-                      className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 rounded-lg transition-colors"
-                    >
-                      Copy
-                    </button>
-                  </div>
-                </div>
-              )}
-              
-              {/* OTP Input */}
-              <div className="flex justify-center gap-2">
-                {otpCode.map((digit, index) => (
-                  <input
-                    key={index}
-                    ref={(el) => { otpInputRefs.current[index] = el; }}
-                    type="text"
-                    inputMode="numeric"
-                    maxLength={6}
-                    value={digit}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleOtpKeyDown(index, e)}
-                    className="w-12 h-14 text-center text-xl font-bold border-2 border-gray-200 rounded-xl focus:border-forge-orange focus:ring-2 focus:ring-forge-orange/20 outline-none transition-all"
-                  />
-                ))}
-              </div>
-
-              {/* Resend */}
-              <div className="text-center">
-                {canResend ? (
-                  <button
-                    type="button"
-                    onClick={handleResendOtp}
-                    disabled={otpSending}
-                    className="text-forge-orange font-medium hover:underline disabled:opacity-50"
-                  >
-                    {otpSending ? 'Sending...' : 'Resend Code'}
-                  </button>
-                ) : (
-                  <p className="text-gray-500 text-sm">
-                    Resend code in <span className="font-medium">{resendTimer}s</span>
-                  </p>
-                )}
-              </div>
-
-              <div className="pt-4">
-                <Button 
-                  fullWidth 
-                  size="lg" 
-                  onClick={handleVerifyOtp}
-                  loading={otpVerifying}
-                  disabled={otpCode.join('').length !== 6}
-                >
-                  Verify & Continue
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 4: Password */}
+        {/* Step 3: Password */}
         {step === 'password' && (
           <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
-             {renderBackBtn('verify')}
+             {renderBackBtn(role === UserRole.WORKER ? 'subscription' : 'details')}
              <div className="mt-8 mb-6">
               <h2 className="text-2xl font-bold text-forge-navy mb-2">Secure your account</h2>
               <p className="text-gray-500">Create a password to login later.</p>
@@ -933,7 +669,7 @@ const Signup: React.FC = () => {
                   size="lg" 
                   loading={loading} 
                   type="submit" 
-                  disabled={password.length < 8 || password !== confirmPassword}
+                  disabled={password.length < 8 || password !== confirmPassword || !isPasswordValid || !doPasswordsMatch}
                 >
                   Create Account
                 </Button>
@@ -945,28 +681,27 @@ const Signup: React.FC = () => {
           </div>
         )}
 
-        {/* Step 5: Email confirmation required (account created, no session yet) */}
+        {/* Fallback when Supabase Confirm email is ON (no session after signup) */}
         {step === 'checkEmail' && (
           <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="mt-12 mb-8 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />
               </div>
-              <h2 className="text-2xl font-bold text-forge-navy mb-2">Check your email</h2>
+              <h2 className="text-2xl font-bold text-forge-navy mb-2">Account created</h2>
               <p className="text-gray-500">
-                We created your account. Open the confirmation link sent to
+                Your account for
                 <br />
                 <span className="font-medium text-gray-700">{email}</span>
                 <br />
-                then sign in to continue.
+                was created. Sign in to continue.
               </p>
             </div>
 
             <div className="space-y-4 flex-1">
-              <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
-                Your account is ready — confirm your email first. After that, sign in and
-                you&apos;ll land on{' '}
-                {role === UserRole.WORKER ? 'worker onboarding' : 'your customer dashboard'}.
+              <div className="bg-amber-50 text-amber-900 p-3 rounded-lg text-sm">
+                For instant access after signup, turn <strong>Confirm email OFF</strong> in Supabase
+                → Authentication → Providers → Email. Phone and email verification are deferred for beta.
               </div>
 
               <Button

@@ -168,8 +168,8 @@ Forge uses Paystack for subscriptions, bookings, and worker onboarding fees. The
 
 - [ ] **P0** Dashboard → **Authentication** → **Providers**
 - [ ] **P0** **Email** — enable (email + password sign-up/login)
-- [ ] **P0 (beta)** Email → **Confirm email** — **disable** for instant post-signup login (workers → onboarding, customers → dashboard). If left **enabled**, users see “Check your email” after signup and must confirm before Sign In (they must **not** be dumped on the role picker).
-- [ ] **P0** **Phone** — enable (OTP login in [`Login.tsx`](./pages/auth/Login.tsx))
+- [ ] **P0 (beta)** Email → **Confirm email** — **disable** for instant post-signup login (workers → onboarding, customers → dashboard). Phone OTP and email verification are **deferred** in app code; if Confirm email stays **enabled**, Supabase returns no session after signup and the user must Sign In after confirming.
+- [ ] **P2** **Phone** — optional later (OTP login UI is hidden for now; `smsService` kept for a future rollout)
 - [ ] **P0** **Google** — enable; add **Client ID** and **Client Secret** from [Google Cloud Console](https://console.cloud.google.com/)
 
 ### Site URL & redirect URLs
@@ -333,18 +333,12 @@ This repo includes [`render.yaml`](./render.yaml) for Blueprint deploy. It confi
   ```
 - [ ] **P1** Rebuild and deploy; trigger a test error to confirm events arrive
 
-### Phone OTP / SMS (production)
+### Phone OTP / SMS (deferred)
 
-**Signup “Verify Your Phone”** uses the app’s custom [`services/smsService.ts`](./services/smsService.ts) (Twilio or Africa’s Talking), **not** Supabase Phone Auth. OTP is stored in the browser for that session; SMS delivery needs provider credentials at **Vite build time** on Render.
+**Phone and email verification are deferred for beta.** Signup no longer shows “Verify Your Phone”; login OTP UI is hidden. [`services/smsService.ts`](./services/smsService.ts) remains unused until verification is re-enabled.
 
-**Login “Sign in with OTP”** (separate) uses Supabase Phone auth — configure that in Supabase if you enable it.
-
-- [ ] **P0** On Render → **forge** → **Environment**, add **either** Twilio **or** Africa’s Talking (names only below; values from their dashboards), then **Manual Deploy**:
-  - Twilio: `VITE_TWILIO_ACCOUNT_SID` (must start with `AC`), `VITE_TWILIO_AUTH_TOKEN`, `VITE_TWILIO_PHONE_NUMBER`
-  - Africa’s Talking: `VITE_AT_API_KEY`, `VITE_AT_USERNAME`
-- [ ] **P0** Confirm signup verify: with vars set, SMS arrives and code is **not** shown on-screen; without vars, amber banner shows code (“SMS not configured — use this code”)
-- [ ] **P1** Prefer moving SMS secrets to a **Supabase Edge Function** before hard launch — `VITE_*` keys are exposed in the client bundle
-- [ ] **P1** (Optional) Supabase Dashboard → **Authentication** → **Providers** → **Phone** — only if you use Login OTP via Supabase
+- [ ] **P2** When re-enabling phone verify: add Twilio or Africa’s Talking env vars on Render, wire signup/login OTP UI again, prefer Edge Function secrets over `VITE_*` client keys
+- [ ] **P2** (Optional) Supabase → **Authentication** → **Providers** → **Phone** — only when Login OTP returns
 
 ### Seed reference data (optional)
 
@@ -389,9 +383,9 @@ This repo includes [`render.yaml`](./render.yaml) for Blueprint deploy. It confi
 
 ## Pre-launch smoke test (15 minutes)
 
-- [ ] Sign up with email
+- [ ] Sign up with email → lands on dashboard/onboarding without phone OTP
 - [ ] Sign in with Google (if enabled)
-- [ ] Sign in with phone OTP (if SMS configured)
+- [ ] Confirm email OFF in Supabase (instant session after signup)
 - [ ] Upload avatar → appears on profile
 - [ ] Post a job with image → image loads
 - [ ] Open Messages → send message → **other user sees it live** (Realtime)

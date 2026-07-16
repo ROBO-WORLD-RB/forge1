@@ -3,6 +3,9 @@
  * Handles phone number verification via OTP codes
  * Twilio (primary) or Africa's Talking (fallback). When neither is configured
  * or send fails, returns displayCode so beta users can still verify on-screen.
+ *
+ * NOTE (beta): Signup/login UI no longer calls sendOTP/verifyOTP — verification is deferred.
+ * Keep this module for a future rollout. formatPhoneNumber may still be used by signup.
  */
 
 import { logger } from '../utils/logger';

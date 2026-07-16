@@ -222,7 +222,8 @@ function mapSignInError(error: { message: string; code?: string }): AuthError {
   }
   if (code === 'email_not_confirmed' || msg.includes('email not confirmed')) {
     return {
-      message: 'Please verify your email before logging in.',
+      message:
+        'Email confirmation is still required by Supabase. For beta instant access, turn Confirm email OFF in Authentication → Providers → Email, then try again.',
       code: 'email_not_confirmed',
     };
   }
