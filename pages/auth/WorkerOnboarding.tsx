@@ -16,7 +16,7 @@ import { withTimeout } from '../../utils/promiseTimeout';
 
 const WorkerOnboarding: React.FC = () => {
   const navigate = useNavigate();
-  const { user, refreshUser } = useAuth();
+  const { user, login, refreshUser } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
@@ -122,7 +122,9 @@ const WorkerOnboarding: React.FC = () => {
             max: parseFloat(formData.rateMax) || 0,
             currency
           },
-          experienceYears: formData.experienceYears
+          experienceYears: formData.experienceYears,
+          locationLat: locationCoords?.lat,
+          locationLng: locationCoords?.lng,
         }),
         30_000,
         'Creating worker profile'
@@ -134,21 +136,46 @@ const WorkerOnboarding: React.FC = () => {
       }
 
       if (avatarUrl) {
-        await withTimeout(
+        const avatarSaved = await withTimeout(
           updateUserProfile(user.id, { avatar_url: avatarUrl }),
           15_000,
           'Saving profile photo'
         );
+        if (!avatarSaved) {
+          setError('Failed to save profile photo. Please try again.');
+          return;
+        }
       }
 
-      // Update user profile to mark as completed and set status to pending_payment
-      await withTimeout(
+      // Must persist profile_completed before navigate — throws on failure
+      const completedProfile = await withTimeout(
         completeWorkerOnboardingProfile(user.id),
         20_000,
         'Completing onboarding'
       );
-      
-      await refreshUser();
+
+      if (!completedProfile?.profile_completed) {
+        setError('Profile saved but could not mark onboarding complete. Please try again.');
+        return;
+      }
+
+      // Update auth context BEFORE navigate so WorkerPaymentRoute sees
+      // profileCompleted=true (refreshUser alone can race / return null).
+      login(
+        {
+          ...user,
+          profileCompleted: true,
+          workerStatus: completedProfile.worker_status || 'pending_payment',
+          firstName: formData.name.split(' ')[0] || user.firstName,
+          lastName: formData.name.split(' ').slice(1).join(' ') || user.lastName,
+          bio: formData.bio || user.bio,
+          location: formData.location || user.location,
+          avatarUrl: avatarUrl || user.avatarUrl,
+        },
+        ''
+      );
+
+      void refreshUser().catch(() => undefined);
       navigate('/auth/onboarding/payment', { replace: true });
     } catch (err: any) {
       console.error(err);

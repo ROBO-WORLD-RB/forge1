@@ -142,12 +142,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const profile = await getUserProfile(session.user.id);
           if (!mountedRef.current) return;
-          // Always set a user from the session, even when profile is null/failed.
-          setUser(mapToAppUser(session.user, profile));
+          // Prefer fresh profile; if fetch fails, keep existing context user
+          // so we do not reset profileCompleted mid-onboarding.
+          if (profile) {
+            setUser(mapToAppUser(session.user, profile));
+          } else {
+            setUser((prev) => prev ?? mapToAppUser(session.user, null));
+          }
         } catch (error) {
           console.error('Failed to load user profile', error);
           if (mountedRef.current) {
-            setUser(mapToAppUser(session.user, null));
+            setUser((prev) => prev ?? mapToAppUser(session.user, null));
           }
         } finally {
           if (mountedRef.current) setIsLoading(false);
@@ -163,11 +168,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const profile = await getUserProfile(session.user.id);
           if (!mountedRef.current) return;
-          setUser(mapToAppUser(session.user, profile));
+          if (profile) {
+            setUser(mapToAppUser(session.user, profile));
+          } else {
+            setUser((prev) => prev ?? mapToAppUser(session.user, null));
+          }
         } catch (error) {
           console.error('Failed to refresh user profile', error);
           if (mountedRef.current) {
-            setUser(mapToAppUser(session.user, null));
+            setUser((prev) => prev ?? mapToAppUser(session.user, null));
           }
         }
       }
@@ -203,7 +212,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const supabaseUser = await getUser();
       if (supabaseUser) {
         const profile = await getUserProfile(supabaseUser.id);
-        setUser(mapToAppUser(supabaseUser, profile));
+        // Never clobber a known session with a null profile fetch (timeout/error):
+        // that resets profileCompleted to false and causes onboarding loops.
+        if (profile) {
+          setUser(mapToAppUser(supabaseUser, profile));
+        } else {
+          setUser((prev) => prev ?? mapToAppUser(supabaseUser, null));
+        }
       }
       // If getUser() returns null after a successful login/signup, keep the
       // existing context user — clearing it would bounce guests back to signup.

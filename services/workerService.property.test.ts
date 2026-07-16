@@ -127,16 +127,16 @@ describe('Worker Service Property Tests', () => {
               updated_at: now,
             };
 
-            // Mock successful insert with select
+            // Mock successful upsert with select
             const mockSingle = vi.fn().mockResolvedValueOnce({
               data: expectedProfile,
               error: null,
             });
             const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-            const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+            const mockUpsert = vi.fn().mockReturnValue({ select: mockSelect });
             
             vi.mocked(supabase.from).mockReturnValueOnce({
-              insert: mockInsert,
+              upsert: mockUpsert,
             } as any);
 
             const result = await createProfile(userId, profileInput);
@@ -532,16 +532,16 @@ describe('Worker Service Property Tests', () => {
           postgresErrorCodeArbitrary,
           errorMessageArbitrary,
           async (userId, profileInput, errorCode, errorMessage) => {
-            // Mock failed insert
+            // Mock failed upsert
             const mockSingle = vi.fn().mockResolvedValueOnce({
               data: null,
               error: { code: errorCode, message: errorMessage },
             });
             const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-            const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+            const mockUpsert = vi.fn().mockReturnValue({ select: mockSelect });
             
             vi.mocked(supabase.from).mockReturnValueOnce({
-              insert: mockInsert,
+              upsert: mockUpsert,
             } as any);
 
             const result = await createProfile(userId, profileInput);
@@ -580,10 +580,10 @@ describe('Worker Service Property Tests', () => {
               error: { code: errorCode, message: 'Constraint violation' },
             });
             const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-            const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
+            const mockUpsert = vi.fn().mockReturnValue({ select: mockSelect });
             
             vi.mocked(supabase.from).mockReturnValueOnce({
-              insert: mockInsert,
+              upsert: mockUpsert,
             } as any);
 
             const result = await createProfile(userId, profileInput);

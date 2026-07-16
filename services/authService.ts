@@ -536,22 +536,47 @@ export async function updateUserProfile(
 
 /**
  * Mark worker onboarding complete and advance status to pending_payment.
- * DB trigger only allows pending → pending_payment for workers.
+ * Prefers the SECURITY DEFINER RPC (migration 009) so the write is atomic.
+ * Falls back to a direct update that only changes worker_status when still pending
+ * (avoids trigger failures on retries when already pending_payment).
+ * Throws on failure — callers must not navigate as if success occurred.
  */
-export async function completeWorkerOnboardingProfile(userId: string): Promise<Profile | null> {
+export async function completeWorkerOnboardingProfile(userId: string): Promise<Profile> {
+  const { data: rpcData, error: rpcError } = await (supabase as any).rpc(
+    'complete_worker_onboarding'
+  );
+
+  if (!rpcError && rpcData) {
+    return rpcData as Profile;
+  }
+
+  if (rpcError && import.meta.env.DEV) {
+    console.warn(
+      'complete_worker_onboarding RPC unavailable, using direct update:',
+      rpcError.message
+    );
+  }
+
+  const existing = await getUserProfile(userId);
+  const updates: Record<string, unknown> = { profile_completed: true };
+  if (!existing || existing.worker_status === 'pending') {
+    updates.worker_status = 'pending_payment';
+  }
+
   const { data, error } = await (supabase
     .from('profiles') as any)
-    .update({
-      profile_completed: true,
-      worker_status: 'pending_payment',
-    })
+    .update(updates)
     .eq('id', userId)
     .select()
     .single();
 
-  if (error) {
-    console.error('Failed to complete worker onboarding:', error.message);
-    return null;
+  if (error || !data) {
+    const message =
+      error?.message ||
+      rpcError?.message ||
+      'Failed to mark profile as complete';
+    console.error('Failed to complete worker onboarding:', message);
+    throw new Error(message);
   }
 
   return data as Profile;

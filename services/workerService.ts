@@ -174,9 +174,11 @@ export async function createProfile(
       location_lng: profile.locationLng ?? null,
     };
 
+    // Upsert so retries after a partial onboarding (worker_profiles row exists
+    // but profiles.profile_completed still false) do not fail on UNIQUE(user_id).
     const { data, error } = await supabase
       .from('worker_profiles')
-      .insert(insertData)
+      .upsert(insertData, { onConflict: 'user_id' })
       .select()
       .single();
 
