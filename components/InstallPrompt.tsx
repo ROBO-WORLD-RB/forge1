@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { X, Download } from 'lucide-react';
 import { isServiceWorkerSupported } from '../services/serviceWorker';
+import { setInstallPromptVisible } from '../utils/installPromptVisibility';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
@@ -61,9 +62,18 @@ export const InstallPrompt: React.FC = () => {
     }
   }, [isIOS]);
 
-  if (isDismissed) return null;
-  if (!deferredPrompt && !showIOSInstructions) return null;
-  if (!isServiceWorkerSupported()) return null;
+  const isVisible =
+    !isDismissed &&
+    (!!deferredPrompt || showIOSInstructions) &&
+    isServiceWorkerSupported();
+
+  // Let other fixed UI (AI FAB) yield while the install banner is on screen
+  useEffect(() => {
+    setInstallPromptVisible(isVisible);
+    return () => setInstallPromptVisible(false);
+  }, [isVisible]);
+
+  if (!isVisible) return null;
 
   return (
     <div className="fixed bottom-20 md:bottom-4 left-4 right-4 z-50 animate-slide-up">

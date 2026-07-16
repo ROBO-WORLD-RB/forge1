@@ -9,15 +9,21 @@ import {
   getProviderDisplayName 
 } from '../services/aiService';
 import { ChatMessage } from '../types';
+import {
+  getInstallPromptVisible,
+  subscribeInstallPromptVisible,
+} from '../utils/installPromptVisibility';
 
 /** Routes where the FAB would cover primary chat controls (send, composer). */
 const HIDE_FAB_ROUTES = ['/messages'];
 
 const AIChat: React.FC = () => {
   const location = useLocation();
-  const hideFab = HIDE_FAB_ROUTES.some(
+  const hideOnRoute = HIDE_FAB_ROUTES.some(
     (route) => location.pathname === route || location.pathname.startsWith(`${route}/`)
   );
+  const [installPromptVisible, setInstallPromptVisibleState] = useState(getInstallPromptVisible);
+  const hideFab = hideOnRoute || installPromptVisible;
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -49,6 +55,9 @@ const AIChat: React.FC = () => {
     };
     checkProviders();
   }, []);
+
+  // Yield bottom-right to PWA install banner (same corner on mobile + desktop)
+  useEffect(() => subscribeInstallPromptVisible(setInstallPromptVisibleState), []);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
