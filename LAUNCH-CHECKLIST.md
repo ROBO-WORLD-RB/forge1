@@ -168,6 +168,7 @@ Forge uses Paystack for subscriptions, bookings, and worker onboarding fees. The
 
 - [ ] **P0** Dashboard → **Authentication** → **Providers**
 - [ ] **P0** **Email** — enable (email + password sign-up/login)
+- [ ] **P0 (beta)** Email → **Confirm email** — **disable** for instant post-signup login (workers → onboarding, customers → dashboard). If left **enabled**, users see “Check your email” after signup and must confirm before Sign In (they must **not** be dumped on the role picker).
 - [ ] **P0** **Phone** — enable (OTP login in [`Login.tsx`](./pages/auth/Login.tsx))
 - [ ] **P0** **Google** — enable; add **Client ID** and **Client Secret** from [Google Cloud Console](https://console.cloud.google.com/)
 

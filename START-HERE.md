@@ -75,6 +75,10 @@ If the app is already deployed and you see **"Unable to create your account"** /
 
 4. Dashboard → **Authentication** → **Providers** → enable **Email** (minimum to test sign-up)
 
+5. **Instant login after signup (recommended for beta):** Dashboard → **Authentication** → **Providers** → **Email** → turn **OFF** “Confirm email”.  
+   - When **Confirm email** is **ON**, Supabase returns a user but **no session** after signup. The app shows a “Check your email” success screen (not the role picker); the user must confirm, then **Sign In**.  
+   - When **Confirm email** is **OFF**, signup returns a session and the app navigates immediately: customers → dashboard, workers → `/auth/onboarding`.
+
 **Google OAuth (required for “Continue with Google”):**
 
 1. [Google Cloud Console](https://console.cloud.google.com/) → **APIs & Services** → **Credentials** → **Create OAuth client ID** (Web application)

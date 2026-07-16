@@ -8,9 +8,6 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import PasswordStrengthMeter from '../../components/PasswordStrengthMeter';
 import { Briefcase, User, Phone, ArrowLeft, Eye, EyeOff, Check, Camera, AtSign, Smartphone, Crown, Star, Zap } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
 import { getSubscriptionPlans, type SubscriptionPlan } from '../../services/subscriptionService';
 import PageHelmet from '../../components/PageHelmet';
 import { getDefaultDashboardPath, getSafeRedirectPath, resolvePostAuthPath } from '../../utils/authRedirect';
@@ -37,40 +34,60 @@ const GoogleIcon = () => (
   </svg>
 );
 
-type Step = 'role' | 'details' | 'subscription' | 'verify' | 'password';
+type Step = 'role' | 'details' | 'subscription' | 'verify' | 'password' | 'checkEmail';
 
-const signupSchema = z.object({
-  firstName: z.string().min(2, 'First name is required'),
-  lastName: z.string().min(2, 'Last name is required'),
-  email: z.string().email('Invalid email address'),
-  phone: z.string().min(10, 'Invalid phone number'),
-  username: z.string().min(3, 'Username must be at least 3 characters').optional(),
-});
+const SIGNUP_ROLE_KEY = 'forge_signup_role';
+const SIGNUP_COUNTRY_KEY = 'forge_signup_country';
 
-const passwordSchema = z.object({
-  password: z.string()
-    .min(8, 'Password must be at least 8 characters')
-    .regex(/[A-Z]/, 'Must contain an uppercase letter')
-    .regex(/[a-z]/, 'Must contain a lowercase letter')
-    .regex(/[0-9]/, 'Must contain a number')
-    .regex(/[^A-Za-z0-9]/, 'Must contain a special character'),
-  confirmPassword: z.string(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+function readPersistedRole(): UserRole | null {
+  try {
+    const saved = localStorage.getItem(SIGNUP_ROLE_KEY);
+    if (saved === UserRole.WORKER || saved === UserRole.CUSTOMER) return saved;
+  } catch {
+    // ignore storage errors
+  }
+  return null;
+}
+
+function readPersistedCountry(): 'GH' | 'NG' {
+  try {
+    const saved = localStorage.getItem(SIGNUP_COUNTRY_KEY);
+    if (saved === 'GH' || saved === 'NG') return saved;
+  } catch {
+    // ignore storage errors
+  }
+  return 'GH';
+}
+
+function persistSignupIntent(selectedRole: UserRole, selectedCountry: 'GH' | 'NG') {
+  try {
+    localStorage.setItem(SIGNUP_ROLE_KEY, selectedRole);
+    localStorage.setItem(SIGNUP_COUNTRY_KEY, selectedCountry);
+  } catch {
+    // ignore storage errors
+  }
+}
+
+function clearSignupIntent() {
+  try {
+    localStorage.removeItem(SIGNUP_ROLE_KEY);
+    localStorage.removeItem(SIGNUP_COUNTRY_KEY);
+  } catch {
+    // ignore storage errors
+  }
+}
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { login, user, isAuthenticated, isLoading } = useAuth();
+  const { login, refreshUser, user, isAuthenticated, isLoading } = useAuth();
   const [step, setStep] = useState<Step>('role');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Form State
-  const [role, setRole] = useState<UserRole | null>(null);
-  const [country, setCountry] = useState<'GH' | 'NG'>('GH');
+  const [role, setRole] = useState<UserRole | null>(() => readPersistedRole());
+  const [country, setCountry] = useState<'GH' | 'NG'>(() => readPersistedCountry());
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -158,6 +175,7 @@ const Signup: React.FC = () => {
   // --- Step 1: Role Selection ---
   const handleRoleSelect = (selectedRole: UserRole) => {
     setRole(selectedRole);
+    persistSignupIntent(selectedRole, country);
     setTimeout(() => setStep('details'), 300);
   };
 
@@ -165,6 +183,8 @@ const Signup: React.FC = () => {
   const handleGoogleSignIn = async (selectedRole: UserRole) => {
     setGoogleLoading(true);
     setError(null);
+    setRole(selectedRole);
+    persistSignupIntent(selectedRole, country);
     
     try {
       const from = (location.state as any)?.from;
@@ -384,15 +404,25 @@ const Signup: React.FC = () => {
   const isPasswordValid = strength.minLength && strength.hasUpper && strength.hasNumber;
   const doPasswordsMatch = password === confirmPassword && password.length > 0;
 
-  const handleRegister = async (data: any) => {
+  const handleRegister = async (e: React.FormEvent) => {
+    // Critical: without this the browser reloads /auth/signup and resets to the role picker.
+    e.preventDefault();
     setLoading(true);
     setError(null);
+
+    const selectedRole = role ?? readPersistedRole();
+    if (!selectedRole) {
+      setError('Please select whether you need help or are a skilled worker.');
+      setStep('role');
+      setLoading(false);
+      return;
+    }
 
     try {
       // Use Supabase auth service for registration
       const { user: supabaseUser, session, error: authError } = await signUp(email, password, {
         phone,
-        role: role as 'worker' | 'customer' | 'admin',
+        role: selectedRole as 'worker' | 'customer' | 'admin',
         country,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
@@ -428,35 +458,41 @@ const Signup: React.FC = () => {
         return;
       }
 
-      // Get user profile from database (may not exist yet if email confirmation is required)
+      // No session → Supabase "Confirm email" is on. Stay on a clear success screen.
+      if (!session) {
+        clearSignupIntent();
+        setStep('checkEmail');
+        return;
+      }
+
+      // Get user profile from database
       const profile = await getUserProfile(supabaseUser.id);
+      const resolvedRole = (profile?.role || selectedRole) as UserRole;
       
-      // Map Supabase user to app User type
+      // Map Supabase user to app User type — prefer selected role so redirect stays correct
+      // even if profile lag temporarily omits role.
       const appUser = {
         id: supabaseUser.id,
         phone: profile?.phone || phone,
         email: supabaseUser.email,
-        role: role as UserRole,
+        role: resolvedRole,
         firstName: profile?.first_name || firstName.trim() || undefined,
         lastName: profile?.last_name || lastName.trim() || undefined,
-        profileCompleted: profile?.profile_completed ?? (role === UserRole.CUSTOMER),
+        profileCompleted: profile?.profile_completed ?? (resolvedRole === UserRole.CUSTOMER),
         avatarUrl: profile?.avatar_url || undefined,
-        workerStatus: profile?.worker_status || (role === UserRole.WORKER ? 'pending' : 'active'),
+        workerStatus: profile?.worker_status || (resolvedRole === UserRole.WORKER ? 'pending' : 'active'),
         country,
       };
 
-      // If session exists, user is logged in (email confirmation may be disabled)
-      if (session) {
-        login(appUser, session.access_token);
-        
-        const from = (location.state as { from?: Location })?.from;
-        const fallback = getDefaultDashboardPath(role as UserRole);
-        const safeFrom = getSafeRedirectPath(from, fallback);
-        navigate(resolvePostAuthPath(appUser, safeFrom), { replace: true });
-      } else {
-        // Email confirmation required - show message
-        setError('Please check your email to confirm your account before logging in.');
-      }
+      login(appUser, session.access_token);
+      // Sync profile without blocking redirect; never clear the user we just set.
+      void refreshUser().catch(() => undefined);
+      clearSignupIntent();
+
+      const from = (location.state as { from?: Location })?.from;
+      const fallback = getDefaultDashboardPath(resolvedRole);
+      const safeFrom = getSafeRedirectPath(from, fallback);
+      navigate(resolvePostAuthPath(appUser, safeFrom), { replace: true });
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {
@@ -650,14 +686,20 @@ const Signup: React.FC = () => {
                   <div className="grid grid-cols-2 gap-3">
                     <button
                       type="button"
-                      onClick={() => setCountry('GH')}
+                      onClick={() => {
+                        setCountry('GH');
+                        if (role) persistSignupIntent(role, 'GH');
+                      }}
                       className={`p-3 rounded-xl border font-medium transition-all ${country === 'GH' ? 'border-forge-orange bg-orange-50 text-forge-orange' : 'border-gray-200 hover:border-gray-300'}`}
                     >
                       🇬🇭 Ghana
                     </button>
                     <button
                       type="button"
-                      onClick={() => setCountry('NG')}
+                      onClick={() => {
+                        setCountry('NG');
+                        if (role) persistSignupIntent(role, 'NG');
+                      }}
                       className={`p-3 rounded-xl border font-medium transition-all ${country === 'NG' ? 'border-forge-orange bg-orange-50 text-forge-orange' : 'border-gray-200 hover:border-gray-300'}`}
                     >
                       🇳🇬 Nigeria
@@ -848,7 +890,7 @@ const Signup: React.FC = () => {
         {/* Step 4: Password */}
         {step === 'password' && (
           <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
-             {renderBackBtn('details')}
+             {renderBackBtn('verify')}
              <div className="mt-8 mb-6">
               <h2 className="text-2xl font-bold text-forge-navy mb-2">Secure your account</h2>
               <p className="text-gray-500">Create a password to login later.</p>
@@ -900,6 +942,60 @@ const Signup: React.FC = () => {
                 </p>
               </div>
             </form>
+          </div>
+        )}
+
+        {/* Step 5: Email confirmation required (account created, no session yet) */}
+        {step === 'checkEmail' && (
+          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="mt-12 mb-8 text-center">
+              <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Check className="w-8 h-8 text-green-600" />
+              </div>
+              <h2 className="text-2xl font-bold text-forge-navy mb-2">Check your email</h2>
+              <p className="text-gray-500">
+                We created your account. Open the confirmation link sent to
+                <br />
+                <span className="font-medium text-gray-700">{email}</span>
+                <br />
+                then sign in to continue.
+              </p>
+            </div>
+
+            <div className="space-y-4 flex-1">
+              <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
+                Your account is ready — confirm your email first. After that, sign in and
+                you&apos;ll land on{' '}
+                {role === UserRole.WORKER ? 'worker onboarding' : 'your customer dashboard'}.
+              </div>
+
+              <Button
+                fullWidth
+                size="lg"
+                onClick={() =>
+                  navigate('/auth/login', {
+                    replace: true,
+                    state: { from: (location.state as { from?: Location })?.from },
+                  })
+                }
+              >
+                Go to Sign In
+              </Button>
+
+              <p className="text-center text-sm text-gray-500">
+                Wrong email?{' '}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setStep('details');
+                    setError(null);
+                  }}
+                  className="text-forge-orange font-medium hover:underline"
+                >
+                  Go back
+                </button>
+              </p>
+            </div>
           </div>
         )}
       </div>

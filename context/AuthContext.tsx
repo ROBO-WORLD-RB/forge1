@@ -137,7 +137,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Subscribe to auth state changes
     const subscription = onAuthStateChange(async (event, session: Session | null) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        if (mountedRef.current) setIsLoading(true);
+        // Do not set isLoading=true here — login()/signup already set the user.
+        // Flipping loading caused GuestRoute/ProtectedRoute to flash and bounce.
         try {
           const profile = await getUserProfile(session.user.id);
           if (!mountedRef.current) return;
@@ -203,9 +204,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (supabaseUser) {
         const profile = await getUserProfile(supabaseUser.id);
         setUser(mapToAppUser(supabaseUser, profile));
-      } else {
-        setUser(null);
       }
+      // If getUser() returns null after a successful login/signup, keep the
+      // existing context user — clearing it would bounce guests back to signup.
     } catch (error) {
       console.error('Failed to refresh user', error);
     } finally {
