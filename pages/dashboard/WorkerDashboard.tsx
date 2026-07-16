@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { getBookingsByWorker } from '../../services/bookingService';
@@ -13,9 +13,10 @@ import type { WorkerProfile, WorkerTier } from '../../types';
 import { 
   Clock, CheckCircle, AlertCircle, Briefcase, MessageSquare, 
   Bell, CreditCard, ChevronRight, Loader2, X, Star,
-  Calendar, MapPin, DollarSign, Zap, Image as ImageIcon, Share2, Plus, Trash2
+  Calendar, MapPin, DollarSign, Zap, Image as ImageIcon, Share2, Plus, Trash2, Upload
 } from 'lucide-react';
 import PageHelmet from '../../components/PageHelmet';
+import { uploadPublicFile } from '../../utils/storageUpload';
 
 const WorkerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -34,8 +35,11 @@ const WorkerDashboard: React.FC = () => {
   const [portfolioTitle, setPortfolioTitle] = useState('');
   const [portfolioDesc, setPortfolioDesc] = useState('');
   const [portfolioMedia, setPortfolioMedia] = useState('');
+  const [portfolioFile, setPortfolioFile] = useState<File | null>(null);
+  const [portfolioPreview, setPortfolioPreview] = useState<string | null>(null);
   const [portfolioError, setPortfolioError] = useState<string | null>(null);
   const [portfolioLoading, setPortfolioLoading] = useState(false);
+  const portfolioFileRef = useRef<HTMLInputElement>(null);
 
   // Endorsement states
   const [endorsements, setEndorsements] = useState<any[]>([]);
@@ -117,6 +121,26 @@ const WorkerDashboard: React.FC = () => {
     }
   };
 
+  const handlePortfolioFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setPortfolioError('Please choose an image file.');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setPortfolioError('Image must be 5MB or smaller.');
+      e.target.value = '';
+      return;
+    }
+    setPortfolioError(null);
+    setPortfolioFile(file);
+    const reader = new FileReader();
+    reader.onloadend = () => setPortfolioPreview(reader.result as string);
+    reader.readAsDataURL(file);
+  };
+
   const handleCreatePortfolio = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -128,24 +152,47 @@ const WorkerDashboard: React.FC = () => {
     setPortfolioLoading(true);
     setPortfolioError(null);
 
-    // Fallback placeholder images matching the worker's role category
-    const defaultMedia = portfolioMedia.trim() || `https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=60`;
+    try {
+      let mediaUrl =
+        portfolioMedia.trim() ||
+        `https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=60`;
 
-    const { data, error: createError } = await createPortfolioItem(user.id, {
-      title: portfolioTitle,
-      description: portfolioDesc,
-      media_urls: [defaultMedia],
-    });
+      if (portfolioFile) {
+        const fileExt = portfolioFile.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}/portfolio-${Date.now()}.${fileExt}`;
+        mediaUrl = await uploadPublicFile('avatars', fileName, portfolioFile, {
+          upsert: true,
+          label: 'Portfolio image upload',
+          timeoutMs: 45_000,
+        });
+      }
 
-    setPortfolioLoading(false);
+      const { data, error: createError } = await createPortfolioItem(user.id, {
+        title: portfolioTitle,
+        description: portfolioDesc,
+        media_urls: [mediaUrl],
+      });
 
-    if (createError) {
-      setPortfolioError(createError.message);
-    } else if (data) {
-      setPortfolios(prev => [data, ...prev]);
-      setPortfolioTitle('');
-      setPortfolioDesc('');
-      setPortfolioMedia('');
+      if (createError) {
+        setPortfolioError(createError.message);
+      } else if (data) {
+        setPortfolios(prev => [data, ...prev]);
+        setPortfolioTitle('');
+        setPortfolioDesc('');
+        setPortfolioMedia('');
+        setPortfolioFile(null);
+        setPortfolioPreview(null);
+        if (portfolioFileRef.current) portfolioFileRef.current.value = '';
+      }
+    } catch (err: any) {
+      console.error('Portfolio upload error:', err);
+      setPortfolioError(
+        err?.message?.includes('timed out')
+          ? 'Image upload timed out. Check your connection and try again.'
+          : err?.message || 'Failed to add portfolio item.'
+      );
+    } finally {
+      setPortfolioLoading(false);
     }
   };
 
@@ -225,7 +272,20 @@ const WorkerDashboard: React.FC = () => {
               Welcome back, {user?.firstName || 'Pro'}! Manage your bookings and earnings.
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
+            <Link 
+              to="/jobs" 
+              className="bg-forge-orange text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
+            >
+              <Briefcase className="w-4 h-4" />
+              Browse Projects
+            </Link>
+            <Link 
+              to="/profile/edit" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+            >
+              Grow your reach
+            </Link>
             <Link 
               to={`/pro/${user?.username?.replace(/^@/, '') || user?.id}`} 
               className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
@@ -443,13 +503,35 @@ const WorkerDashboard: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Image URL (Optional)</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Photo</label>
+                  <input
+                    ref={portfolioFileRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePortfolioFileSelect}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => portfolioFileRef.current?.click()}
+                    className="w-full border-2 border-dashed border-gray-200 rounded-xl p-4 hover:border-forge-orange hover:bg-orange-50/40 transition-colors flex flex-col items-center gap-2"
+                  >
+                    {portfolioPreview ? (
+                      <img src={portfolioPreview} alt="" className="w-full h-28 object-cover rounded-lg" />
+                    ) : (
+                      <>
+                        <Upload className="w-6 h-6 text-gray-400" />
+                        <span className="text-sm text-gray-500">Upload a photo of your work</span>
+                      </>
+                    )}
+                  </button>
+                  <p className="text-xs text-gray-400 mt-1">Or paste an image URL below (optional)</p>
                   <input
                     type="text"
                     value={portfolioMedia}
                     onChange={e => setPortfolioMedia(e.target.value)}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-forge-orange"
+                    placeholder="https://..."
+                    className="w-full mt-1 px-4 py-2 border border-gray-200 rounded-xl focus:outline-none focus:border-forge-orange"
                   />
                 </div>
                 {portfolioError && <p className="text-red-500 text-xs">{portfolioError}</p>}

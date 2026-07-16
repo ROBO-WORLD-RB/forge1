@@ -236,20 +236,35 @@ const Messages: React.FC = () => {
                 <div className="p-6 text-center">
                   <MessageSquare className="w-12 h-12 mx-auto mb-3 text-gray-300" />
                   <p className="font-medium text-forge-navy">No conversations yet</p>
-                  <p className="text-sm text-gray-500 mt-1">Book a worker or apply to a job to start chatting</p>
+                  <p className="text-sm text-gray-500 mt-1">
+                    {user?.role === 'worker'
+                      ? 'Apply to a project or accept a booking to start chatting'
+                      : 'Book a worker or post a project to start chatting'}
+                  </p>
                   <div className="flex flex-col gap-2 mt-4">
-                    <Link
-                      to="/search"
-                      className="text-sm text-forge-orange font-medium hover:underline"
-                    >
-                      Find workers
-                    </Link>
-                    <Link
-                      to="/jobs"
-                      className="text-sm text-gray-500 hover:text-forge-orange"
-                    >
-                      Browse jobs
-                    </Link>
+                    {user?.role === 'worker' ? (
+                      <Link
+                        to="/jobs"
+                        className="text-sm text-forge-orange font-medium hover:underline"
+                      >
+                        Browse projects
+                      </Link>
+                    ) : (
+                      <>
+                        <Link
+                          to="/search"
+                          className="text-sm text-forge-orange font-medium hover:underline"
+                        >
+                          Find workers
+                        </Link>
+                        <Link
+                          to="/jobs?create=1"
+                          className="text-sm text-gray-500 hover:text-forge-orange"
+                        >
+                          Post a project
+                        </Link>
+                      </>
+                    )}
                   </div>
                 </div>
               ) : (

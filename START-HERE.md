@@ -32,12 +32,15 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | Order | File |
    |-------|------|
    | 1 | `supabase-schema.sql` |
-   | 2 | `supabase/migrations/001_storage_and_rls_fixes.sql` |
+   | 2 | `supabase/migrations/001_storage_and_rls_fixes.sql` ← **storage buckets + upload RLS (avatars, job-media, verification)** |
    | 3 | `supabase/migrations/add_worker_location.sql` |
    | 4 | `supabase/migrations/002_security_hardening.sql` |
    | 5 | `supabase/migrations/003_signup_profile_and_jobs_fixes.sql` ← phone/username signup + jobs RLS |
    | 6 | `supabase/migrations/004_fix_username_generation.sql` ← **required if signup fails with `profiles_username_key` / `@user000000000000`** |
    | 7 | `supabase/migrations/005_chat_and_worker_apply_rls.sql` ← **workers message/apply to job posters; chat read receipts** |
+   | 8 | `supabase/migrations/006_profile_public_read_rls.sql` ← public worker discovery |
+   | 9 | `supabase/migrations/007_verification_documents_update_rls.sql` ← **KYC replace/re-upload (fixes hanging Replace)** |
+   | 10 | `supabase/migrations/008_customers_only_create_jobs.sql` ← **only customers post projects; workers apply** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
 
@@ -65,6 +68,20 @@ If workers can message other workers but **cannot contact a job poster**, or job
 **What 005 fixes:** workers may INSERT bookings as applicants; conversation participants may UPDATE `last_message_at` and message `read_at`. App UI also opens chat via `location.state.recipientId` using `jobs.poster_user_id`.
 
 **If a storage bucket insert fails:** Dashboard → **Storage** → create `avatars` (public), `job-media` (public), and `verification-documents` (private), then re-run file **001** for the policies.
+
+### Fix image upload hang / KYC replace / workers posting projects (if already live)
+
+If **profile photo or verification upload spins forever**, **Replace** on KYC docs fails, or **workers can still post projects**:
+
+1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/siutunqbdteyrycrbzub/sql/new)
+2. Confirm storage buckets exist (or re-run [`001_storage_and_rls_fixes.sql`](./supabase/migrations/001_storage_and_rls_fixes.sql))
+3. Paste and **Run** [`007_verification_documents_update_rls.sql`](./supabase/migrations/007_verification_documents_update_rls.sql)
+4. Paste and **Run** [`008_customers_only_create_jobs.sql`](./supabase/migrations/008_customers_only_create_jobs.sql)
+5. Soft-refresh production → worker: upload photo on `/profile/edit` or onboarding → should finish or show an error (never hang). Customer: **Post a Project** → `/jobs?create=1` opens the create form.
+
+**What 007 fixes:** workers can UPDATE their own `verification_documents` rows when replacing a file (RLS previously blocked Replace).
+
+**What 008 fixes:** only `customer` / `admin` roles can INSERT into `jobs` (UI: “projects”). Workers browse/apply only.
 
 ---
 

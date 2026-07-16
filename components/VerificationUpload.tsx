@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { supabase } from '../services/supabase';
 import { getVerificationStatus, uploadVerificationDocument } from '../services/verificationService';
 import type { DocumentType, VerificationDocument, VerificationDocStatus } from '../types/database';
 import { Loader2, Upload, CheckCircle, XCircle, Clock, AlertCircle } from 'lucide-react';
+import { uploadPrivateFile } from '../utils/storageUpload';
+import { withTimeout } from '../utils/promiseTimeout';
 
 const DOC_TYPES: { type: DocumentType; label: string; hint: string }[] = [
   { type: 'government_id', label: 'Government ID', hint: 'Ghana Card, NIN, or passport' },
@@ -36,16 +37,25 @@ const VerificationUpload: React.FC<VerificationUploadProps> = ({ userId }) => {
 
   const loadStatus = async () => {
     setLoading(true);
-    const { data, error: statusError } = await getVerificationStatus(userId);
-    if (statusError) {
-      setError(statusError.message);
-    } else if (data) {
-      setDocuments(data.documents);
-      setOverallStatus(data.overallStatus);
-      setIsVerified(data.isVerified);
-      setError(null);
+    try {
+      const { data, error: statusError } = await withTimeout(
+        getVerificationStatus(userId),
+        20_000,
+        'Loading verification status'
+      );
+      if (statusError) {
+        setError(statusError.message);
+      } else if (data) {
+        setDocuments(data.documents);
+        setOverallStatus(data.overallStatus);
+        setIsVerified(data.isVerified);
+        setError(null);
+      }
+    } catch (err: any) {
+      setError(err?.message || 'Could not load verification status. Please try again.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => {
@@ -65,24 +75,31 @@ const VerificationUpload: React.FC<VerificationUploadProps> = ({ userId }) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    if (file.size > 10 * 1024 * 1024) {
+      setError('Document must be 10MB or smaller.');
+      e.target.value = '';
+      return;
+    }
+
     setUploading(docType);
     setError(null);
 
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop() || 'jpg';
       const fileName = `${userId}/${docType}-${Date.now()}.${fileExt}`;
 
-      const { error: uploadError } = await supabase.storage
-        .from('verification-documents')
-        .upload(fileName, file, { upsert: true });
+      // Private bucket — store storage path; AdminDashboard creates signed URLs on view
+      await uploadPrivateFile('verification-documents', fileName, file, {
+        upsert: true,
+        label: 'Verification document upload',
+        timeoutMs: 60_000,
+      });
 
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('verification-documents')
-        .getPublicUrl(fileName);
-
-      const { data, error: docError } = await uploadVerificationDocument(userId, docType, urlData.publicUrl);
+      const { data, error: docError } = await withTimeout(
+        uploadVerificationDocument(userId, docType, fileName),
+        30_000,
+        'Saving verification document'
+      );
 
       if (docError) throw new Error(docError.message);
       if (data) {
@@ -94,7 +111,11 @@ const VerificationUpload: React.FC<VerificationUploadProps> = ({ userId }) => {
       }
     } catch (err: any) {
       console.error('Verification upload error:', err);
-      setError(err.message || 'Failed to upload document. Please try again.');
+      setError(
+        err?.message?.includes('timed out')
+          ? 'Upload timed out. Check your connection and try again.'
+          : err?.message || 'Failed to upload document. Please try again.'
+      );
     } finally {
       setUploading(null);
       e.target.value = '';

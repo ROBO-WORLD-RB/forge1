@@ -238,7 +238,7 @@ const Bookings: React.FC = () => {
                 to="/jobs" 
                 className="inline-block mt-4 text-forge-orange text-sm font-medium hover:underline"
               >
-                Browse open jobs
+                Browse open projects
               </Link>
             )}
           </div>

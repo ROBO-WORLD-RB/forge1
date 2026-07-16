@@ -176,10 +176,10 @@ const JobDetail: React.FC = () => {
   if (loading) {
     return (
       <>
-        <PageHelmet title="Job Details" path="/jobs/:id" />
+        <PageHelmet title="Project Details" path="/jobs/:id" />
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
           <Loader2 className="w-8 h-8 text-forge-orange animate-spin mb-3" />
-          <p className="text-gray-500 text-sm">Loading job details...</p>
+          <p className="text-gray-500 text-sm">Loading project details...</p>
         </div>
       </>
     );
@@ -188,7 +188,7 @@ const JobDetail: React.FC = () => {
   if (error || !job) {
     return (
       <>
-        <PageHelmet title="Job Details" path="/jobs/:id" />
+        <PageHelmet title="Project Details" path="/jobs/:id" />
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
           <AlertCircle className="w-12 h-12 text-red-400 mb-4" />
           <p className="text-lg font-medium text-forge-navy mb-1">
@@ -203,7 +203,7 @@ const JobDetail: React.FC = () => {
               <RefreshCw className="w-4 h-4" />
               Try again
             </button>
-            <Link to="/jobs" className="text-forge-orange hover:underline text-sm font-medium">Back to Jobs</Link>
+            <Link to="/jobs" className="text-forge-orange hover:underline text-sm font-medium">Back to Projects</Link>
           </div>
         </div>
       </>
@@ -212,7 +212,7 @@ const JobDetail: React.FC = () => {
 
   return (
     <>
-      <PageHelmet title="Job Details" path="/jobs/:id" />
+      <PageHelmet title="Project Details" path="/jobs/:id" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
@@ -221,7 +221,7 @@ const JobDetail: React.FC = () => {
           className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
-          Back to Jobs
+          Back to Projects
         </button>
 
         {/* Main Content */}

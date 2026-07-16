@@ -304,13 +304,17 @@ CREATE POLICY "Worker profiles are viewable by everyone" ON worker_profiles FOR 
 CREATE POLICY "Workers can update own profile" ON worker_profiles FOR UPDATE USING (auth.uid() = user_id);
 CREATE POLICY "Workers can insert own profile" ON worker_profiles FOR INSERT WITH CHECK (auth.uid() = user_id);
 
--- Jobs
+-- Jobs (UI: "Projects"; workers apply — only customers/admins create)
 DROP POLICY IF EXISTS "Jobs are viewable by everyone" ON jobs;
 DROP POLICY IF EXISTS "Users can create jobs" ON jobs;
+DROP POLICY IF EXISTS "Customers can create jobs" ON jobs;
 DROP POLICY IF EXISTS "Users can update own jobs" ON jobs;
 DROP POLICY IF EXISTS "Users can delete own jobs" ON jobs;
 CREATE POLICY "Jobs are viewable by everyone" ON jobs FOR SELECT USING (true);
-CREATE POLICY "Users can create jobs" ON jobs FOR INSERT TO authenticated WITH CHECK (auth.uid() = poster_user_id);
+CREATE POLICY "Customers can create jobs" ON jobs FOR INSERT TO authenticated WITH CHECK (
+  auth.uid() = poster_user_id
+  AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role IN ('customer', 'admin'))
+);
 CREATE POLICY "Users can update own jobs" ON jobs FOR UPDATE TO authenticated USING (auth.uid() = poster_user_id) WITH CHECK (auth.uid() = poster_user_id);
 CREATE POLICY "Users can delete own jobs" ON jobs FOR DELETE TO authenticated USING (auth.uid() = poster_user_id);
 
@@ -373,8 +377,10 @@ CREATE POLICY "Users can manage own device tokens" ON device_tokens FOR ALL USIN
 -- Verification Documents
 DROP POLICY IF EXISTS "Users can view own documents" ON verification_documents;
 DROP POLICY IF EXISTS "Users can upload documents" ON verification_documents;
+DROP POLICY IF EXISTS "Users can update own documents" ON verification_documents;
 CREATE POLICY "Users can view own documents" ON verification_documents FOR SELECT USING (auth.uid() = user_id);
 CREATE POLICY "Users can upload documents" ON verification_documents FOR INSERT WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "Users can update own documents" ON verification_documents FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- ============================================
 -- FUNCTION: Auto-update updated_at timestamp

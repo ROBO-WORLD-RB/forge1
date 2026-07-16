@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { updateUserProfile } from '../services/authService';
 import { updateProfile, getProfileByUserId } from '../services/workerService';
-import { supabase } from '../services/supabase';
 import Button from '../components/Button';
 import Input from '../components/Input';
 import LocationCapture from '../components/LocationCapture';
@@ -16,6 +15,7 @@ import { UserRole } from '../types';
 import { CATEGORIES } from '../constants';
 import PageHelmet from '../components/PageHelmet';
 import VerificationUpload from '../components/VerificationUpload';
+import { uploadPublicFile } from '../utils/storageUpload';
 
 const ProfileEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -82,33 +82,44 @@ const ProfileEdit: React.FC = () => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Preview
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file (JPG, PNG, or WebP).');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be 5MB or smaller.');
+      e.target.value = '';
+      return;
+    }
+
+    // Preview immediately so the UI feels responsive
     const reader = new FileReader();
     reader.onloadend = () => setAvatarPreview(reader.result as string);
     reader.readAsDataURL(file);
 
-    // Upload to Supabase Storage
     setUploading(true);
+    setError(null);
     try {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split('.').pop() || 'jpg';
       const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(fileName);
-
-      setFormData(prev => ({ ...prev, avatarUrl: urlData.publicUrl }));
+      const publicUrl = await uploadPublicFile('avatars', fileName, file, {
+        upsert: true,
+        label: 'Avatar upload',
+        timeoutMs: 45_000,
+      });
+      setFormData(prev => ({ ...prev, avatarUrl: publicUrl }));
     } catch (err: any) {
       console.error('Avatar upload error:', err);
-      setError('Failed to upload image. Please try again.');
+      setError(
+        err?.message?.includes('timed out')
+          ? 'Image upload timed out. Check your connection and try again.'
+          : err?.message || 'Failed to upload image. Please try again.'
+      );
+      setAvatarPreview(formData.avatarUrl || null);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 

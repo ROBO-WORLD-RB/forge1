@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { searchJobs, getJobsByPoster, createJob, deleteJob } from '../services/jobService';
 import type { Job, Country, Currency } from '../types/database';
@@ -8,13 +8,14 @@ import {
   Briefcase, MapPin, DollarSign, Calendar, Plus, Search, 
   Loader2, Trash2, ChevronRight, X, Video, Upload, AlertCircle, RefreshCw
 } from 'lucide-react';
-import { supabase } from '../services/supabase';
+import { uploadPublicFile } from '../utils/storageUpload';
 import PageHelmet from '../components/PageHelmet';
 
 const Jobs: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
-  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const isWorker = user?.role === 'worker';
+  const canPostProject = Boolean(user) && !isWorker;
   const [jobs, setJobs] = useState<Job[]>([]);
   const [myJobs, setMyJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +56,7 @@ const Jobs: React.FC = () => {
     
     const result = await searchJobs(filters);
     if (result.error) {
-      setFetchError(result.error.message || 'Failed to load jobs. Please try again.');
+      setFetchError(result.error.message || 'Failed to load projects. Please try again.');
       setJobs([]);
     } else if (result.data) {
       setJobs(result.data);
@@ -74,7 +75,7 @@ const Jobs: React.FC = () => {
     setMyJobsError(null);
     const result = await getJobsByPoster(user.id);
     if (result.error) {
-      setMyJobsError(result.error.message || 'Failed to load your posted jobs.');
+      setMyJobsError(result.error.message || 'Failed to load your projects.');
       setMyJobs([]);
       return;
     }
@@ -85,21 +86,33 @@ const Jobs: React.FC = () => {
   useEffect(() => {
     if (authLoading) return;
     fetchJobs();
-    if (user?.id) {
+    if (user?.id && canPostProject) {
       fetchMyJobs();
     } else {
       setMyJobs([]);
       setMyJobsError(null);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional: filters + auth identity
-  }, [authLoading, user?.id, categoryFilter, countryFilter]);
+  }, [authLoading, user?.id, canPostProject, categoryFilter, countryFilter]);
 
-  // Refetch posted jobs when opening the My Posted Jobs tab (survives remount / filter state)
+  // Refetch posted projects when opening the My Projects tab
   useEffect(() => {
-    if (authLoading || activeTab !== 'my-jobs' || !user?.id) return;
+    if (authLoading || activeTab !== 'my-jobs' || !user?.id || !canPostProject) return;
     fetchMyJobs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeTab, authLoading, user?.id]);
+  }, [activeTab, authLoading, user?.id, canPostProject]);
+
+  // Deep-link: /jobs?create=1 opens the post modal for customers
+  useEffect(() => {
+    if (authLoading || !canPostProject) return;
+    if (searchParams.get('create') === '1') {
+      setShowCreateModal(true);
+      setActiveTab('my-jobs');
+      const next = new URLSearchParams(searchParams);
+      next.delete('create');
+      setSearchParams(next, { replace: true });
+    }
+  }, [authLoading, canPostProject, searchParams, setSearchParams]);
 
   // Handle media file selection
   const handleMediaSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -133,29 +146,23 @@ const Jobs: React.FC = () => {
     setMediaPreviews(prev => prev.filter((_, i) => i !== index));
   };
 
-  // Upload media files to Supabase Storage
+  // Upload media files to Supabase Storage (with timeout so UI cannot hang forever)
   const uploadMedia = async (): Promise<string[]> => {
     if (mediaFiles.length === 0) return [];
+    if (!user?.id) throw new Error('You must be signed in to upload media');
     
     setUploading(true);
     const urls: string[] = [];
     
     try {
       for (const file of mediaFiles) {
-        const fileExt = file.name.split('.').pop();
-        const fileName = `${user?.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-        
-        const { data, error } = await supabase.storage
-          .from('job-media')
-          .upload(fileName, file);
-        
-        if (error) throw error;
-        
-        const { data: urlData } = supabase.storage
-          .from('job-media')
-          .getPublicUrl(fileName);
-        
-        urls.push(urlData.publicUrl);
+        const fileExt = file.name.split('.').pop() || 'jpg';
+        const fileName = `${user.id}/${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const url = await uploadPublicFile('job-media', fileName, file, {
+          label: 'Project media upload',
+          timeoutMs: 60_000,
+        });
+        urls.push(url);
       }
     } finally {
       setUploading(false);
@@ -167,7 +174,11 @@ const Jobs: React.FC = () => {
   const handleCreateJob = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user?.id) {
-      setCreateError('You must be logged in to post a job');
+      setCreateError('You must be logged in to post a project');
+      return;
+    }
+    if (isWorker) {
+      setCreateError('Workers browse and apply to projects. Only customers can post projects.');
       return;
     }
 
@@ -175,14 +186,19 @@ const Jobs: React.FC = () => {
     setCreateError(null);
     
     try {
-      // Upload media first
+      // Upload media first — surface failures instead of silently dropping media
       let mediaUrls: string[] = [];
       if (mediaFiles.length > 0) {
         try {
           mediaUrls = await uploadMedia();
         } catch (uploadErr: any) {
           console.error('Media upload error:', uploadErr);
-          // Continue without media if upload fails
+          setCreateError(
+            uploadErr?.message ||
+              'Media upload failed or timed out. Check your connection and try again, or post without photos.'
+          );
+          setCreating(false);
+          return;
         }
       }
 
@@ -201,13 +217,13 @@ const Jobs: React.FC = () => {
       });
 
       if (result.error) {
-        setCreateError(result.error.message || 'Failed to create job. Please try again.');
+        setCreateError(result.error.message || 'Failed to create project. Please try again.');
         setCreating(false);
         return;
       }
 
       if (!result.data) {
-        setCreateError('Job was not saved. Check that you are signed in and your profile exists.');
+        setCreateError('Project was not saved. Check that you are signed in and your profile exists.');
         setCreating(false);
         return;
       }
@@ -240,7 +256,7 @@ const Jobs: React.FC = () => {
   };
 
   const handleDeleteJob = async (jobId: string) => {
-    if (!confirm('Are you sure you want to delete this job?')) return;
+    if (!confirm('Are you sure you want to delete this project?')) return;
     
     setDeletingJobId(jobId);
     setDeleteError(null);
@@ -250,11 +266,11 @@ const Jobs: React.FC = () => {
         setMyJobs(prev => prev.filter(j => j.id !== jobId));
         setJobs(prev => prev.filter(j => j.id !== jobId));
       } else {
-        setDeleteError(result.error.message || 'Failed to delete job');
+        setDeleteError(result.error.message || 'Failed to delete project');
       }
     } catch (err: any) {
       console.error('Delete error:', err);
-      setDeleteError('Failed to delete job. Please try again.');
+      setDeleteError('Failed to delete project. Please try again.');
     } finally {
       setDeletingJobId(null);
     }
@@ -291,25 +307,37 @@ const Jobs: React.FC = () => {
 
   return (
     <>
-      <PageHelmet title="Jobs" path="/jobs" />
+      <PageHelmet title={isWorker ? 'Browse Projects' : 'Projects'} path="/jobs" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-2xl font-bold text-forge-navy">Jobs</h1>
+            <h1 className="text-2xl font-bold text-forge-navy">
+              {isWorker ? 'Browse Projects' : 'Projects'}
+            </h1>
             <p className="text-gray-500 mt-1">
-              {isWorker ? 'Browse open jobs and apply' : 'Browse available jobs or post your own'}
+              {isWorker
+                ? 'Find open customer projects and apply'
+                : 'Post a project or browse what others need done'}
             </p>
           </div>
-          {user && (
+          {canPostProject && (
             <button
               onClick={() => setShowCreateModal(true)}
               className="bg-forge-orange text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors"
             >
               <Plus className="w-5 h-5" />
-              Post a Job
+              Post a Project
             </button>
+          )}
+          {isWorker && (
+            <Link
+              to="/profile/edit"
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors text-sm font-medium"
+            >
+              Grow your reach
+            </Link>
           )}
         </div>
 
@@ -323,9 +351,9 @@ const Jobs: React.FC = () => {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            Browse Jobs{isWorker ? ' to Apply' : ''}
+            {isWorker ? 'Open Projects' : 'Browse Projects'}
           </button>
-          {user && (
+          {canPostProject && (
             <button
               onClick={() => setActiveTab('my-jobs')}
               className={`pb-3 px-1 font-medium transition-colors ${
@@ -334,7 +362,7 @@ const Jobs: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              My Posted Jobs ({myJobs.length})
+              My Projects ({myJobs.length})
             </button>
           )}
         </div>
@@ -345,7 +373,7 @@ const Jobs: React.FC = () => {
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
-              placeholder="Search jobs..."
+              placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-forge-orange"
@@ -388,7 +416,7 @@ const Jobs: React.FC = () => {
           </div>
         )}
 
-        {myJobsError && activeTab === 'my-jobs' && (
+        {myJobsError && activeTab === 'my-jobs' && canPostProject && (
           <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-xl text-sm flex items-center justify-between gap-3">
             <span className="flex items-center gap-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
@@ -404,16 +432,16 @@ const Jobs: React.FC = () => {
           </div>
         )}
 
-        {/* Jobs List */}
+        {/* Projects List */}
         {authLoading || loading ? (
           <div className="flex flex-col items-center justify-center py-16 bg-white rounded-xl">
             <Loader2 className="w-8 h-8 text-forge-orange animate-spin mb-3" />
-            <p className="text-gray-500 text-sm">Loading jobs...</p>
+            <p className="text-gray-500 text-sm">Loading projects...</p>
           </div>
         ) : fetchError && activeTab === 'browse' ? (
           <div className="text-center py-12 bg-white rounded-xl px-6">
             <AlertCircle className="w-12 h-12 mx-auto mb-4 text-red-400" />
-            <p className="text-lg font-medium text-gray-900">Couldn&apos;t load jobs</p>
+            <p className="text-lg font-medium text-gray-900">Couldn&apos;t load projects</p>
             <p className="text-gray-500 mt-1 text-sm">{fetchError}</p>
             <button
               onClick={fetchJobs}
@@ -426,24 +454,32 @@ const Jobs: React.FC = () => {
         ) : filteredJobs.length === 0 ? (
           <div className="text-center py-12 bg-white rounded-xl px-6">
             <Briefcase className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-            <p className="text-lg font-medium text-forge-navy">No jobs found</p>
+            <p className="text-lg font-medium text-forge-navy">No projects found</p>
             <p className="text-gray-500 mt-1 text-sm">
               {activeTab === 'my-jobs'
-                ? 'You haven\'t posted any jobs yet. Post one to find workers.'
+                ? 'You haven\'t posted any projects yet. Post one to find workers.'
                 : searchTerm || categoryFilter || countryFilter
-                  ? 'No jobs match your search or filters.'
+                  ? 'No projects match your search or filters.'
                   : isWorker
-                    ? 'No open jobs right now. Check back soon.'
-                    : 'No open jobs right now. Be the first to post one.'}
+                    ? 'No open projects right now. Check back soon, or improve your profile to get discovered.'
+                    : 'No open projects right now. Be the first to post one.'}
             </p>
-            {activeTab === 'my-jobs' && user && (
+            {activeTab === 'my-jobs' && canPostProject && (
               <button
                 onClick={() => setShowCreateModal(true)}
                 className="mt-4 inline-flex items-center gap-2 px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
               >
                 <Plus className="w-4 h-4" />
-                Post a Job
+                Post a Project
               </button>
+            )}
+            {activeTab === 'browse' && isWorker && (
+              <Link
+                to="/profile/edit"
+                className="mt-4 inline-flex items-center gap-2 text-forge-orange text-sm font-medium hover:underline"
+              >
+                Update your profile to grow reach
+              </Link>
             )}
             {activeTab === 'browse' && (searchTerm || categoryFilter || countryFilter) && (
               <button
@@ -471,7 +507,7 @@ const Jobs: React.FC = () => {
                       </span>
                       {job.poster_user_id === user?.id && (
                         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 text-slate-700">
-                          Your job
+                          Your project
                         </span>
                       )}
                       {isWorker &&
@@ -537,24 +573,25 @@ const Jobs: React.FC = () => {
       </div>
 
 
-      {/* Create Job Modal */}
-      {showCreateModal && (
+      {/* Create Project Modal — customers only */}
+      {showCreateModal && canPostProject && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-forge-navy">Post a New Job</h2>
+              <h2 className="text-xl font-bold text-forge-navy">Post a Project</h2>
               <button onClick={() => { setShowCreateModal(false); setCreateError(null); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
             </div>
             <form onSubmit={handleCreateJob} className="p-6 space-y-4">
               {createError && (
-                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
-                  {createError}
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2">
+                  <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                  <span>{createError}</span>
                 </div>
               )}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Job Title *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Project Title *</label>
                 <input
                   type="text"
                   required
@@ -570,7 +607,7 @@ const Jobs: React.FC = () => {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
-                  placeholder="Describe the job in detail..."
+                  placeholder="Describe what you need done..."
                   rows={3}
                   className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-forge-orange"
                 />
@@ -701,16 +738,16 @@ const Jobs: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  disabled={creating}
+                  disabled={creating || uploading}
                   className="flex-1 px-4 py-2 bg-forge-orange text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
-                  {creating ? (
+                  {creating || uploading ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Posting...
+                      {uploading ? 'Uploading media...' : 'Posting...'}
                     </>
                   ) : (
-                    'Post Job'
+                    'Post Project'
                   )}
                 </button>
               </div>

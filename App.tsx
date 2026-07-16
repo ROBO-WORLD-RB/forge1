@@ -229,13 +229,39 @@ const DashboardRedirect: React.FC = () => {
 
 const AppContent: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { isAuthenticated, logout } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const { needRefresh, updateApp, dismissUpdate } = usePWA();
+  const isWorker = user?.role === 'worker';
   
   const location = useLocation();
   
   // Track page views
   usePageTracking();
+
+  const sidebarLinks: { to: string; label: string }[] = [
+    { to: '/', label: 'Home' },
+    ...(!isAuthenticated || !isWorker
+      ? [{ to: '/search', label: 'Find Workers' }]
+      : []),
+    {
+      to: '/jobs',
+      label: isWorker ? 'Browse Projects' : 'Projects',
+    },
+    ...(isAuthenticated
+      ? [
+          { to: '/dashboard', label: 'Dashboard' },
+          { to: '/messages', label: 'Messages' },
+          { to: '/bookings', label: 'My Bookings' },
+          ...(isWorker
+            ? [
+                { to: '/subscription', label: 'Subscription' },
+                { to: '/profile/edit', label: 'Edit Profile' },
+              ]
+            : [{ to: '/jobs?create=1', label: 'Post a Project' }]),
+          { to: '/my-profile', label: 'My Profile' },
+        ]
+      : []),
+  ];
 
   return (
     <div className="min-h-dynamic bg-gray-50 font-sans text-gray-900 flex flex-col">
@@ -410,24 +436,11 @@ const AppContent: React.FC = () => {
               <h2 className="text-xl font-bold text-forge-navy">FORGE</h2>
             </div>
             <div className="space-y-1">
-                {[
-                  { to: '/', label: 'Home' },
-                  { to: '/search', label: 'Find Workers' },
-                  { to: '/jobs', label: 'Browse Jobs' },
-                  ...(isAuthenticated
-                    ? [
-                        { to: '/dashboard', label: 'Dashboard' },
-                        { to: '/messages', label: 'Messages' },
-                        { to: '/bookings', label: 'My Bookings' },
-                        { to: '/subscription', label: 'Subscription' },
-                        { to: '/my-profile', label: 'My Profile' },
-                      ]
-                    : []),
-                ].map(({ to, label }) => {
-                  const active = isNavRouteActive(location.pathname, to);
+                {sidebarLinks.map(({ to, label }) => {
+                  const active = isNavRouteActive(location.pathname, to.split('?')[0]);
                   return (
                     <Link
-                      key={to}
+                      key={`${to}-${label}`}
                       to={to}
                       aria-current={active ? 'page' : undefined}
                       className={`block py-2.5 px-3 rounded-lg font-medium transition-colors ${

@@ -89,6 +89,32 @@ export async function createJob(
       };
     }
 
+    // Marketplace model: only customers (and admins) post projects; workers apply
+    const { data: posterProfile, error: roleError } = await supabase
+      .from('profiles')
+      .select('role')
+      .eq('id', posterId)
+      .maybeSingle();
+
+    if (roleError) {
+      captureError(new Error(roleError.message), { tags: { operation: 'createJob.roleCheck' } });
+      return {
+        data: null,
+        error: handleDatabaseError(roleError),
+      };
+    }
+
+    if (posterProfile?.role === 'worker') {
+      return {
+        data: null,
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message:
+            'Workers cannot post projects. Browse available projects to apply, or update your profile to grow your reach.',
+        },
+      };
+    }
+
     const insertData: JobInsert = {
       poster_user_id: posterId,
       title: jobData.title,

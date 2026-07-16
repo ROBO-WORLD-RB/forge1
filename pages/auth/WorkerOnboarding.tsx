@@ -1,23 +1,29 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Navigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { createProfile, getCategories } from '../../services/workerService';
-import { completeWorkerOnboardingProfile } from '../../services/authService';
+import { completeWorkerOnboardingProfile, updateUserProfile } from '../../services/authService';
 import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LocationCapture from '../../components/LocationCapture';
 import type { GeoCoordinates } from '../../utils/geolocation';
-import { Camera, Briefcase, MapPin, DollarSign } from 'lucide-react';
+import { Camera, Briefcase, MapPin, DollarSign, Loader2 } from 'lucide-react';
 import type { Country, Currency } from '../../types/database';
 import PageHelmet from '../../components/PageHelmet';
 import VerificationUpload from '../../components/VerificationUpload';
+import { uploadPublicFile } from '../../utils/storageUpload';
+import { withTimeout } from '../../utils/promiseTimeout';
 
 const WorkerOnboarding: React.FC = () => {
   const navigate = useNavigate();
   const { user, refreshUser } = useAuth();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(user?.avatarUrl || null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(user?.avatarUrl || null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   // Form Data
   const [formData, setFormData] = useState({
@@ -47,6 +53,51 @@ const WorkerOnboarding: React.FC = () => {
 
   const [error, setError] = useState<string | null>(null);
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !user) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Please choose an image file (JPG, PNG, or WebP).');
+      e.target.value = '';
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be 5MB or smaller.');
+      e.target.value = '';
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => setAvatarPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    setUploadingAvatar(true);
+    setError(null);
+    try {
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `${user.id}/avatar-${Date.now()}.${fileExt}`;
+      const publicUrl = await uploadPublicFile('avatars', fileName, file, {
+        upsert: true,
+        label: 'Profile photo upload',
+        timeoutMs: 45_000,
+      });
+      setAvatarUrl(publicUrl);
+      await updateUserProfile(user.id, { avatar_url: publicUrl });
+    } catch (err: any) {
+      console.error('Onboarding avatar upload error:', err);
+      setError(
+        err?.message?.includes('timed out')
+          ? 'Photo upload timed out. Check your connection and try again.'
+          : err?.message || 'Failed to upload photo. You can continue and add one later.'
+      );
+      setAvatarPreview(avatarUrl);
+    } finally {
+      setUploadingAvatar(false);
+      e.target.value = '';
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     setError(null);
@@ -58,34 +109,54 @@ const WorkerOnboarding: React.FC = () => {
       const currency: Currency = country === 'GH' ? 'GHS' : 'NGN';
       
       // Create worker profile using workerService
-      const { error: createError } = await createProfile(user.id, {
-        name: formData.name,
-        bio: formData.bio,
-        role: formData.role,
-        skills: formData.selectedSkills,
-        location: formData.location,
-        country,
-        hourlyRate: {
-          min: parseFloat(formData.rateMin) || 0,
-          max: parseFloat(formData.rateMax) || 0,
-          currency
-        },
-        experienceYears: formData.experienceYears
-      });
+      const { error: createError } = await withTimeout(
+        createProfile(user.id, {
+          name: formData.name,
+          bio: formData.bio,
+          role: formData.role,
+          skills: formData.selectedSkills,
+          location: formData.location,
+          country,
+          hourlyRate: {
+            min: parseFloat(formData.rateMin) || 0,
+            max: parseFloat(formData.rateMax) || 0,
+            currency
+          },
+          experienceYears: formData.experienceYears
+        }),
+        30_000,
+        'Creating worker profile'
+      );
       
       if (createError) {
         setError(createError.message);
         return;
       }
 
+      if (avatarUrl) {
+        await withTimeout(
+          updateUserProfile(user.id, { avatar_url: avatarUrl }),
+          15_000,
+          'Saving profile photo'
+        );
+      }
+
       // Update user profile to mark as completed and set status to pending_payment
-      await completeWorkerOnboardingProfile(user.id);
+      await withTimeout(
+        completeWorkerOnboardingProfile(user.id),
+        20_000,
+        'Completing onboarding'
+      );
       
       await refreshUser();
       navigate('/auth/onboarding/payment', { replace: true });
     } catch (err: any) {
       console.error(err);
-      setError(err.message || 'Failed to create profile. Please try again.');
+      setError(
+        err?.message?.includes('timed out')
+          ? 'Profile save timed out. Check your connection and try again.'
+          : err.message || 'Failed to create profile. Please try again.'
+      );
     } finally {
       setLoading(false);
     }
@@ -131,13 +202,40 @@ const WorkerOnboarding: React.FC = () => {
           {/* Step 1: Basic Info */}
           {step === 1 && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4">
-              <div className="flex justify-center mb-6">
-                 <div className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-forge-orange cursor-pointer transition-colors relative group">
-                   <Camera className="w-8 h-8 text-gray-400 group-hover:text-forge-orange" />
-                   <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
-                     <span className="text-white text-xs font-medium">Upload</span>
-                   </div>
-                 </div>
+              {error && step === 1 && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm">{error}</div>
+              )}
+              <div className="flex flex-col items-center mb-6 gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center border-2 border-dashed border-gray-300 hover:border-forge-orange cursor-pointer transition-colors relative group overflow-hidden disabled:opacity-60"
+                  aria-label="Upload profile photo"
+                >
+                  {avatarPreview ? (
+                    <img src={avatarPreview} alt="" className="w-full h-full object-cover" />
+                  ) : (
+                    <Camera className="w-8 h-8 text-gray-400 group-hover:text-forge-orange" />
+                  )}
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                    {uploadingAvatar ? (
+                      <Loader2 className="w-6 h-6 text-white animate-spin" />
+                    ) : (
+                      <span className="text-white text-xs font-medium">Upload</span>
+                    )}
+                  </div>
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleAvatarChange}
+                />
+                <p className="text-xs text-gray-500">
+                  {uploadingAvatar ? 'Uploading photo…' : 'Tap to add a profile photo (optional)'}
+                </p>
               </div>
 
               <Input 
@@ -172,8 +270,8 @@ const WorkerOnboarding: React.FC = () => {
               />
 
               <div className="flex justify-end pt-4">
-                <Button onClick={handleNext} disabled={!formData.name || !formData.bio}>
-                  Next Step
+                <Button onClick={handleNext} disabled={!formData.name || !formData.bio || uploadingAvatar}>
+                  {uploadingAvatar ? 'Uploading…' : 'Next Step'}
                 </Button>
               </div>
             </div>

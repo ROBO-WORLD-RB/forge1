@@ -130,13 +130,22 @@ const CustomerDashboard: React.FC = () => {
               Find the right pro for your project today.
             </p>
           </div>
-          <Link 
-            to="/search" 
-            className="bg-forge-orange text-white px-6 py-2.5 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-forge-orange/20 font-bold"
-          >
-            <Plus className="w-5 h-5" />
-            Post a Project
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link 
+              to="/search" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
+            >
+              <Search className="w-5 h-5" />
+              Find Workers
+            </Link>
+            <Link 
+              to="/jobs?create=1" 
+              className="bg-forge-orange text-white px-6 py-2.5 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-forge-orange/20 font-bold"
+            >
+              <Plus className="w-5 h-5" />
+              Post a Project
+            </Link>
+          </div>
         </div>
 
         {error && <div className="bg-red-50 text-red-600 p-4 rounded-lg mb-6">{error}</div>}
@@ -148,7 +157,7 @@ const CustomerDashboard: React.FC = () => {
             <div className="text-3xl font-bold text-gray-900">{activeBookings}</div>
           </div>
           <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-forge-green">
-            <div className="text-gray-500 text-sm mb-1">Open Posts</div>
+            <div className="text-gray-500 text-sm mb-1">Open Projects</div>
             <div className="text-3xl font-bold text-gray-900">{openJobs}</div>
           </div>
           <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500">

@@ -6,6 +6,7 @@ import { Search, Shield, Award, ArrowRight, Zap, Users, CheckCircle2 } from 'luc
 import { Link, useNavigate } from 'react-router-dom';
 import Button from '../components/Button';
 import PageHelmet from '../components/PageHelmet';
+import { useAuth } from '../context/AuthContext';
 
 const FALLBACK_CATEGORIES: ServiceCategory[] = [
   { id: 1, name: 'Electrical', slug: 'electrical', icon: null, is_active: true },
@@ -44,6 +45,8 @@ function CategorySkeleton() {
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
+  const isWorker = user?.role === 'worker';
   const [categories, setCategories] = useState<ServiceCategory[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [usingFallback, setUsingFallback] = useState(false);
@@ -273,20 +276,41 @@ const Home: React.FC = () => {
                 their projects.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Link to="/search">
-                  <Button size="lg" variant="primary" className="w-full sm:w-auto">
-                    Find a Pro
-                  </Button>
-                </Link>
-                <Link to="/auth/signup">
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    className="w-full sm:w-auto border-white/30 text-white hover:bg-white hover:text-forge-navy hover:border-white"
-                  >
-                    Become a Worker
-                  </Button>
-                </Link>
+                {isAuthenticated && isWorker ? (
+                  <>
+                    <Link to="/jobs">
+                      <Button size="lg" variant="primary" className="w-full sm:w-auto">
+                        Browse Projects
+                      </Button>
+                    </Link>
+                    <Link to="/profile/edit">
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full sm:w-auto border-white/30 text-white hover:bg-white hover:text-forge-navy hover:border-white"
+                      >
+                        Complete Profile
+                      </Button>
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link to={isAuthenticated ? '/jobs?create=1' : '/search'}>
+                      <Button size="lg" variant="primary" className="w-full sm:w-auto">
+                        {isAuthenticated ? 'Post a Project' : 'Find a Pro'}
+                      </Button>
+                    </Link>
+                    <Link to={isAuthenticated ? '/search' : '/auth/signup'}>
+                      <Button
+                        size="lg"
+                        variant="outline"
+                        className="w-full sm:w-auto border-white/30 text-white hover:bg-white hover:text-forge-navy hover:border-white"
+                      >
+                        {isAuthenticated ? 'Find Workers' : 'Become a Worker'}
+                      </Button>
+                    </Link>
+                  </>
+                )}
               </div>
             </div>
           </div>

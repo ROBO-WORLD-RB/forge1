@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Home, Search, MessageSquare, User, Briefcase, Menu, LogOut, LayoutDashboard, Bell, Crown } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -79,30 +79,48 @@ function UnreadBadge({ count, className = '' }: { count: number; className?: str
   );
 }
 
+type DesktopLink = { to: string; label: string; badge?: number };
+
 export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const unreadNotifications = useUnreadNotificationCount();
   const { pathname } = location;
+  const isWorker = user?.role === 'worker';
+  const isCustomer = !isWorker; // guests + customers share discover CTAs
 
   const handleLogout = () => {
     logout();
     navigate('/');
   };
 
-  const desktopLinks = [
-    { to: '/', label: 'Home' },
-    { to: '/search', label: 'Find Workers' },
-    { to: '/jobs', label: 'Jobs' },
-    ...(isAuthenticated
-      ? [
-          { to: '/dashboard', label: 'Dashboard' },
-          { to: '/messages', label: 'Messages' },
-          { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
-        ]
-      : []),
-  ];
+  const desktopLinks: DesktopLink[] = useMemo(() => {
+    const links: DesktopLink[] = [{ to: '/', label: 'Home' }];
+
+    // Customers discover workers; workers browse customer projects (not other workers)
+    if (!isAuthenticated || isCustomer) {
+      links.push({ to: '/search', label: 'Find Workers' });
+    }
+
+    links.push({
+      to: '/jobs',
+      label: isWorker ? 'Browse Projects' : 'Projects',
+    });
+
+    if (isAuthenticated) {
+      links.push(
+        { to: '/dashboard', label: 'Dashboard' },
+        { to: '/messages', label: 'Messages' },
+        { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+      );
+      if (isWorker) {
+        links.push({ to: '/profile/edit', label: 'Profile' });
+      }
+    }
+
+    return links;
+  }, [isAuthenticated, isCustomer, isWorker, unreadNotifications]);
 
   return (
     <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm h-16">
@@ -125,7 +143,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
           const active = isNavRouteActive(pathname, to);
           return (
             <Link
-              key={to}
+              key={`${to}-${label}`}
               to={to}
               aria-current={active ? 'page' : undefined}
               className={`relative px-3 py-2 rounded-lg ${navLinkClass(pathname, to)}`}
@@ -145,7 +163,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
       <div className="flex items-center gap-3">
         {isAuthenticated ? (
           <div className="flex items-center gap-3">
-            {user?.role === 'worker' && (
+            {isWorker && (
               <Link
                 to="/subscription"
                 className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
@@ -208,9 +226,10 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
 
 export const BottomNav: React.FC = () => {
   const location = useLocation();
-  const { isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const unreadNotifications = useUnreadNotificationCount();
   const { pathname } = location;
+  const isWorker = user?.role === 'worker';
 
   return (
     <nav
@@ -225,22 +244,36 @@ export const BottomNav: React.FC = () => {
         <Home className="w-5 h-5" aria-hidden="true" />
         <span className="text-[10px] font-medium leading-tight">Home</span>
       </Link>
-      <Link
-        to="/search"
-        aria-current={isNavRouteActive(pathname, '/search') ? 'page' : undefined}
-        className={bottomNavClass(pathname, '/search')}
-      >
-        <Search className="w-5 h-5" aria-hidden="true" />
-        <span className="text-[10px] font-medium leading-tight">Search</span>
-      </Link>
-      <Link
-        to="/jobs"
-        aria-current={isNavRouteActive(pathname, '/jobs') ? 'page' : undefined}
-        className={bottomNavClass(pathname, '/jobs')}
-      >
-        <Briefcase className="w-5 h-5" aria-hidden="true" />
-        <span className="text-[10px] font-medium leading-tight">Jobs</span>
-      </Link>
+      {/* Customers find workers; workers browse projects instead */}
+      {isWorker ? (
+        <Link
+          to="/jobs"
+          aria-current={isNavRouteActive(pathname, '/jobs') ? 'page' : undefined}
+          className={bottomNavClass(pathname, '/jobs')}
+        >
+          <Briefcase className="w-5 h-5" aria-hidden="true" />
+          <span className="text-[10px] font-medium leading-tight">Projects</span>
+        </Link>
+      ) : (
+        <>
+          <Link
+            to="/search"
+            aria-current={isNavRouteActive(pathname, '/search') ? 'page' : undefined}
+            className={bottomNavClass(pathname, '/search')}
+          >
+            <Search className="w-5 h-5" aria-hidden="true" />
+            <span className="text-[10px] font-medium leading-tight">Workers</span>
+          </Link>
+          <Link
+            to="/jobs"
+            aria-current={isNavRouteActive(pathname, '/jobs') ? 'page' : undefined}
+            className={bottomNavClass(pathname, '/jobs')}
+          >
+            <Briefcase className="w-5 h-5" aria-hidden="true" />
+            <span className="text-[10px] font-medium leading-tight">Projects</span>
+          </Link>
+        </>
+      )}
       {isAuthenticated ? (
         <>
           <Link

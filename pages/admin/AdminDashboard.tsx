@@ -32,6 +32,24 @@ function formatDocType(docType: string): string {
   return DOC_TYPE_LABELS[docType] ?? docType.replace(/_/g, ' ');
 }
 
+/** Open a verification doc — re-sign private storage paths when the stored URL expired. */
+async function openVerificationDocument(fileUrl: string): Promise<void> {
+  if (fileUrl.startsWith('http://') || fileUrl.startsWith('https://')) {
+    window.open(fileUrl, '_blank', 'noopener,noreferrer');
+    return;
+  }
+  // Stored as storage path: {userId}/{docType}-{ts}.{ext}
+  const { data, error } = await supabase.storage
+    .from('verification-documents')
+    .createSignedUrl(fileUrl, 60 * 60);
+  if (error || !data?.signedUrl) {
+    console.error('Failed to sign verification document URL', error);
+    alert('Could not open document. It may have been removed.');
+    return;
+  }
+  window.open(data.signedUrl, '_blank', 'noopener,noreferrer');
+}
+
 function formatRelativeDate(dateStr: string): string {
   const date = new Date(dateStr);
   const diffMs = Date.now() - date.getTime();
@@ -336,15 +354,14 @@ const AdminDashboard: React.FC = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <a
-                          href={doc.file_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => void openVerificationDocument(doc.file_url)}
                           title="View document"
                           className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg transition-colors"
                         >
                           <Eye className="w-5 h-5" />
-                        </a>
+                        </button>
                         <button
                           onClick={() => handleVerificationAction(doc, 'approved')}
                           disabled={actionLoading === doc.id}

@@ -58,8 +58,13 @@ const Login: React.FC = () => {
     
     try {
       const from = (location.state as any)?.from;
-      const fromPath = from ? `${from.pathname}${from.search || ''}` : '/search';
-      localStorage.setItem('oauth_redirect_from', fromPath);
+      // Prefer role dashboard via resolvePostAuthPath when no deep-link; avoid sending workers to Find Workers
+      const fromPath = from ? `${from.pathname}${from.search || ''}` : '';
+      if (fromPath) {
+        localStorage.setItem('oauth_redirect_from', fromPath);
+      } else {
+        localStorage.removeItem('oauth_redirect_from');
+      }
 
       // For login, we use 'customer' as default role - existing users will have their role from profile
       const { error: googleError } = await signInWithGoogle('customer' as UserRole, 'GH');
