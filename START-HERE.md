@@ -37,6 +37,7 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | 4 | `supabase/migrations/002_security_hardening.sql` |
    | 5 | `supabase/migrations/003_signup_profile_and_jobs_fixes.sql` ← phone/username signup + jobs RLS |
    | 6 | `supabase/migrations/004_fix_username_generation.sql` ← **required if signup fails with `profiles_username_key` / `@user000000000000`** |
+   | 7 | `supabase/migrations/005_chat_and_worker_apply_rls.sql` ← **workers message/apply to job posters; chat read receipts** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
 
@@ -52,6 +53,16 @@ If the app is already deployed and you see **"Unable to create your account"** /
 **What 003 fixes:** empty `phone` collisions aborting signup, and jobs RLS so posters can SELECT their rows after INSERT.
 
 **What 004 fixes:** username generation that truncated UUID hex to zeros (`@user000000000000`), causing `profiles_username_key` duplicate errors on the next signup.
+
+### Fix worker → job poster messaging / apply (if already live)
+
+If workers can message other workers but **cannot contact a job poster**, or job **Apply** fails with a permission/RLS error:
+
+1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/siutunqbdteyrycrbzub/sql/new)
+2. Paste and **Run** the entire file: [`supabase/migrations/005_chat_and_worker_apply_rls.sql`](./supabase/migrations/005_chat_and_worker_apply_rls.sql)
+3. Soft-refresh production, open a job as a worker → **Message poster** / **Apply**
+
+**What 005 fixes:** workers may INSERT bookings as applicants; conversation participants may UPDATE `last_message_at` and message `read_at`. App UI also opens chat via `location.state.recipientId` using `jobs.poster_user_id`.
 
 **If a storage bucket insert fails:** Dashboard → **Storage** → create `avatars` (public), `job-media` (public), and `verification-documents` (private), then re-run file **001** for the policies.
 

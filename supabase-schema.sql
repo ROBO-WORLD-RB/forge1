@@ -319,7 +319,7 @@ DROP POLICY IF EXISTS "Users can view own bookings" ON bookings;
 DROP POLICY IF EXISTS "Users can create bookings" ON bookings;
 DROP POLICY IF EXISTS "Participants can update bookings" ON bookings;
 CREATE POLICY "Users can view own bookings" ON bookings FOR SELECT USING (auth.uid() = worker_user_id OR auth.uid() = customer_user_id);
-CREATE POLICY "Users can create bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = customer_user_id);
+CREATE POLICY "Users can create bookings" ON bookings FOR INSERT WITH CHECK (auth.uid() = customer_user_id OR auth.uid() = worker_user_id);
 CREATE POLICY "Participants can update bookings" ON bookings FOR UPDATE USING (auth.uid() = worker_user_id OR auth.uid() = customer_user_id);
 
 -- Reviews
@@ -331,16 +331,22 @@ CREATE POLICY "Users can create reviews" ON reviews FOR INSERT WITH CHECK (auth.
 -- Conversations
 DROP POLICY IF EXISTS "Users can view own conversations" ON conversations;
 DROP POLICY IF EXISTS "Users can create conversations" ON conversations;
+DROP POLICY IF EXISTS "Users can update own conversations" ON conversations;
 CREATE POLICY "Users can view own conversations" ON conversations FOR SELECT USING (auth.uid() = participant_1 OR auth.uid() = participant_2);
 CREATE POLICY "Users can create conversations" ON conversations FOR INSERT WITH CHECK (auth.uid() = participant_1 OR auth.uid() = participant_2);
+CREATE POLICY "Users can update own conversations" ON conversations FOR UPDATE USING (auth.uid() = participant_1 OR auth.uid() = participant_2) WITH CHECK (auth.uid() = participant_1 OR auth.uid() = participant_2);
 
 -- Messages
 DROP POLICY IF EXISTS "Users can view messages in their conversations" ON messages;
 DROP POLICY IF EXISTS "Users can send messages" ON messages;
+DROP POLICY IF EXISTS "Users can update messages in their conversations" ON messages;
 CREATE POLICY "Users can view messages in their conversations" ON messages FOR SELECT 
   USING (EXISTS (SELECT 1 FROM conversations WHERE id = messages.conversation_id AND (participant_1 = auth.uid() OR participant_2 = auth.uid())));
 CREATE POLICY "Users can send messages" ON messages FOR INSERT 
   WITH CHECK (auth.uid() = sender_id AND EXISTS (SELECT 1 FROM conversations WHERE id = conversation_id AND (participant_1 = auth.uid() OR participant_2 = auth.uid())));
+CREATE POLICY "Users can update messages in their conversations" ON messages FOR UPDATE
+  USING (EXISTS (SELECT 1 FROM conversations WHERE id = messages.conversation_id AND (participant_1 = auth.uid() OR participant_2 = auth.uid())))
+  WITH CHECK (EXISTS (SELECT 1 FROM conversations WHERE id = messages.conversation_id AND (participant_1 = auth.uid() OR participant_2 = auth.uid())));
 
 -- Subscriptions
 DROP POLICY IF EXISTS "Users can view own subscriptions" ON subscriptions;

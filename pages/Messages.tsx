@@ -39,25 +39,42 @@ const Messages: React.FC = () => {
     fetchConversations();
   }, [user?.id]);
 
-  // Open conversation when navigated from WorkerProfile or Bookings
+  // Open conversation when navigated from JobDetail, WorkerProfile, or Bookings
   useEffect(() => {
     const state = location.state as { recipientId?: string; bookingId?: string } | null;
-    if (!user?.id || !state?.recipientId) return;
+    const params = new URLSearchParams(location.search);
+    const recipientId = state?.recipientId || params.get('to') || undefined;
+    const bookingId = state?.bookingId || params.get('bookingId') || undefined;
+
+    if (!user?.id || !recipientId || recipientId === user.id) return;
+
+    let cancelled = false;
 
     const openConversation = async () => {
-      const result = await getOrCreateConversation(user.id, state.recipientId!, state.bookingId);
+      const result = await getOrCreateConversation(user.id, recipientId, bookingId);
+      if (cancelled) return;
+
       if (result.data) {
         setSelectedConversation(result.data);
+        setConversationsError(null);
         setConversations(prev => {
           if (prev.some(c => c.id === result.data!.id)) return prev;
           return [result.data!, ...prev];
         });
+      } else if (result.error) {
+        setConversationsError(
+          result.error.message || 'Could not start a conversation with this user.'
+        );
       }
+
       navigate('/messages', { replace: true, state: {} });
     };
 
     openConversation();
-  }, [user?.id, location.state, navigate]);
+    return () => {
+      cancelled = true;
+    };
+  }, [user?.id, location.state, location.search, navigate]);
 
   useEffect(() => {
     if (selectedConversation && user?.id) {

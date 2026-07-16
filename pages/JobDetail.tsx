@@ -120,9 +120,24 @@ const JobDetail: React.FC = () => {
 
   const isOwner = user?.id === job?.poster_user_id;
   const isWorker = user?.role === 'worker';
+  const canMessagePoster =
+    !!user &&
+    !isOwner &&
+    !!job?.poster_user_id &&
+    job.poster_user_id !== user.id;
   const categorySlug = CATEGORIES.find(c => c.title === job?.category)?.id || '';
   const workersSearchUrl = categorySlug ? `/search?category=${categorySlug}` : '/search';
   const mediaUrls = job?.media_urls || [];
+
+  const handleMessagePoster = () => {
+    if (!job?.poster_user_id) return;
+    navigate('/messages', {
+      state: {
+        recipientId: job.poster_user_id,
+        bookingId: existingBooking?.id,
+      },
+    });
+  };
 
   const isVideo = (url: string) => {
     return url.match(/\.(mp4|webm|ogg|mov)$/i);
@@ -435,14 +450,24 @@ const JobDetail: React.FC = () => {
                 {existingBooking ? (
                   <div className="p-4 bg-green-50 rounded-xl flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <p className="font-medium text-green-800">Application submitted</p>
                       <p className="text-sm text-green-700 mt-1">
                         Status: {getBookingStatusLabel(existingBooking.status)}. The job poster will review your request.
                       </p>
-                      <Link to="/bookings" className="text-sm text-forge-orange hover:underline mt-2 inline-block">
-                        View in My Bookings →
-                      </Link>
+                      <div className="flex flex-wrap items-center gap-3 mt-3">
+                        <button
+                          type="button"
+                          onClick={handleMessagePoster}
+                          className="inline-flex items-center gap-2 px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+                        >
+                          <MessageSquare className="w-4 h-4" />
+                          Message job poster
+                        </button>
+                        <Link to="/bookings" className="text-sm text-forge-orange hover:underline">
+                          View in My Bookings →
+                        </Link>
+                      </div>
                     </div>
                   </div>
                 ) : (
@@ -461,33 +486,47 @@ const JobDetail: React.FC = () => {
                         {applyError}
                       </div>
                     )}
-                    <button
-                      onClick={handleApply}
-                      disabled={applying}
-                      className="w-full py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                    >
-                      {applying ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Send className="w-5 h-5" />
-                          Apply / Request Job
-                        </>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <button
+                        onClick={handleApply}
+                        disabled={applying}
+                        className="flex-1 py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      >
+                        {applying ? (
+                          <Loader2 className="w-5 h-5 animate-spin" />
+                        ) : (
+                          <>
+                            <Send className="w-5 h-5" />
+                            Apply / Request Job
+                          </>
+                        )}
+                      </button>
+                      {canMessagePoster && (
+                        <button
+                          type="button"
+                          onClick={handleMessagePoster}
+                          className="flex-1 py-3 border border-forge-orange text-forge-orange rounded-xl font-medium hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <MessageSquare className="w-5 h-5" />
+                          Message poster
+                        </button>
                       )}
-                    </button>
+                    </div>
                   </>
                 )}
               </div>
             )}
 
-            {/* Contact for non-worker viewers */}
-            {!isOwner && !isWorker && user && job.status === 'open' && (
+            {/* Contact job poster (customers / other roles, or workers when job is not open) */}
+            {canMessagePoster && !(isWorker && job.status === 'open') && (
               <div className="border-t border-gray-100 pt-6 mt-6">
                 <button
-                  onClick={() => navigate(`/messages?to=${job.poster_user_id}`)}
-                  className="w-full py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors"
+                  type="button"
+                  onClick={handleMessagePoster}
+                  className="w-full py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
                 >
-                  Contact Job Poster
+                  <MessageSquare className="w-5 h-5" />
+                  Message Job Poster
                 </button>
               </div>
             )}

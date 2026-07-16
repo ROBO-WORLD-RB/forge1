@@ -58,6 +58,16 @@ export async function createConversation(
 
 
   try {
+    if (!user1Id || !user2Id || user1Id === user2Id) {
+      return {
+        data: null,
+        error: {
+          code: CHAT_ERROR_CODES.INVALID_PARTICIPANT as any,
+          message: 'Cannot start a conversation with this user',
+        },
+      };
+    }
+
     // Check if conversation already exists between these users
     const { data: existingConversation, error: checkError } = await (supabase
       .from('conversations') as any)
