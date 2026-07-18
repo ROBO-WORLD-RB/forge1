@@ -12,10 +12,10 @@ import { getOAuthCallbackUrl, mapOAuthError } from '../utils/oauth';
 import { withTimeout, withTimeoutFallback } from '../utils/promiseTimeout';
 
 /** Wall-clock budgets so auth UI never spins forever on a hung Supabase call. */
-export const AUTH_GET_USER_TIMEOUT_MS = 8000;
-export const AUTH_PROFILE_TIMEOUT_MS = 8000;
-export const AUTH_SESSION_WAIT_MS = 8000;
-export const AUTH_GET_SESSION_ATTEMPT_MS = 3000;
+export const AUTH_GET_USER_TIMEOUT_MS = 6000;
+export const AUTH_PROFILE_TIMEOUT_MS = 6000;
+export const AUTH_SESSION_WAIT_MS = 6000;
+export const AUTH_GET_SESSION_ATTEMPT_MS = 2500;
 
 export interface UserMetadata {
   phone: string;

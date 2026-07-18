@@ -5,6 +5,7 @@ import { VitePWA } from 'vite-plugin-pwa';
 import { imagetools } from 'vite-imagetools';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { sentryVitePlugin } from '@sentry/vite-plugin';
+import { forgePreconnectPlugin, forgeVersionPlugin } from './plugins/forgeVersionPlugin';
 
 export default defineConfig(({ mode }) => {
     const env = loadEnv(mode, '.', '');
@@ -120,6 +121,8 @@ export default defineConfig(({ mode }) => {
       },
       plugins: [
         react(),
+        forgeVersionPlugin(),
+        forgePreconnectPlugin(env),
         // Image optimization plugin (Requirements 5.3)
         imagetools({
           // Default directives for image processing
@@ -144,7 +147,7 @@ export default defineConfig(({ mode }) => {
           // autoUpdate activates the new SW immediately so a bad navigateFallback
           // cannot leave clients stuck on a cached offline.html page.
           registerType: 'autoUpdate',
-          includeAssets: ['icons/*.svg', 'icons/*.png', 'manifest.json', 'offline.html'],
+          includeAssets: ['icons/*.svg', 'icons/*.png', 'manifest.json', 'offline.html', '_headers'],
           manifest: {
             name: 'FORGE - Blue-Collar Marketplace',
             short_name: 'FORGE',
@@ -174,6 +177,7 @@ export default defineConfig(({ mode }) => {
           },
           workbox: {
             globPatterns: ['**/*.{js,css,html,svg,png,ico,woff,woff2}'],
+            globIgnores: ['**/version.json'],
             // Drop old precache entries after redeploy so clients don't keep
             // requesting hashed chunks that no longer exist (ChunkLoadError).
             cleanupOutdatedCaches: true,
@@ -189,6 +193,22 @@ export default defineConfig(({ mode }) => {
               /\/[^/?]+\.[^/]+$/, // static files with extensions
             ],
             runtimeCaching: [
+              {
+                urlPattern: /\/version\.json$/,
+                handler: 'NetworkOnly',
+              },
+              {
+                urlPattern: ({ request }) => request.mode === 'navigate',
+                handler: 'NetworkFirst',
+                options: {
+                  cacheName: 'html-shell',
+                  networkTimeoutSeconds: 3,
+                  expiration: {
+                    maxEntries: 4,
+                    maxAgeSeconds: 60 * 60,
+                  },
+                },
+              },
               {
                 urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
                 handler: 'StaleWhileRevalidate',

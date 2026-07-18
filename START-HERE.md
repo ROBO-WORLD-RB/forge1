@@ -259,4 +259,10 @@ Free-tier static sites spin down after 15 minutes of inactivity; first visit may
 
 ---
 
+## Security topics for a later review
+
+Before scaling traffic or payments, schedule a short security pass covering: **service worker update integrity** (subresource hashes in `version.json`, CSP for `sw.js`), **client-exposed API keys** (`VITE_*` vars are public in the browser bundle — prefer Supabase Edge Functions for OpenRouter/FCM/Paystack secrets), **RLS and auth redirect allowlists** on Supabase, and **upload/storage policies** for verification docs. None of these block beta launch, but they should be explicit before production hardening.
+
+---
+
 *You’ve done the hard setup work. One SQL session in the dashboard and you’ll see Forge come alive.*

@@ -13,6 +13,8 @@ services:
     name: forge
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    # Cache: hashed /assets/* are immutable; index.html + version.json must revalidate
+    # after each deploy so clients pick up new builds (see public/_headers).
     routes:
       - type: rewrite
         source: /*

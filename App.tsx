@@ -10,7 +10,6 @@ import OfflineIndicator from './components/OfflineIndicator';
 import UpdatePrompt from './components/UpdatePrompt';
 import { usePageTracking } from './hooks/useAnalytics';
 import { usePWA } from './hooks/usePWA';
-import AIChat from './components/AIChat';
 import { InstallPrompt } from './components/InstallPrompt';
 import { initialize as initSentry, SentryErrorBoundary } from './services/monitoringService';
 import { getDefaultDashboardPath, getSafeRedirectPath, resolvePostAuthPath } from './utils/authRedirect';
@@ -38,6 +37,7 @@ const CustomerDashboard = lazyWithRetry(() => import('./pages/dashboard/Customer
 const WorkerDashboard = lazyWithRetry(() => import('./pages/dashboard/WorkerDashboard'));
 // OnboardingPayment kept in pages/auth for later re-enable; route redirects to dashboard for beta
 const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
+const AIChat = lazyWithRetry(() => import('./components/AIChat'));
 
 const PAGE_LOAD_TIMEOUT_MS = 12000;
 
@@ -222,13 +222,35 @@ const DashboardRedirect: React.FC = () => {
 const AppContent: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
-  const { needRefresh, updateApp, dismissUpdate } = usePWA();
+  const { needRefresh, isUpdating, updateApp, dismissUpdate } = usePWA();
   const isWorker = user?.role === 'worker';
   
   const location = useLocation();
   
   // Track page views
   usePageTracking();
+
+  // Prefetch likely next routes once auth is ready (dashboard + bookings).
+  useEffect(() => {
+    if (!isAuthenticated) return;
+
+    const prefetch = () => {
+      if (isWorker) {
+        void import('./pages/dashboard/WorkerDashboard');
+      } else {
+        void import('./pages/dashboard/CustomerDashboard');
+      }
+      void import('./pages/Bookings');
+    };
+
+    if ('requestIdleCallback' in window) {
+      const idleId = window.requestIdleCallback(prefetch, { timeout: 4000 });
+      return () => window.cancelIdleCallback(idleId);
+    }
+
+    const timer = window.setTimeout(prefetch, 2000);
+    return () => window.clearTimeout(timer);
+  }, [isAuthenticated, isWorker]);
 
   const sidebarLinks: { to: string; label: string }[] = [
     { to: '/', label: 'Home' },
@@ -258,7 +280,13 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-dynamic bg-gray-50 font-sans text-gray-900 flex flex-col">
       <OfflineIndicator />
-      {needRefresh && (
+      {isUpdating && (
+        <div className="fixed left-0 right-0 bg-forge-navy text-white py-2 px-4 flex items-center justify-center gap-2 z-[60] shadow-md top-[calc(4rem+env(safe-area-inset-top,0px))]">
+          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
+          <span className="text-sm font-medium">Updating FORGE…</span>
+        </div>
+      )}
+      {needRefresh && !isUpdating && (
         <UpdatePrompt onUpdate={updateApp} onDismiss={dismissUpdate} />
       )}
       <TopNav onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
@@ -415,7 +443,9 @@ const AppContent: React.FC = () => {
 
       <BottomNav />
       <InstallPrompt />
-      <AIChat />
+      <Suspense fallback={null}>
+        <AIChat />
+      </Suspense>
       
       {/* Mobile Sidebar Overlay */}
       {isSidebarOpen && (

@@ -21,7 +21,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 /** Absolute ceiling so route gates never show a spinner forever. */
-const AUTH_BOOTSTRAP_HARD_TIMEOUT_MS = 12000;
+const AUTH_BOOTSTRAP_HARD_TIMEOUT_MS = 10000;
 
 /**
  * Convert Supabase user and profile to app User type

@@ -1,11 +1,15 @@
 import { registerSW } from 'virtual:pwa-register';
 import { logger } from '../utils/logger';
+import { watchServiceWorkerUpdates } from '../utils/appUpdate';
 
 export interface ServiceWorkerConfig {
   onNeedRefresh?: () => void;
   onOfflineReady?: () => void;
   onRegistered?: (registration: ServiceWorkerRegistration | undefined) => void;
   onRegisterError?: (error: Error) => void;
+  /** When true, activate waiting SW and reload without user action. */
+  autoReload?: boolean;
+  onUpdating?: () => void;
 }
 
 let updateSW: ((reloadPage?: boolean) => Promise<void>) | null = null;
@@ -18,13 +22,18 @@ export function registerServiceWorker(config: ServiceWorkerConfig = {}): void {
     onNeedRefresh,
     onOfflineReady,
     onRegistered,
-    onRegisterError
+    onRegisterError,
+    autoReload = true,
+    onUpdating,
   } = config;
 
   updateSW = registerSW({
     onNeedRefresh() {
-      logger.info('New content available, please refresh', undefined, 'ServiceWorker');
+      logger.info('New service worker available', undefined, 'ServiceWorker');
       onNeedRefresh?.();
+      if (autoReload) {
+        void updateServiceWorker(true);
+      }
     },
     onOfflineReady() {
       logger.info('App ready to work offline', undefined, 'ServiceWorker');
@@ -32,6 +41,7 @@ export function registerServiceWorker(config: ServiceWorkerConfig = {}): void {
     },
     onRegistered(registration) {
       logger.info('Service worker registered', { scope: registration?.scope }, 'ServiceWorker');
+      watchServiceWorkerUpdates(registration, onUpdating);
       onRegistered?.(registration);
     },
     onRegisterError(error) {

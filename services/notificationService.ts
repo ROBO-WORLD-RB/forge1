@@ -106,6 +106,27 @@ export async function createInAppNotification(
  * Returns notifications with optional filter for unread only
  * Requirements: 6.3
  */
+/** Lightweight count query for nav badges (avoids fetching full notification rows). */
+export async function getUnreadNotificationCount(userId: string): Promise<number> {
+  try {
+    const { count, error } = await (supabase
+      .from('notifications') as any)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .is('read_at', null);
+
+    if (error) {
+      captureError(new Error(error.message), { tags: { operation: 'getUnreadNotificationCount' } });
+      return 0;
+    }
+
+    return count ?? 0;
+  } catch (error) {
+    captureError(error as Error, { tags: { operation: 'getUnreadNotificationCount' } });
+    return 0;
+  }
+}
+
 export async function getNotifications(
   userId: string,
   unreadOnly?: boolean

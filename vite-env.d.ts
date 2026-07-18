@@ -12,6 +12,8 @@ interface ImportMetaEnv {
   readonly VITE_OLLAMA_URL?: string;
   readonly VITE_OLLAMA_MODEL?: string;
   readonly VITE_APP_URL?: string;
+  readonly VITE_BUILD_ID?: string;
+  readonly VITE_SUPABASE_URL?: string;
 }
 
 interface ImportMeta {

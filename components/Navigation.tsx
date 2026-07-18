@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Home, Search, MessageSquare, User, Briefcase, Menu, LayoutDashboard, Bell, Crown, Calendar } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { getNotifications } from '../services/notificationService';
+import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
 
 interface NavProps {
   onToggleSidebar?: () => void;
@@ -42,32 +42,6 @@ function bottomNavClass(pathname: string, route: string): string {
   }`;
 }
 
-function useUnreadNotificationCount(): number {
-  const { user, isAuthenticated } = useAuth();
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isAuthenticated || !user?.id) {
-      setCount(0);
-      return;
-    }
-
-    let cancelled = false;
-
-    getNotifications(user.id, true).then((result) => {
-      if (!cancelled && result.data) {
-        setCount(result.data.length);
-      }
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isAuthenticated, user?.id]);
-
-  return count;
-}
-
 function UnreadBadge({ count, className = '' }: { count: number; className?: string }) {
   if (count <= 0) return null;
   return (
@@ -84,7 +58,7 @@ type DesktopLink = { to: string; label: string; badge?: number };
 export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
-  const unreadNotifications = useUnreadNotificationCount();
+  const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
   const { pathname } = location;
   const isWorker = user?.role === 'worker';
   const isCustomer = !isWorker; // guests + customers share discover CTAs
@@ -217,7 +191,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const unreadNotifications = useUnreadNotificationCount();
+  const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
   const { pathname } = location;
   const isWorker = user?.role === 'worker';
 
