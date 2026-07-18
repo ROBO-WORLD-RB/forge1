@@ -83,6 +83,18 @@ If **profile photo or verification upload spins forever**, **Replace** on KYC do
 
 **What 008 fixes:** only `customer` / `admin` roles can INSERT into `jobs` (UI: “projects”). Workers browse/apply only.
 
+### Relaunch: wipe users (force everyone to re-register)
+
+**Irreversible.** Deletes all `auth.users` and related app data (bookings, jobs, messages, profiles, etc.). Keeps `service_categories`. Use only when you intentionally want a clean relaunch.
+
+1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/siutunqbdteyrycrbzub/sql/new)
+2. Open [`supabase/migrations/011_wipe_all_users_for_relaunch.sql`](./supabase/migrations/011_wipe_all_users_for_relaunch.sql) in this repo → copy **all** → paste → **Run**
+3. Confirm **Authentication → Users** is empty and the script’s `auth_users_after` / `profiles_after` are `0`
+4. On the live site (and local): **clear site data** or hard-refresh — old JWTs may return 401 until users sign up again
+5. Have users **sign up** as new accounts (same email is fine once the old user row is gone)
+
+> Supabase CLI is optional here; Dashboard SQL Editor is enough. Do not commit or paste secrets (`.env.local`, service role keys) when sharing this step.
+
 ---
 
 ### Step 2 — Turn on live chat + local auth URLs (≈5 minutes)
