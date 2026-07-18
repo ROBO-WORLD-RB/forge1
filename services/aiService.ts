@@ -9,7 +9,6 @@ import { sendOllamaMessage, checkOllamaHealth, OllamaMessage } from './ollamaSer
 import {
   sendOpenRouterMessage,
   isOpenRouterConfigured,
-  OPENROUTER_MODEL,
   OpenRouterMessage,
 } from './openrouterService';
 import { logger } from '../utils/logger';
@@ -29,14 +28,11 @@ export interface AIServiceConfig {
 
 function resolveDefaultProvider(): AIProvider {
   const fromEnv = import.meta.env.VITE_AI_PROVIDER as AIProvider | undefined;
-  if (fromEnv === 'openrouter' || fromEnv === 'gemini' || fromEnv === 'ollama') {
+  // Production default is OpenRouter; gemini/ollama remain as unused fallbacks in code only
+  if (fromEnv === 'gemini' || fromEnv === 'ollama') {
     return fromEnv;
   }
-  // Prefer OpenRouter when configured (cloud free auto-routing)
-  if (isOpenRouterConfigured()) {
-    return 'openrouter';
-  }
-  return 'ollama';
+  return 'openrouter';
 }
 
 const DEFAULT_PROVIDER: AIProvider = resolveDefaultProvider();
@@ -162,24 +158,9 @@ export function clearConversationHistory(): void {
 
 /**
  * Get the recommended provider based on availability
+ * UI always uses OpenRouter; gemini/ollama are unused fallbacks.
  */
 export async function getRecommendedProvider(): Promise<AIProvider> {
-  const status = await getProviderStatus();
-
-  // Prefer OpenRouter when configured (cloud free auto-routing)
-  if (status.openrouter.available) {
-    return 'openrouter';
-  }
-
-  if (status.ollama.available) {
-    return 'ollama';
-  }
-
-  if (status.gemini.available) {
-    return 'gemini';
-  }
-
-  // Default to openrouter so UI shows configure-OpenRouter guidance (not Ollama localhost errors)
   return 'openrouter';
 }
 
@@ -189,7 +170,7 @@ export async function getRecommendedProvider(): Promise<AIProvider> {
 export function getProviderDisplayName(provider: AIProvider): string {
   switch (provider) {
     case 'openrouter':
-      return `OpenRouter (${OPENROUTER_MODEL})`;
+      return 'OpenRouter Free';
     case 'ollama':
       return 'Gemma 3 (Local)';
     case 'gemini':

@@ -1,13 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, X, Minimize2, Globe, Bot, Loader2, ExternalLink, Cpu, Cloud, RefreshCw, Sparkles } from 'lucide-react';
+import { Send, X, Minimize2, Globe, Bot, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import { 
   sendAIMessage, 
-  AIProvider, 
-  getProviderStatus, 
   clearConversationHistory,
+  getProviderStatus,
   getProviderDisplayName,
-  getRecommendedProvider,
 } from '../services/aiService';
 import { ChatMessage } from '../types';
 import {
@@ -36,24 +34,18 @@ const AIChat: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [provider, setProvider] = useState<AIProvider>('openrouter');
-  const [useSearch, setUseSearch] = useState(false);
-  const [providerStatus, setProviderStatus] = useState<{
-    openrouter: { available: boolean; reason?: string };
-    ollama: { available: boolean; reason?: string };
-    gemini: { available: boolean; reason?: string };
-  } | null>(null);
+  const [openrouterAvailable, setOpenrouterAvailable] = useState(true);
+  const [openrouterReason, setOpenrouterReason] = useState<string | undefined>();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Check provider availability on mount
+  // Check OpenRouter availability on mount
   useEffect(() => {
-    const checkProviders = async () => {
+    const checkProvider = async () => {
       const status = await getProviderStatus();
-      setProviderStatus(status);
-      const recommended = await getRecommendedProvider();
-      setProvider(recommended);
+      setOpenrouterAvailable(status.openrouter.available);
+      setOpenrouterReason(status.openrouter.reason);
     };
-    checkProviders();
+    checkProvider();
   }, []);
 
   // Yield bottom-right to PWA install banner (same corner on mobile + desktop)
@@ -77,12 +69,8 @@ const AIChat: React.FC = () => {
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
 
-    // Clear guidance before hitting Ollama localhost when nothing is configured
-    if (
-      provider === 'openrouter' &&
-      providerStatus &&
-      !providerStatus.openrouter.available
-    ) {
+    // Clear guidance when OpenRouter is not configured
+    if (!openrouterAvailable) {
       const userMsg: ChatMessage = {
         id: Date.now().toString(),
         role: 'user',
@@ -94,7 +82,7 @@ const AIChat: React.FC = () => {
       setMessages(prev => [...prev, {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: providerStatus.openrouter.reason ||
+        text: openrouterReason ||
           'Configure OpenRouter: get a key at https://openrouter.ai/keys, set VITE_OPENROUTER_API_KEY (and VITE_AI_PROVIDER=openrouter) on Render, then redeploy. Or deploy the ai-chat Edge Function with OPENROUTER_API_KEY.',
         timestamp: new Date()
       }]);
@@ -113,10 +101,7 @@ const AIChat: React.FC = () => {
     setIsLoading(true);
 
     try {
-      const response = await sendAIMessage(input, { 
-        provider, 
-        useSearch: provider === 'gemini' ? useSearch : false 
-      });
+      const response = await sendAIMessage(input, { provider: 'openrouter' });
       
       const botMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
@@ -128,14 +113,10 @@ const AIChat: React.FC = () => {
       
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
-      const errorText =
-        provider === 'openrouter'
-          ? 'Could not reach OpenRouter. Check your API key / Edge Function, or try Local / Gemini.'
-          : "Sorry, something went wrong. Please try again.";
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: errorText,
+        text: 'Could not reach OpenRouter. Check your API key / Edge Function and try again.',
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -191,11 +172,18 @@ const AIChat: React.FC = () => {
             <h3 className="font-bold">Forge AI Assistant</h3>
             <p className="text-xs text-gray-300 flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-forge-success"></span>
-              Online
+              {getProviderDisplayName('openrouter')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
+          <button
+            onClick={handleClearChat}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            title="Clear chat"
+          >
+            <RefreshCw className="w-4 h-4" />
+          </button>
           <button 
             onClick={() => setIsOpen(false)} 
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
@@ -207,82 +195,6 @@ const AIChat: React.FC = () => {
             className="p-2 hover:bg-white/10 rounded-lg transition-colors"
           >
             <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-
-      {/* Settings Bar */}
-      <div className="bg-gray-50 px-3 py-2 border-b border-gray-100 flex items-center justify-between text-xs text-gray-600 gap-2">
-        {/* Provider Selection */}
-        <div className="flex items-center gap-1.5">
-          <button
-            onClick={() => setProvider('openrouter')}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-              provider === 'openrouter' 
-                ? 'bg-forge-navy text-white' 
-                : 'hover:bg-gray-200'
-            }`}
-            title={
-              providerStatus?.openrouter.available
-                ? 'OpenRouter free auto-routing (openrouter/free)'
-                : providerStatus?.openrouter.reason || 'Configure OpenRouter API key'
-            }
-          >
-            <Sparkles className="w-3 h-3" />
-            <span className="hidden sm:inline">OR</span>
-          </button>
-          <button
-            onClick={() => setProvider('ollama')}
-            disabled={!providerStatus?.ollama.available}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-              provider === 'ollama' 
-                ? 'bg-forge-navy text-white' 
-                : 'hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed'
-            }`}
-            title={providerStatus?.ollama.available ? 'Local Gemma 3 model' : 'Ollama not running'}
-          >
-            <Cpu className="w-3 h-3" />
-            <span className="hidden sm:inline">Local</span>
-          </button>
-          <button
-            onClick={() => setProvider('gemini')}
-            disabled={!providerStatus?.gemini.available}
-            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
-              provider === 'gemini' 
-                ? 'bg-forge-navy text-white' 
-                : 'hover:bg-gray-200 disabled:opacity-40 disabled:cursor-not-allowed'
-            }`}
-            title={providerStatus?.gemini.available ? 'Google Gemini' : 'API key not configured'}
-          >
-            <Cloud className="w-3 h-3" />
-            <span className="hidden sm:inline">Cloud</span>
-          </button>
-        </div>
-
-        {/* Model Name */}
-        <span className="font-medium truncate">
-          {getProviderDisplayName(provider)}
-        </span>
-
-        {/* Options */}
-        <div className="flex items-center gap-2">
-          {provider === 'gemini' && (
-            <label className="flex items-center gap-1 cursor-pointer hover:text-forge-navy transition-colors select-none">
-              <input 
-                type="checkbox" 
-                checked={useSearch} 
-                onChange={(e) => setUseSearch(e.target.checked)}
-                className="w-3 h-3 text-forge-orange rounded border-gray-300 focus:ring-forge-orange"
-              />
-              <Globe className="w-3 h-3" />
-            </label>
-          )}
-          <button
-            onClick={handleClearChat}
-            className="p-1 hover:bg-gray-200 rounded transition-colors"
-            title="Clear chat"
-          >
-            <RefreshCw className="w-3 h-3" />
           </button>
         </div>
       </div>
