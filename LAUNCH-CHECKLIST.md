@@ -351,7 +351,7 @@ This repo includes [`render.yaml`](./render.yaml) for Blueprint deploy. It confi
 
 ### AI chat (OpenRouter recommended; Gemini / local Ollama fallbacks)
 
-- [ ] **P2** Get an OpenRouter key: https://openrouter.ai/keys — model id is `openrouter/free` (smart auto-routing when a free model is down)
+- [ ] **P2** Get an OpenRouter key: https://openrouter.ai/keys — uses pinned free chat models with fallbacks (avoid `openrouter/free` safety-model routing)
 - [ ] **P2** Prefer Edge Function (key stays server-side):
   ```bash
   supabase secrets set OPENROUTER_API_KEY=sk-or-v1-...

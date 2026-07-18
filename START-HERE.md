@@ -213,7 +213,7 @@ Highlights still ahead:
 
 Env vars set on Render (names only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_OPENROUTER_API_KEY`, `VITE_GEMINI_API_KEY`.
 
-**AI chat (OpenRouter):** Get a key at [openrouter.ai/keys](https://openrouter.ai/keys). Model is `openrouter/free` (smart auto-routing). On Render set `VITE_AI_PROVIDER=openrouter` and `VITE_OPENROUTER_API_KEY`, then **Manual Deploy** (Vite bakes `VITE_*` at build time). Prefer the safer path: `supabase secrets set OPENROUTER_API_KEY=...` + `supabase functions deploy ai-chat` (see `supabase/functions/ai-chat/README.md`). Note: a `VITE_` key is public in the SPA bundle — restrict referrers / rotate on OpenRouter.
+**AI chat (OpenRouter):** Get a key at [openrouter.ai/keys](https://openrouter.ai/keys). Uses pinned free chat models (not `openrouter/free`, which can route to safety classifiers). On Render set `VITE_AI_PROVIDER=openrouter` and `VITE_OPENROUTER_API_KEY`, then **Manual Deploy** (Vite bakes `VITE_*` at build time). Prefer the safer path: `supabase secrets set OPENROUTER_API_KEY=...` + `supabase functions deploy ai-chat` (see `supabase/functions/ai-chat/README.md`). Note: a `VITE_` key is public in the SPA bundle — restrict referrers / rotate on OpenRouter.
 
 **Phone/email verification:** deferred for beta — no Twilio/AT vars required for signup/login. Turn **Confirm email OFF** in Supabase for instant post-signup sessions.
 

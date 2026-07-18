@@ -2,7 +2,7 @@
 
 Server-side proxy for Forge AI chat. Keeps `OPENROUTER_API_KEY` off the Vite client bundle.
 
-Uses model **`openrouter/free`** (OpenRouter smart auto-routing across free models).
+Uses pinned free **chat** models (Llama / Gemma / GPT-OSS fallbacks). Does **not** use `openrouter/free` random routing, which can select content-safety models that only return `User Safety: safe`.
 
 ## Prerequisites
 

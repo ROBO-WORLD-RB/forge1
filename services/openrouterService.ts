@@ -1,6 +1,9 @@
 /**
  * OpenRouter AI Service
- * Uses model openrouter/free (smart auto-routing across free models).
+ *
+ * Uses pinned free chat models (with fallbacks). Avoids openrouter/free random
+ * routing, which can select content-safety / guardrail models that only return
+ * "User Safety: safe" instead of a helpful answer.
  *
  * Prefer Supabase Edge Function `ai-chat` (OPENROUTER_API_KEY secret).
  * Falls back to VITE_OPENROUTER_API_KEY for SPA-only / Render quick setup.
@@ -12,10 +15,28 @@ import { analytics } from '../utils/analytics';
 import { supabase, isSupabaseConfigured } from './supabase';
 
 const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
-export const OPENROUTER_MODEL = 'openrouter/free';
 
-const SYSTEM_PROMPT =
-  "You are 'Forge AI', a helpful assistant for the Forge marketplace app connecting blue-collar workers in Ghana and Nigeria. You help users find workers, estimate project costs, and give DIY advice. Be professional, friendly, and concise. Use plain text or light markdown sparingly (**bold**, *italic*, short lists); prefer short paragraphs. Do not emit HTML.";
+/** Primary free chat model — instruct/chat, not safety/guardrail. */
+export const OPENROUTER_MODEL = 'meta-llama/llama-3.3-70b-instruct:free';
+
+/** Tried in order if the primary is down, rate-limited, or returns a safety-classifier stub. */
+export const OPENROUTER_MODEL_FALLBACKS = [
+  'google/gemma-4-26b-a4b-it:free',
+  'openai/gpt-oss-20b:free',
+  'nvidia/nemotron-3-nano-30b-a3b:free',
+  'meta-llama/llama-3.2-3b-instruct:free',
+] as const;
+
+const SYSTEM_PROMPT = `You are Forge AI, the in-app assistant for FORGE — a marketplace that connects customers with skilled blue-collar workers (electricians, plumbers, carpenters, painters, HVAC/AC techs, cleaners, and similar trades) in Ghana and Nigeria.
+
+About FORGE:
+- Customers post jobs or browse workers; workers create profiles, get matched to jobs, and get booked.
+- Help with finding the right trade, rough project cost estimates (GHS in Ghana, NGN in Nigeria), booking/hiring tips, and practical DIY advice.
+- Suggest hiring a professional for complex, electrical, gas, structural, or otherwise dangerous work.
+
+When users ask what the platform is about, explain FORGE clearly in plain language (marketplace for skilled workers in GH/NG), then offer to help with their specific need.
+
+Be professional, friendly, and concise. Answer the user's question directly with a normal helpful reply — never reply with safety ratings, moderation labels, or phrases like "User Safety: safe". Use plain text or light markdown sparingly (**bold**, *italic*, short lists); prefer short paragraphs. Do not emit HTML.`;
 
 export interface OpenRouterResponse {
   text: string;
@@ -30,6 +51,9 @@ export interface OpenRouterMessage {
 const CONFIGURE_MESSAGE =
   'OpenRouter is not configured. Get a key at https://openrouter.ai/keys, then either deploy the ai-chat Edge Function with OPENROUTER_API_KEY, or set VITE_OPENROUTER_API_KEY (and VITE_AI_PROVIDER=openrouter) and redeploy.';
 
+const SAFETY_STUB_FALLBACK =
+  "I'm Forge AI for the FORGE marketplace — we connect customers with skilled workers (electricians, plumbers, carpenters, and more) across Ghana and Nigeria. Ask me about finding a worker, rough project costs in GHS/NGN, or DIY tips.";
+
 function getClientApiKey(): string {
   return (import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined)?.trim() || '';
 }
@@ -39,6 +63,65 @@ function getReferer(): string {
     return window.location.origin;
   }
   return (import.meta.env.VITE_APP_URL as string | undefined) || 'https://forge-9ieq.onrender.com';
+}
+
+/** Extract assistant text from OpenAI-compatible message.content (string or parts array). */
+export function extractMessageContent(message: unknown): string {
+  if (!message || typeof message !== 'object') return '';
+  const content = (message as { content?: unknown }).content;
+
+  if (typeof content === 'string') return content.trim();
+
+  if (Array.isArray(content)) {
+    return content
+      .map((part) => {
+        if (typeof part === 'string') return part;
+        if (part && typeof part === 'object') {
+          const p = part as { text?: unknown; content?: unknown };
+          if (typeof p.text === 'string') return p.text;
+          if (typeof p.content === 'string') return p.content;
+        }
+        return '';
+      })
+      .filter((s) => s.length > 0)
+      .join('\n')
+      .trim();
+  }
+
+  return '';
+}
+
+/**
+ * True when the model (or its output) is a content-safety / guardrail classifier
+ * rather than a chat assistant — e.g. nvidia/nemotron-3.5-content-safety:free
+ * which returns only "User Safety: safe".
+ */
+export function isSafetyClassifierResponse(text: string, modelId?: string): boolean {
+  if (modelId && /content-safety|llama-guard|prompt-guard|moderat(?:ion|or)|guardrail/i.test(modelId)) {
+    return true;
+  }
+
+  const t = text.trim();
+  if (!t) return false;
+
+  if (/^User Safety:\s*(safe|unsafe)\b/i.test(t)) return true;
+  if (/^Response Safety:\s*(safe|unsafe)\b/i.test(t)) return true;
+
+  // Entire reply is only safety rating line(s)
+  const lines = t.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  if (
+    lines.length > 0 &&
+    lines.length <= 3 &&
+    lines.every((l) => /^(User|Response)\s+Safety:\s*(safe|unsafe)\b/i.test(l))
+  ) {
+    return true;
+  }
+
+  return false;
+}
+
+function allChatModels(): string[] {
+  return [OPENROUTER_MODEL, ...OPENROUTER_MODEL_FALLBACKS];
 }
 
 /**
@@ -81,6 +164,14 @@ async function sendViaEdgeFunction(
     }
 
     if (typeof data?.text === 'string' && data.text.length > 0) {
+      if (isSafetyClassifierResponse(data.text, typeof data.model === 'string' ? data.model : undefined)) {
+        logger.warn(
+          'ai-chat returned safety-classifier stub; falling back to client key',
+          { model: data.model, preview: data.text.slice(0, 80) },
+          'openrouterService'
+        );
+        return null;
+      }
       return {
         text: data.text,
         groundingUrls: Array.isArray(data.groundingUrls) ? data.groundingUrls : [],
@@ -98,6 +189,48 @@ async function sendViaEdgeFunction(
   }
 }
 
+async function callOpenRouterChat(
+  apiKey: string,
+  messages: OpenRouterMessage[],
+  model: string,
+  fallbacks: string[]
+): Promise<{ text: string; model: string }> {
+  const body: Record<string, unknown> = {
+    model,
+    messages,
+  };
+  if (fallbacks.length > 0) {
+    body.models = fallbacks;
+  }
+
+  const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      'HTTP-Referer': getReferer(),
+      'X-Title': 'FORGE',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    const detail =
+      data?.error?.message || data?.message || `OpenRouter HTTP ${response.status}`;
+    const err = new Error(detail) as Error & { status?: number };
+    err.status = response.status;
+    throw err;
+  }
+
+  const choiceMessage = data?.choices?.[0]?.message;
+  const text = extractMessageContent(choiceMessage);
+  const usedModel = typeof data?.model === 'string' ? data.model : model;
+
+  return { text, model: usedModel };
+}
+
 async function sendViaClientKey(
   message: string,
   history: OpenRouterMessage[]
@@ -113,45 +246,63 @@ async function sendViaClientKey(
     { role: 'user', content: message },
   ];
 
-  const response = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-      'HTTP-Referer': getReferer(),
-      'X-Title': 'FORGE',
-    },
-    body: JSON.stringify({
-      model: OPENROUTER_MODEL,
-      messages,
-    }),
-  });
+  const models = allChatModels();
+  let lastError: Error | null = null;
 
-  const data = await response.json().catch(() => ({}));
+  for (let i = 0; i < models.length; i++) {
+    const model = models[i];
+    const fallbacks = models.slice(i + 1);
 
-  if (!response.ok) {
-    const detail =
-      data?.error?.message || data?.message || `OpenRouter HTTP ${response.status}`;
-    logger.error('OpenRouter API error', { status: response.status, detail }, 'openrouterService');
-    analytics.track('ai_error', { provider: 'openrouter', error: detail });
+    try {
+      const { text, model: usedModel } = await callOpenRouterChat(
+        apiKey,
+        messages,
+        model,
+        fallbacks
+      );
 
-    if (response.status === 401 || response.status === 403) {
-      return {
-        text: 'OpenRouter API key is invalid. Check VITE_OPENROUTER_API_KEY or the Edge Function secret, then redeploy.',
-        groundingUrls: [],
-      };
+      if (!text) {
+        logger.warn('OpenRouter empty content', { model: usedModel }, 'openrouterService');
+        continue;
+      }
+
+      if (isSafetyClassifierResponse(text, usedModel)) {
+        logger.warn(
+          'OpenRouter safety-classifier response; trying next model',
+          { model: usedModel, preview: text.slice(0, 80) },
+          'openrouterService'
+        );
+        continue;
+      }
+
+      return { text, groundingUrls: [] };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      const status = (error as { status?: number })?.status;
+      logger.warn(
+        'OpenRouter model attempt failed',
+        { model, status, detail: lastError.message },
+        'openrouterService'
+      );
+
+      if (status === 401 || status === 403) {
+        return {
+          text: 'OpenRouter API key is invalid. Check VITE_OPENROUTER_API_KEY or the Edge Function secret, then redeploy.',
+          groundingUrls: [],
+        };
+      }
     }
+  }
 
+  if (lastError) {
+    analytics.track('ai_error', { provider: 'openrouter', error: lastError.message });
     return {
-      text: `I couldn't reach OpenRouter (${detail}). Try again or switch provider.`,
+      text: `I couldn't reach OpenRouter (${lastError.message}). Try again or switch provider.`,
       groundingUrls: [],
     };
   }
 
-  const text =
-    data?.choices?.[0]?.message?.content || "I'm sorry, I couldn't generate a response.";
-
-  return { text, groundingUrls: [] };
+  return { text: SAFETY_STUB_FALLBACK, groundingUrls: [] };
 }
 
 /**
