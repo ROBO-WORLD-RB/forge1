@@ -90,8 +90,11 @@ If **profile photo or verification upload spins forever**, **Replace** on KYC do
 1. Open [Supabase SQL Editor](https://supabase.com/dashboard/project/siutunqbdteyrycrbzub/sql/new)
 2. Open [`supabase/migrations/011_wipe_all_users_for_relaunch.sql`](./supabase/migrations/011_wipe_all_users_for_relaunch.sql) in this repo → copy **all** → paste → **Run**
 3. Confirm **Authentication → Users** is empty and the script’s `auth_users_after` / `profiles_after` are `0`
-4. On the live site (and local): **clear site data** or hard-refresh — old JWTs may return 401 until users sign up again
-5. Have users **sign up** as new accounts (same email is fine once the old user row is gone)
+4. **(Optional)** Supabase → **Storage** → open each bucket (`avatars`, `job-media`, `verification-documents`) → delete all objects. The SQL script cannot clear storage (Supabase blocks direct `DELETE` on `storage.objects`); orphaned files are harmless but use space until you empty buckets.
+5. On the live site (and local): **clear site data** or hard-refresh — old JWTs may return 401 until users sign up again
+6. Have users **sign up** as new accounts (same email is fine once the old user row is gone)
+
+> If an older copy of the wipe script failed with `Direct deletion from storage tables is not allowed`, **nothing was deleted** (the transaction rolled back). Pull the latest `011` from this repo and run it again.
 
 > Supabase CLI is optional here; Dashboard SQL Editor is enough. Do not commit or paste secrets (`.env.local`, service role keys) when sharing this step.
 

@@ -20,7 +20,15 @@
 --   This script clears those first, then deletes auth.users.
 --
 -- Kept: service_categories (catalog seed data).
--- Optional: storage objects in user-upload buckets (included below).
+--
+-- Storage (NOT handled here):
+--   Supabase blocks direct DELETE on storage.objects (use Storage API / Dashboard).
+--   After this script succeeds, optionally empty these buckets in Dashboard:
+--     Storage → avatars, job-media, verification-documents → delete all objects
+--   Orphaned files may remain until you do that; auth/users/app rows are still wiped.
+--
+-- If you ran an older version that failed on `DELETE FROM storage.objects`:
+--   The whole transaction rolled back — no users were deleted. Re-run this script.
 -- =============================================================================
 
 BEGIN;
@@ -32,6 +40,7 @@ SELECT
 
 -- -----------------------------------------------------------------------------
 -- 1) Clear FK blockers that do NOT ON DELETE CASCADE from profiles
+--    (idempotent — safe to re-run)
 -- -----------------------------------------------------------------------------
 DELETE FROM public.worker_payments;
 
@@ -42,6 +51,7 @@ WHERE reviewed_by IS NOT NULL;
 -- -----------------------------------------------------------------------------
 -- 2) Explicit app-data cleanup (correct order; also covered by cascades)
 --    Leaves a clean slate even if some cascades were altered in prod.
+--    (idempotent — safe to re-run)
 -- -----------------------------------------------------------------------------
 DELETE FROM public.messages;
 DELETE FROM public.conversations;
@@ -59,14 +69,9 @@ DELETE FROM public.worker_profiles;
 
 -- -----------------------------------------------------------------------------
 -- 3) Auth wipe — cascades to public.profiles (ON DELETE CASCADE)
+--    (idempotent — safe to re-run)
 -- -----------------------------------------------------------------------------
 DELETE FROM auth.users;
-
--- -----------------------------------------------------------------------------
--- 4) Orphaned upload files (avatars / job media / KYC)
--- -----------------------------------------------------------------------------
-DELETE FROM storage.objects
-WHERE bucket_id IN ('avatars', 'job-media', 'verification-documents');
 
 -- Verify empty
 DO $$
@@ -93,6 +98,8 @@ COMMIT;
 -- =============================================================================
 -- After running:
 --   1. Supabase → Authentication → Users should be empty.
---   2. Open the site → hard refresh or clear site data (old JWTs may 401).
---   3. Sign up again as a new user.
+--   2. (Optional) Supabase → Storage → empty buckets: avatars, job-media,
+--      verification-documents — orphaned uploads are harmless but use space.
+--   3. Open the site → hard refresh or clear site data (old JWTs may 401).
+--   4. Sign up again as a new user.
 -- =============================================================================
