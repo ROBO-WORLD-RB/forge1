@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Home, Search, MessageSquare, User, Briefcase, Menu, LogOut, LayoutDashboard, Bell, Crown } from 'lucide-react';
+import { Home, Search, MessageSquare, User, Briefcase, Menu, LogOut, LayoutDashboard, Bell, Crown, Calendar } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getNotifications } from '../services/notificationService';
@@ -111,6 +111,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
     if (isAuthenticated) {
       links.push(
         { to: '/dashboard', label: 'Dashboard' },
+        { to: '/bookings', label: 'My Bookings' },
         { to: '/messages', label: 'Messages' },
         { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
       );
@@ -276,6 +277,14 @@ export const BottomNav: React.FC = () => {
       )}
       {isAuthenticated ? (
         <>
+          <Link
+            to="/bookings"
+            aria-current={isNavRouteActive(pathname, '/bookings') ? 'page' : undefined}
+            className={bottomNavClass(pathname, '/bookings')}
+          >
+            <Calendar className="w-5 h-5" aria-hidden="true" />
+            <span className="text-[10px] font-medium leading-tight">Bookings</span>
+          </Link>
           <Link
             to="/messages"
             aria-current={isNavRouteActive(pathname, '/messages') ? 'page' : undefined}
