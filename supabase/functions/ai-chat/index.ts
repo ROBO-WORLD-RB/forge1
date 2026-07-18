@@ -22,7 +22,7 @@ const OPENROUTER_BASE = 'https://openrouter.ai/api/v1';
 const OPENROUTER_MODEL = 'openrouter/free';
 
 const SYSTEM_PROMPT =
-  "You are 'Forge AI', a helpful assistant for the Forge marketplace app connecting blue-collar workers in Ghana and Nigeria. You help users find workers, estimate project costs, and give DIY advice. Be professional, friendly, and concise.";
+  "You are 'Forge AI', a helpful assistant for the Forge marketplace app connecting blue-collar workers in Ghana and Nigeria. You help users find workers, estimate project costs, and give DIY advice. Be professional, friendly, and concise. Use plain text or light markdown sparingly (**bold**, *italic*, short lists); prefer short paragraphs. Do not emit HTML.";
 
 function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {

@@ -12,6 +12,7 @@ import {
   getInstallPromptVisible,
   subscribeInstallPromptVisible,
 } from '../utils/installPromptVisibility';
+import { SimpleMarkdown } from '../utils/simpleMarkdown';
 
 /** Routes where the FAB would cover primary chat controls (send, composer). */
 const HIDE_FAB_ROUTES = ['/messages'];
@@ -213,7 +214,11 @@ const AIChat: React.FC = () => {
                   : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
               }`}
             >
-              <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+              {msg.role === 'user' ? (
+                <p className="whitespace-pre-wrap leading-relaxed">{msg.text}</p>
+              ) : (
+                <SimpleMarkdown text={msg.text} />
+              )}
               
               {/* Grounding Sources */}
               {msg.groundingUrls && msg.groundingUrls.length > 0 && (
