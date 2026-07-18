@@ -272,7 +272,7 @@ See [`supabase/functions/subscription-expiry-cron/README.md`](./supabase/functio
 - `https://forge-9ieq.onrender.com/auth/callback`
 - `https://forge-9ieq.onrender.com/auth/reset-password`
 
-Render env vars already set: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_GEMINI_API_KEY`.
+Render env vars already set: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_OPENROUTER_API_KEY`, `VITE_GEMINI_API_KEY`.
 
 Forge builds to static files in `dist/`. There is no Node server in production unless you add one.
 
@@ -349,14 +349,22 @@ This repo includes [`render.yaml`](./render.yaml) for Blueprint deploy. It confi
 
 ## P2 — Optional features
 
-### AI chat (Gemini or local Ollama)
+### AI chat (OpenRouter recommended; Gemini / local Ollama fallbacks)
 
-- [ ] **P2** For cloud AI, in `.env.local`:
-  ```env
-  VITE_AI_PROVIDER=gemini
-  VITE_GEMINI_API_KEY=your_key_from_google_ai_studio
+- [ ] **P2** Get an OpenRouter key: https://openrouter.ai/keys — model id is `openrouter/free` (smart auto-routing when a free model is down)
+- [ ] **P2** Prefer Edge Function (key stays server-side):
+  ```bash
+  supabase secrets set OPENROUTER_API_KEY=sk-or-v1-...
+  supabase functions deploy ai-chat
   ```
-- [ ] **P2** For local dev only: `VITE_AI_PROVIDER=ollama` + run `ollama serve` (see `.env.local.example`)
+  See [`supabase/functions/ai-chat/README.md`](./supabase/functions/ai-chat/README.md).
+- [ ] **P2** Or SPA / Render quick setup (key is **public** in the browser bundle — restrict referrers / rotate):
+  ```env
+  VITE_AI_PROVIDER=openrouter
+  VITE_OPENROUTER_API_KEY=sk-or-v1-your_key
+  ```
+  On Render: add those env vars → **Manual Deploy** (Vite only reads `VITE_*` at build time).
+- [ ] **P2** Optional backups: `VITE_GEMINI_API_KEY` or local `VITE_AI_PROVIDER=ollama` + `ollama serve` (see `.env.local.example`)
 
 ### Push notifications (FCM)
 

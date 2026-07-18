@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { MessageSquare, Send, X, Minimize2, Globe, Bot, Loader2, ExternalLink, Cpu, Cloud, RefreshCw } from 'lucide-react';
+import { Send, X, Minimize2, Globe, Bot, Loader2, ExternalLink, Cpu, Cloud, RefreshCw, Sparkles } from 'lucide-react';
 import { 
   sendAIMessage, 
   AIProvider, 
   getProviderStatus, 
   clearConversationHistory,
-  getProviderDisplayName 
+  getProviderDisplayName,
+  getRecommendedProvider,
 } from '../services/aiService';
 import { ChatMessage } from '../types';
 import {
@@ -35,11 +36,12 @@ const AIChat: React.FC = () => {
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [provider, setProvider] = useState<AIProvider>('ollama');
+  const [provider, setProvider] = useState<AIProvider>('openrouter');
   const [useSearch, setUseSearch] = useState(false);
   const [providerStatus, setProviderStatus] = useState<{
-    ollama: { available: boolean };
-    gemini: { available: boolean };
+    openrouter: { available: boolean; reason?: string };
+    ollama: { available: boolean; reason?: string };
+    gemini: { available: boolean; reason?: string };
   } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,10 +50,8 @@ const AIChat: React.FC = () => {
     const checkProviders = async () => {
       const status = await getProviderStatus();
       setProviderStatus(status);
-      // Auto-select available provider
-      if (!status.ollama.available && status.gemini.available) {
-        setProvider('gemini');
-      }
+      const recommended = await getRecommendedProvider();
+      setProvider(recommended);
     };
     checkProviders();
   }, []);
@@ -76,6 +76,30 @@ const AIChat: React.FC = () => {
 
   const handleSend = async () => {
     if (!input.trim() || isLoading) return;
+
+    // Clear guidance before hitting Ollama localhost when nothing is configured
+    if (
+      provider === 'openrouter' &&
+      providerStatus &&
+      !providerStatus.openrouter.available
+    ) {
+      const userMsg: ChatMessage = {
+        id: Date.now().toString(),
+        role: 'user',
+        text: input,
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, userMsg]);
+      setInput('');
+      setMessages(prev => [...prev, {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: providerStatus.openrouter.reason ||
+          'Configure OpenRouter: get a key at https://openrouter.ai/keys, set VITE_OPENROUTER_API_KEY (and VITE_AI_PROVIDER=openrouter) on Render, then redeploy. Or deploy the ai-chat Edge Function with OPENROUTER_API_KEY.',
+        timestamp: new Date()
+      }]);
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: Date.now().toString(),
@@ -104,10 +128,14 @@ const AIChat: React.FC = () => {
       
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
+      const errorText =
+        provider === 'openrouter'
+          ? 'Could not reach OpenRouter. Check your API key / Edge Function, or try Local / Gemini.'
+          : "Sorry, something went wrong. Please try again.";
       const errorMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         role: 'model',
-        text: "Sorry, something went wrong. Please try again.",
+        text: errorText,
         timestamp: new Date()
       };
       setMessages(prev => [...prev, errorMsg]);
@@ -186,7 +214,23 @@ const AIChat: React.FC = () => {
       {/* Settings Bar */}
       <div className="bg-gray-50 px-3 py-2 border-b border-gray-100 flex items-center justify-between text-xs text-gray-600 gap-2">
         {/* Provider Selection */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setProvider('openrouter')}
+            className={`flex items-center gap-1 px-2 py-1 rounded-md transition-colors ${
+              provider === 'openrouter' 
+                ? 'bg-forge-navy text-white' 
+                : 'hover:bg-gray-200'
+            }`}
+            title={
+              providerStatus?.openrouter.available
+                ? 'OpenRouter free auto-routing (openrouter/free)'
+                : providerStatus?.openrouter.reason || 'Configure OpenRouter API key'
+            }
+          >
+            <Sparkles className="w-3 h-3" />
+            <span className="hidden sm:inline">OR</span>
+          </button>
           <button
             onClick={() => setProvider('ollama')}
             disabled={!providerStatus?.ollama.available}

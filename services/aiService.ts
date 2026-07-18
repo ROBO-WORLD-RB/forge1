@@ -1,14 +1,20 @@
 /**
  * AI Service Abstraction
- * Provides a unified interface for different AI providers (Gemini, Ollama)
+ * Provides a unified interface for different AI providers (OpenRouter, Gemini, Ollama)
  * Allows switching between cloud and local models
  */
 
-import { sendGeminiMessage, GeminiResponse } from './geminiService';
-import { sendOllamaMessage, checkOllamaHealth, OllamaResponse, OllamaMessage } from './ollamaService';
+import { sendGeminiMessage } from './geminiService';
+import { sendOllamaMessage, checkOllamaHealth, OllamaMessage } from './ollamaService';
+import {
+  sendOpenRouterMessage,
+  isOpenRouterConfigured,
+  OPENROUTER_MODEL,
+  OpenRouterMessage,
+} from './openrouterService';
 import { logger } from '../utils/logger';
 
-export type AIProvider = 'gemini' | 'ollama';
+export type AIProvider = 'openrouter' | 'gemini' | 'ollama';
 
 export interface AIResponse {
   text: string;
@@ -21,24 +27,43 @@ export interface AIServiceConfig {
   useSearch?: boolean; // Only for Gemini
 }
 
-// Default to Ollama for local development, can be changed via env
-const DEFAULT_PROVIDER: AIProvider = 
-  (import.meta.env.VITE_AI_PROVIDER as AIProvider) || 'ollama';
+function resolveDefaultProvider(): AIProvider {
+  const fromEnv = import.meta.env.VITE_AI_PROVIDER as AIProvider | undefined;
+  if (fromEnv === 'openrouter' || fromEnv === 'gemini' || fromEnv === 'ollama') {
+    return fromEnv;
+  }
+  // Prefer OpenRouter when configured (cloud free auto-routing)
+  if (isOpenRouterConfigured()) {
+    return 'openrouter';
+  }
+  return 'ollama';
+}
 
-// Store conversation history for Ollama (maintains context)
+const DEFAULT_PROVIDER: AIProvider = resolveDefaultProvider();
+
+// Conversation history for providers that keep context client-side
 let ollamaConversationHistory: OllamaMessage[] = [];
+let openrouterConversationHistory: OpenRouterMessage[] = [];
 
 /**
  * Get the current AI provider status
  */
 export async function getProviderStatus(): Promise<{
+  openrouter: { available: boolean; reason?: string };
   gemini: { available: boolean; reason?: string };
   ollama: { available: boolean; reason?: string };
 }> {
+  const openrouterAvailable = isOpenRouterConfigured();
   const geminiAvailable = !!import.meta.env.VITE_GEMINI_API_KEY || !!process.env.API_KEY;
   const ollamaAvailable = await checkOllamaHealth();
 
   return {
+    openrouter: {
+      available: openrouterAvailable,
+      reason: openrouterAvailable
+        ? undefined
+        : 'Configure OpenRouter: set VITE_OPENROUTER_API_KEY or deploy ai-chat Edge Function with OPENROUTER_API_KEY',
+    },
     gemini: {
       available: geminiAvailable,
       reason: geminiAvailable ? undefined : 'API key not configured',
@@ -63,16 +88,31 @@ export async function sendAIMessage(
   logger.debug('Sending AI message', { provider, useSearch }, 'aiService');
 
   try {
+    if (provider === 'openrouter') {
+      const response = await sendOpenRouterMessage(message, openrouterConversationHistory);
+
+      openrouterConversationHistory.push(
+        { role: 'user', content: message },
+        { role: 'assistant', content: response.text }
+      );
+      if (openrouterConversationHistory.length > 20) {
+        openrouterConversationHistory = openrouterConversationHistory.slice(-20);
+      }
+
+      return {
+        ...response,
+        provider: 'openrouter',
+      };
+    }
+
     if (provider === 'ollama') {
       const response = await sendOllamaMessage(message, ollamaConversationHistory);
-      
-      // Update conversation history for context
+
       ollamaConversationHistory.push(
         { role: 'user', content: message },
         { role: 'assistant', content: response.text }
       );
-      
-      // Keep history manageable (last 10 exchanges)
+
       if (ollamaConversationHistory.length > 20) {
         ollamaConversationHistory = ollamaConversationHistory.slice(-20);
       }
@@ -81,26 +121,30 @@ export async function sendAIMessage(
         ...response,
         provider: 'ollama',
       };
-    } else {
-      // Gemini provider
-      const response = await sendGeminiMessage(message, useSearch);
-      return {
-        ...response,
-        provider: 'gemini',
-      };
     }
+
+    // Gemini provider
+    const response = await sendGeminiMessage(message, useSearch);
+    return {
+      ...response,
+      provider: 'gemini',
+    };
   } catch (error) {
     logger.error('AI service error', { provider, error }, 'aiService');
-    
-    // If primary provider fails, try fallback
-    if (provider === 'ollama') {
-      logger.info('Ollama failed, checking if Gemini is available', {}, 'aiService');
-      const status = await getProviderStatus();
-      if (status.gemini.available) {
-        logger.info('Falling back to Gemini', {}, 'aiService');
-        const response = await sendGeminiMessage(message, useSearch);
-        return { ...response, provider: 'gemini' };
-      }
+
+    // Fallback chain: primary → openrouter → gemini
+    const status = await getProviderStatus();
+
+    if (provider !== 'openrouter' && status.openrouter.available) {
+      logger.info('Falling back to OpenRouter', {}, 'aiService');
+      const response = await sendOpenRouterMessage(message, openrouterConversationHistory);
+      return { ...response, provider: 'openrouter' };
+    }
+
+    if (provider === 'ollama' && status.gemini.available) {
+      logger.info('Falling back to Gemini', {}, 'aiService');
+      const response = await sendGeminiMessage(message, useSearch);
+      return { ...response, provider: 'gemini' };
     }
 
     throw error;
@@ -108,10 +152,11 @@ export async function sendAIMessage(
 }
 
 /**
- * Clear conversation history (for Ollama)
+ * Clear conversation history (for Ollama / OpenRouter)
  */
 export function clearConversationHistory(): void {
   ollamaConversationHistory = [];
+  openrouterConversationHistory = [];
   logger.info('Conversation history cleared', {}, 'aiService');
 }
 
@@ -120,19 +165,22 @@ export function clearConversationHistory(): void {
  */
 export async function getRecommendedProvider(): Promise<AIProvider> {
   const status = await getProviderStatus();
-  
-  // Prefer Ollama if available (local, free, private)
+
+  // Prefer OpenRouter when configured (cloud free auto-routing)
+  if (status.openrouter.available) {
+    return 'openrouter';
+  }
+
   if (status.ollama.available) {
     return 'ollama';
   }
-  
-  // Fall back to Gemini if available
+
   if (status.gemini.available) {
     return 'gemini';
   }
-  
-  // Default to Ollama (will show connection error)
-  return 'ollama';
+
+  // Default to openrouter so UI shows configure-OpenRouter guidance (not Ollama localhost errors)
+  return 'openrouter';
 }
 
 /**
@@ -140,6 +188,8 @@ export async function getRecommendedProvider(): Promise<AIProvider> {
  */
 export function getProviderDisplayName(provider: AIProvider): string {
   switch (provider) {
+    case 'openrouter':
+      return `OpenRouter (${OPENROUTER_MODEL})`;
     case 'ollama':
       return 'Gemma 3 (Local)';
     case 'gemini':
