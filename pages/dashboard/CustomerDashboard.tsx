@@ -132,6 +132,13 @@ const CustomerDashboard: React.FC = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <Link 
+              to="/bookings" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
+            >
+              <Calendar className="w-5 h-5" />
+              My Bookings
+            </Link>
+            <Link 
               to="/search" 
               className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
             >
@@ -152,10 +159,16 @@ const CustomerDashboard: React.FC = () => {
 
         {/* Stats Cards */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-forge-orange">
-            <div className="text-gray-500 text-sm mb-1">Active Projects</div>
+          <Link
+            to="/bookings"
+            className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-forge-orange hover:shadow-md transition-shadow block"
+          >
+            <div className="text-gray-500 text-sm mb-1">Active Bookings</div>
             <div className="text-3xl font-bold text-gray-900">{activeBookings}</div>
-          </div>
+            <span className="text-xs text-forge-orange font-medium mt-2 inline-flex items-center gap-0.5">
+              Track bookings <ChevronRight className="w-3.5 h-3.5" />
+            </span>
+          </Link>
           <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-forge-green">
             <div className="text-gray-500 text-sm mb-1">Open Projects</div>
             <div className="text-3xl font-bold text-gray-900">{openJobs}</div>
@@ -173,45 +186,49 @@ const CustomerDashboard: React.FC = () => {
         </div>
 
         <div className="grid md:grid-cols-2 gap-6">
-          {/* My Projects */}
+          {/* My Bookings */}
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-lg text-gray-900">My Active Projects</h2>
-              <Link to="/bookings" className="text-forge-orange text-sm hover:underline flex items-center gap-1">
-                View all <ChevronRight className="w-4 h-4" />
+            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
+              <h2 className="font-bold text-lg text-gray-900">My Bookings</h2>
+              <Link to="/bookings" className="text-forge-orange text-sm font-medium hover:underline flex items-center gap-1 shrink-0">
+                View bookings <ChevronRight className="w-4 h-4" />
               </Link>
             </div>
             <div className="divide-y divide-gray-100">
               {bookings.length === 0 ? (
                 <div className="p-8 text-center text-gray-500">
-                  <Search className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="mb-4">You haven't booked any pros yet.</p>
-                  <Link to="/search" className="bg-gray-100 text-forge-navy px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors inline-block">
-                    Browse Pros
-                  </Link>
+                  <Calendar className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                  <p className="mb-4">You haven&apos;t booked any pros yet.</p>
+                  <div className="flex flex-wrap items-center justify-center gap-2">
+                    <Link to="/search" className="bg-gray-100 text-forge-navy px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-200 transition-colors inline-block">
+                      Browse Pros
+                    </Link>
+                    <Link to="/bookings" className="text-forge-orange text-sm font-medium hover:underline px-2 py-2">
+                      Track bookings
+                    </Link>
+                  </div>
                 </div>
               ) : (
                 bookings.slice(0, 4).map(booking => (
-                  <div key={booking.id} className="p-4 hover:bg-gray-50 transition-colors">
-                    <div className="flex items-center justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                            {booking.status.replace('_', ' ')}
-                          </span>
-                        </div>
-                        <p className="text-sm font-medium text-gray-900 mt-1">
-                          {booking.customer_message || 'Project Details'}
-                        </p>
+                  <Link
+                    key={booking.id}
+                    to="/bookings"
+                    className="p-4 hover:bg-gray-50 transition-colors flex items-center justify-between gap-3"
+                  >
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                          {booking.status.replace('_', ' ')}
+                        </span>
                       </div>
-                      <Link 
-                        to={`/bookings/${booking.id}`}
-                        className="text-forge-orange hover:bg-orange-50 p-2 rounded-lg"
-                      >
-                        <ChevronRight className="w-5 h-5" />
-                      </Link>
+                      <p className="text-sm font-medium text-gray-900 mt-1 truncate">
+                        {booking.customer_message || 'Booking details'}
+                      </p>
                     </div>
-                  </div>
+                    <span className="text-forge-orange p-2 rounded-lg shrink-0" aria-hidden="true">
+                      <ChevronRight className="w-5 h-5" />
+                    </span>
+                  </Link>
                 ))
               )}
             </div>
