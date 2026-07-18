@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Home, Search, MessageSquare, User, Briefcase, Menu, LogOut, LayoutDashboard, Bell, Crown, Calendar } from 'lucide-react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Home, Search, MessageSquare, User, Briefcase, Menu, LayoutDashboard, Bell, Crown, Calendar } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getNotifications } from '../services/notificationService';
 
@@ -82,18 +82,12 @@ function UnreadBadge({ count, className = '' }: { count: number; className?: str
 type DesktopLink = { to: string; label: string; badge?: number };
 
 export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
-  const { user, isAuthenticated, logout } = useAuth();
-  const navigate = useNavigate();
+  const { user, isAuthenticated } = useAuth();
   const location = useLocation();
   const unreadNotifications = useUnreadNotificationCount();
   const { pathname } = location;
   const isWorker = user?.role === 'worker';
   const isCustomer = !isWorker; // guests + customers share discover CTAs
-
-  const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
 
   const desktopLinks: DesktopLink[] = useMemo(() => {
     const links: DesktopLink[] = [{ to: '/', label: 'Home' }];
@@ -124,102 +118,97 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
   }, [isAuthenticated, isCustomer, isWorker, unreadNotifications]);
 
   return (
-    <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between shadow-sm h-16">
-      <div className="flex items-center gap-2">
-        <button
-          className="md:hidden p-2 -ml-2 text-gray-600 hover:text-forge-navy rounded-lg"
-          onClick={onToggleSidebar}
-          aria-label="Open menu"
-        >
-          <Menu className="w-6 h-6" />
-        </button>
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain" />
-          <span className="text-xl font-bold text-forge-navy tracking-tight">FORGE</span>
-        </Link>
-      </div>
+    <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm pt-safe">
+      <div className="h-16 px-4 flex items-center justify-between">
+        <div className="flex items-center gap-2 min-w-0">
+          <button
+            className="md:hidden p-2 -ml-2 text-gray-600 hover:text-forge-navy rounded-lg"
+            onClick={onToggleSidebar}
+            aria-label="Open menu"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <Link to="/" className="flex items-center gap-2 min-w-0">
+            <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain shrink-0" />
+            <span className="text-xl font-bold text-forge-navy tracking-tight">FORGE</span>
+          </Link>
+        </div>
 
-      <div className="hidden md:flex items-center gap-1 text-sm font-medium">
-        {desktopLinks.map(({ to, label, badge }) => {
-          const active = isNavRouteActive(pathname, to);
-          return (
-            <Link
-              key={`${to}-${label}`}
-              to={to}
-              aria-current={active ? 'page' : undefined}
-              className={`relative px-3 py-2 rounded-lg ${navLinkClass(pathname, to)}`}
-            >
-              {active && (
-                <span className="absolute inset-x-3 -bottom-[13px] h-0.5 bg-forge-orange rounded-full" aria-hidden="true" />
-              )}
-              <span className="flex items-center gap-1.5">
-                {label}
-                {badge != null && badge > 0 && <UnreadBadge count={badge} />}
-              </span>
-            </Link>
-          );
-        })}
-      </div>
-
-      <div className="flex items-center gap-3">
-        {isAuthenticated ? (
-          <div className="flex items-center gap-3">
-            {isWorker && (
+        <div className="hidden md:flex items-center gap-1 text-sm font-medium">
+          {desktopLinks.map(({ to, label, badge }) => {
+            const active = isNavRouteActive(pathname, to);
+            return (
               <Link
-                to="/subscription"
-                className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
+                key={`${to}-${label}`}
+                to={to}
+                aria-current={active ? 'page' : undefined}
+                className={`relative px-3 py-2 rounded-lg ${navLinkClass(pathname, to)}`}
               >
-                <Crown className="w-4 h-4" />
-                Upgrade
+                {active && (
+                  <span className="absolute inset-x-3 -bottom-[13px] h-0.5 bg-forge-orange rounded-full" aria-hidden="true" />
+                )}
+                <span className="flex items-center gap-1.5">
+                  {label}
+                  {badge != null && badge > 0 && <UnreadBadge count={badge} />}
+                </span>
               </Link>
-            )}
-            <Link
-              to="/dashboard"
-              className={`hidden md:flex items-center gap-2 text-sm font-medium rounded-lg px-2 py-1 ${
-                isNavRouteActive(pathname, '/dashboard')
-                  ? 'text-forge-orange'
-                  : 'text-gray-700 hover:text-forge-navy'
-              }`}
-            >
-              <span className="text-right">
-                <span className="block text-xs text-gray-500">Welcome</span>
-                {user?.firstName || 'User'}
-              </span>
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border ${
+            );
+          })}
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          {isAuthenticated ? (
+            <div className="flex items-center gap-3">
+              {isWorker && (
+                <Link
+                  to="/subscription"
+                  className="hidden md:flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white px-3 py-1.5 rounded-lg text-sm font-medium hover:from-amber-600 hover:to-orange-600 transition-all"
+                >
+                  <Crown className="w-4 h-4" />
+                  Upgrade
+                </Link>
+              )}
+              <Link
+                to="/dashboard"
+                aria-label="Open dashboard"
+                className={`flex items-center gap-2 text-sm font-medium rounded-lg px-1.5 py-1 ${
                   isNavRouteActive(pathname, '/dashboard')
-                    ? 'bg-forge-orange/10 border-forge-orange/30'
-                    : 'bg-forge-navy/10 border-gray-200'
+                    ? 'text-forge-orange'
+                    : 'text-gray-700 hover:text-forge-navy'
                 }`}
               >
-                <User className="w-5 h-5 text-forge-navy" />
-              </div>
-            </Link>
-            <button
-              onClick={handleLogout}
-              className="p-2 text-gray-400 hover:text-red-500 transition-colors rounded-lg"
-              title="Sign Out"
-              aria-label="Sign out"
-            >
-              <LogOut className="w-5 h-5" />
-            </button>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2">
-            <Link
-              to="/auth/login"
-              className={`hidden md:block text-sm font-medium px-3 py-2 rounded-lg ${navLinkClass(pathname, '/auth/login')}`}
-            >
-              Sign In
-            </Link>
-            <Link
-              to="/auth/signup"
-              className="bg-forge-navy text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
-            >
-              Join Now
-            </Link>
-          </div>
-        )}
+                <span className="hidden md:block text-right">
+                  <span className="block text-xs text-gray-500">Welcome</span>
+                  {user?.firstName || 'User'}
+                </span>
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border ${
+                    isNavRouteActive(pathname, '/dashboard')
+                      ? 'bg-forge-orange/10 border-forge-orange/30'
+                      : 'bg-forge-navy/10 border-gray-200'
+                  }`}
+                >
+                  <User className="w-5 h-5 text-forge-navy" />
+                </div>
+              </Link>
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Link
+                to="/auth/login"
+                className={`hidden md:block text-sm font-medium px-3 py-2 rounded-lg ${navLinkClass(pathname, '/auth/login')}`}
+              >
+                Sign In
+              </Link>
+              <Link
+                to="/auth/signup"
+                className="bg-forge-navy text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+              >
+                Join Now
+              </Link>
+            </div>
+          )}
+        </div>
       </div>
     </nav>
   );

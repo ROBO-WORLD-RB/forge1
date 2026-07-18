@@ -28,6 +28,10 @@
   padding-top: env(safe-area-inset-top, 0px);
 }
 
+@utility top-nav-safe {
+  top: calc(4rem + env(safe-area-inset-top, 0px));
+}
+
 @utility pl-safe {
   padding-left: env(safe-area-inset-left, 0px);
 }

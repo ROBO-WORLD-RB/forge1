@@ -363,21 +363,33 @@ const UserProfile: React.FC = () => {
 
               {activeTab === 'settings' && (
                 <div className="space-y-2 animate-in fade-in duration-200">
-                  <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/profile/edit')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <User className="w-5 h-5 text-gray-400" />
                       <span className="font-medium text-gray-900">Edit Profile</span>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
                   </button>
-                  <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/settings/privacy')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <Shield className="w-5 h-5 text-gray-400" />
                       <span className="font-medium text-gray-900">Privacy & Security</span>
                     </div>
                     <ChevronRight className="w-5 h-5 text-gray-400" />
                   </button>
-                  <button className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/notifications')}
+                    className="w-full flex items-center justify-between p-4 hover:bg-gray-50 rounded-xl transition-colors"
+                  >
                     <div className="flex items-center gap-3">
                       <Mail className="w-5 h-5 text-gray-400" />
                       <span className="font-medium text-gray-900">Notifications</span>

@@ -31,7 +31,7 @@ const OfflineIndicator: React.FC = () => {
   // Show reconnected notification
   if (showReconnected) {
     return (
-      <div className="fixed top-16 left-0 right-0 bg-forge-success text-white py-3 px-4 flex items-center justify-center gap-2 z-50 shadow-md">
+      <div className="fixed left-0 right-0 bg-forge-success text-white py-3 px-4 flex items-center justify-center gap-2 z-50 shadow-md top-[calc(4rem+env(safe-area-inset-top,0px))]">
         <RefreshCw className="w-4 h-4 animate-spin" />
         <span className="text-sm font-medium">Back online! Syncing your data...</span>
       </div>
@@ -42,7 +42,7 @@ const OfflineIndicator: React.FC = () => {
   if (isOnline || isDismissed) return null;
 
   return (
-    <div className="fixed top-16 left-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 flex items-center justify-between z-50 shadow-md">
+    <div className="fixed left-0 right-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white py-3 px-4 flex items-center justify-between z-50 shadow-md top-[calc(4rem+env(safe-area-inset-top,0px))]">
       <div className="flex items-center gap-3 flex-1 justify-center">
         <div className="flex items-center justify-center w-8 h-8 bg-white/20 rounded-full">
           <WifiOff className="w-4 h-4" />

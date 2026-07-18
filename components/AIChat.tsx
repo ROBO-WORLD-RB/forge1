@@ -1,11 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
-import { Send, X, Minimize2, Globe, Bot, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
+import { Send, X, Minimize2, Globe, Loader2, ExternalLink, RefreshCw } from 'lucide-react';
 import { 
   sendAIMessage, 
   clearConversationHistory,
   getProviderStatus,
-  getProviderDisplayName,
 } from '../services/aiService';
 import { ChatMessage } from '../types';
 import {
@@ -151,9 +150,9 @@ const AIChat: React.FC = () => {
       <button
         onClick={() => setIsOpen(true)}
         aria-label="Open Forge AI assistant"
-        className="fixed bottom-20 md:bottom-8 right-4 z-40 bg-forge-navy hover:bg-forge-orange text-white p-4 rounded-full shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 group"
+        className="fixed bottom-20 md:bottom-8 right-4 z-40 bg-forge-navy hover:bg-forge-orange text-white p-3.5 rounded-full shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 group"
       >
-        <Bot className="w-6 h-6" />
+        <img src="/logo.png" alt="" className="w-7 h-7 object-contain" aria-hidden="true" />
         <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap font-medium">
           Ask AI
         </span>
@@ -167,14 +166,10 @@ const AIChat: React.FC = () => {
       <div className="bg-forge-navy text-white p-4 flex justify-between items-center shrink-0">
         <div className="flex items-center gap-2">
           <div className="bg-white/10 p-1.5 rounded-lg">
-            <Bot className="w-5 h-5 text-forge-cyan" />
+            <img src="/logo.png" alt="" className="w-5 h-5 object-contain" aria-hidden="true" />
           </div>
           <div>
             <h3 className="font-bold">Forge AI Assistant</h3>
-            <p className="text-xs text-gray-300 flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-forge-success"></span>
-              {getProviderDisplayName('openrouter')}
-            </p>
           </div>
         </div>
         <div className="flex items-center gap-1">

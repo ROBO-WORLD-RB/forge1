@@ -33,6 +33,7 @@ const WorkerOnboarding = lazyWithRetry(() => import('./pages/auth/WorkerOnboardi
 const ForgotPassword = lazyWithRetry(() => import('./pages/auth/ForgotPassword'));
 const ResetPassword = lazyWithRetry(() => import('./pages/auth/ResetPassword'));
 const ProfileEdit = lazyWithRetry(() => import('./pages/ProfileEdit'));
+const PrivacySettings = lazyWithRetry(() => import('./pages/PrivacySettings'));
 const CustomerDashboard = lazyWithRetry(() => import('./pages/dashboard/CustomerDashboard'));
 const WorkerDashboard = lazyWithRetry(() => import('./pages/dashboard/WorkerDashboard'));
 // OnboardingPayment kept in pages/auth for later re-enable; route redirects to dashboard for beta
@@ -391,6 +392,14 @@ const AppContent: React.FC = () => {
                 </ProtectedRoute>
               } 
             />
+            <Route
+              path="/settings/privacy"
+              element={
+                <ProtectedRoute>
+                  <PageTransition><PrivacySettings /></PageTransition>
+                </ProtectedRoute>
+              }
+            />
             <Route 
               path="/admin" 
               element={
@@ -417,8 +426,8 @@ const AppContent: React.FC = () => {
           className="fixed inset-0 bg-black/50 z-50 md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         >
-          <div className="bg-white w-64 h-full p-6 shadow-xl" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-2 mb-6">
+          <div className="bg-white w-64 h-full p-6 pt-safe shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center gap-2 mb-6 mt-2">
               <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain" />
               <h2 className="text-xl font-bold text-forge-navy">FORGE</h2>
             </div>
