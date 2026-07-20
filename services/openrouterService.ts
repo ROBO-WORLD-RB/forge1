@@ -39,14 +39,22 @@ When users ask what the platform is about, explain FORGE clearly in plain langua
 
 Be professional, friendly, and concise. Answer the user's question directly with a normal helpful reply — never reply with safety ratings, moderation labels, or phrases like "User Safety: safe". Use plain text or light markdown sparingly (**bold**, *italic*, short lists); prefer short paragraphs. Do not emit HTML.`;
 
+export type AiChatMode = 'customer' | 'worker' | 'general';
+
 export interface OpenRouterResponse {
   text: string;
   groundingUrls: { uri: string; title: string }[];
+  urgencyFlag?: boolean;
+  mode?: AiChatMode;
 }
 
 export interface OpenRouterMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
+}
+
+export interface OpenRouterSendOptions {
+  mode?: AiChatMode;
 }
 
 const CONFIGURE_MESSAGE =
@@ -141,7 +149,8 @@ export function hasOpenRouterClientKey(): boolean {
 
 async function sendViaEdgeFunction(
   message: string,
-  history: OpenRouterMessage[]
+  history: OpenRouterMessage[],
+  mode: AiChatMode = 'general'
 ): Promise<OpenRouterResponse | null> {
   if (!isSupabaseConfigured()) return null;
 
@@ -150,6 +159,8 @@ async function sendViaEdgeFunction(
       body: {
         message,
         messages: history,
+        mode,
+        action: 'chat',
       },
     });
 
@@ -176,6 +187,8 @@ async function sendViaEdgeFunction(
       return {
         text: data.text,
         groundingUrls: Array.isArray(data.groundingUrls) ? data.groundingUrls : [],
+        urgencyFlag: Boolean(data.urgencyFlag),
+        mode: (data.mode as AiChatMode) || mode,
       };
     }
 
@@ -232,9 +245,24 @@ async function callOpenRouterChat(
   return { text, model: usedModel };
 }
 
+function clientSystemPrompt(mode: AiChatMode): string {
+  if (mode === 'customer') {
+    return `${SYSTEM_PROMPT}
+
+You are in customer mode: help describe problems, give rough GHS/NGN cost bands, recommend trades, and flag emergencies with "URGENCY: high" on the first line when needed.`;
+  }
+  if (mode === 'worker') {
+    return `${SYSTEM_PROMPT}
+
+You are in worker mode: help with quote suggestions, application drafts, profile tips, and pricing. Drafts are text only — not payments.`;
+  }
+  return SYSTEM_PROMPT;
+}
+
 async function sendViaClientKey(
   message: string,
-  history: OpenRouterMessage[]
+  history: OpenRouterMessage[],
+  mode: AiChatMode = 'general'
 ): Promise<OpenRouterResponse> {
   const apiKey = getClientApiKey();
   if (!apiKey) {
@@ -242,7 +270,7 @@ async function sendViaClientKey(
   }
 
   const messages: OpenRouterMessage[] = [
-    { role: 'system', content: SYSTEM_PROMPT },
+    { role: 'system', content: clientSystemPrompt(mode) },
     ...history,
     { role: 'user', content: message },
   ];
@@ -311,8 +339,10 @@ async function sendViaClientKey(
  */
 export async function sendOpenRouterMessage(
   message: string,
-  history: OpenRouterMessage[] = []
+  history: OpenRouterMessage[] = [],
+  options: OpenRouterSendOptions = {}
 ): Promise<OpenRouterResponse> {
+  const mode = options.mode || 'general';
   const rateCheck = aiLimiter.check();
   if (!rateCheck.allowed) {
     logger.warn('AI rate limit exceeded', { retryAfter: rateCheck.retryAfter }, 'openrouterService');
@@ -326,21 +356,26 @@ export async function sendOpenRouterMessage(
   try {
     logger.debug(
       'Sending OpenRouter message',
-      { messageLength: message.length, historyLength: history.length, model: OPENROUTER_MODEL },
+      {
+        messageLength: message.length,
+        historyLength: history.length,
+        model: OPENROUTER_MODEL,
+        mode,
+      },
       'openrouterService'
     );
 
     // Prefer Edge Function so the key stays off the SPA bundle
-    const viaEdge = await sendViaEdgeFunction(message, history);
+    const viaEdge = await sendViaEdgeFunction(message, history, mode);
     if (viaEdge) {
       logger.info('OpenRouter response via Edge Function', { responseLength: viaEdge.text.length }, 'openrouterService');
-      analytics.track('ai_chat', { provider: 'openrouter', via: 'edge', model: OPENROUTER_MODEL });
+      analytics.track('ai_chat', { provider: 'openrouter', via: 'edge', model: OPENROUTER_MODEL, mode });
       return viaEdge;
     }
 
-    const viaClient = await sendViaClientKey(message, history);
+    const viaClient = await sendViaClientKey(message, history, mode);
     logger.info('OpenRouter response via client key', { responseLength: viaClient.text.length }, 'openrouterService');
-    analytics.track('ai_chat', { provider: 'openrouter', via: 'client', model: OPENROUTER_MODEL });
+    analytics.track('ai_chat', { provider: 'openrouter', via: 'client', model: OPENROUTER_MODEL, mode });
     return viaClient;
   } catch (error) {
     if (error instanceof RateLimitError) {

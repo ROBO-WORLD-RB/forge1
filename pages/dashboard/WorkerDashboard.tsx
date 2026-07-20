@@ -169,7 +169,7 @@ const WorkerDashboard: React.FC = () => {
           role: wpRaw?.role || user.specialties?.[0] || '',
           country: user.country,
           location: wpRaw?.location || user.location || '',
-        }).slice(0, 3);
+        }).slice(0, 5);
         setRecommendedJobs(ranked);
       } catch (err: any) {
         console.error('Dashboard fetch error:', err);

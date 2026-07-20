@@ -8,12 +8,13 @@ import {
   getApplicationForJob,
   getApplicationsByJob,
 } from '../services/jobApplicationService';
+import { draftQuoteWithAI } from '../services/aiMatchService';
 import type { Job, Booking, JobApplication } from '../types/database';
 import { CATEGORIES } from '../constants';
 import { 
   ArrowLeft, Briefcase, MapPin, DollarSign, Calendar, 
   Trash2, Loader2, Play, X, ChevronLeft, ChevronRight,
-  Users, Send, CheckCircle, MessageSquare, AlertCircle, RefreshCw
+  Users, Send, CheckCircle, MessageSquare, AlertCircle, RefreshCw, Sparkles
 } from 'lucide-react';
 import PageHelmet from '../components/PageHelmet';
 
@@ -33,6 +34,7 @@ const JobDetail: React.FC = () => {
   const [applyMessage, setApplyMessage] = useState('');
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
+  const [draftingQuote, setDraftingQuote] = useState(false);
   const [existingBooking, setExistingBooking] = useState<Booking | null>(null);
   const [existingApplication, setExistingApplication] = useState<JobApplication | null>(null);
   const [jobBookings, setJobBookings] = useState<Booking[]>([]);
@@ -532,6 +534,41 @@ const JobDetail: React.FC = () => {
                     <p className="text-sm text-gray-500 mb-3">
                       Introduce yourself, then message the poster if you have questions.
                     </p>
+                    <div className="flex justify-end mb-2">
+                      <button
+                        type="button"
+                        disabled={draftingQuote}
+                        onClick={async () => {
+                          if (!job) return;
+                          setDraftingQuote(true);
+                          setApplyError(null);
+                          const { text, error } = await draftQuoteWithAI({
+                            title: job.title,
+                            description: job.description,
+                            category: job.category,
+                            location: job.location,
+                            country: job.country,
+                            budgetMin: job.budget_min,
+                            budgetMax: job.budget_max,
+                            currency: job.currency,
+                          });
+                          if (error) {
+                            setApplyError(error);
+                          } else if (text) {
+                            setApplyMessage(text);
+                          }
+                          setDraftingQuote(false);
+                        }}
+                        className="inline-flex items-center gap-1.5 text-xs font-bold text-forge-navy bg-orange-50 border border-forge-orange/20 px-3 py-1.5 rounded-lg hover:bg-orange-100 transition-colors disabled:opacity-50"
+                      >
+                        {draftingQuote ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Sparkles className="w-3.5 h-3.5 text-forge-orange" />
+                        )}
+                        Generate quote
+                      </button>
+                    </div>
                     <textarea
                       value={applyMessage}
                       onChange={(e) => setApplyMessage(e.target.value)}
@@ -539,6 +576,9 @@ const JobDetail: React.FC = () => {
                       rows={3}
                       className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-forge-orange mb-3 resize-none"
                     />
+                    <p className="text-[11px] text-gray-400 mb-3">
+                      AI drafts text only — review before sending. Not a payment or invoice.
+                    </p>
                     {applyError && (
                       <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-3 flex items-center gap-2">
                         <AlertCircle className="w-4 h-4 flex-shrink-0" />

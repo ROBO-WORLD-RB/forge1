@@ -3,7 +3,7 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); **M3 Worker OS business loop done in code** (apply SQL `017_job_applications.sql`); **M4 wallet + escrow foundations done in code** (apply SQL `018_wallet_escrow_foundations.sql` + redeploy `paystack-webhook`); M5–M6 not started  
+**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); **M3 Worker OS business loop done in code** (apply SQL `017_job_applications.sql`); **M4 wallet + escrow foundations done in code** (apply SQL `018_wallet_escrow_foundations.sql` + redeploy `paystack-webhook`); **M5 AI matching & assistants done in code** (redeploy `ai-chat`); M6 not started  
 
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
@@ -299,7 +299,7 @@ Optional columns (additive on existing tables): `bookings.payment_status`, `book
 | `paystack-webhook` | Sole authority for subscription (and later escrow fund/release) state | High — M0/M4 |
 | `subscription-expiry-cron` | Keep; document in `docs/CRON.md` | High — exists |
 | `send-push-notification` | AuthN/Z; remove client FCM key path | High — M0 |
-| `ai-chat` | Add `mode` + structured context; later tool hooks | Medium — M5 |
+| `ai-chat` | `mode` (customer/worker/general) + `action` (chat/parse_job/draft_quote); spam heuristics | Medium — M5 **done** |
 | **New** `escrow-paystack` (or extend webhook handlers) | Verify payments, move ledger | High — M4 |
 | **New** `admin-kyc` RPC/function | Approve/reject under service role | High — M0 |
 | Client `services/*` | Remove privileged writes; call functions instead | High — M0 |
@@ -403,12 +403,17 @@ Labels: **High** | **Medium** | **Future**
 > **Redeploy Edge Function:** `supabase functions deploy paystack-webhook --no-verify-jwt`  
 > **Note:** Bank withdrawals / Paystack Transfer API are intentionally stubbed (“Withdrawals coming soon”).
 
-#### M5 — AI matching & assistants — **Medium** (session 6)
+#### M5 — AI matching & assistants — **Medium** (session 6) — **DONE (code)**
 
-- [ ] `ai-chat` modes: customer / worker / general — **High**
-- [ ] Matching shortlist endpoints or RPC + UI slots — **High**
-- [ ] Recommendations using skills/geo/history — **Medium**
-- [ ] Fraud rules v1 (non-LLM) — **Medium**
+- [x] `ai-chat` modes: customer / worker / general — **High** (role-aware system prompts + `AIChat` / `openrouterService` `mode`)
+- [x] Matching shortlist: `action=parse_job` on `ai-chat` + client `aiMatchService.matchWorkersWithAI` → `searchWorkersRanked` — **High** (Customer Hub / AIChat “Find a pro with AI”; ranked workers link to `/profile/:id`)
+- [x] Customer + Worker assistants — **High** (customer: cost bands / emergency flag; worker: tips + JobDetail **Generate quote** draft via `action=draft_quote`)
+- [x] Recommendations using skills/geo/favorites — **Medium** (`recommendationService` on Customer Hub; Worker Hub recommended jobs limit raised)
+- [x] Fraud rules v1 (non-LLM) — **Medium** (light spam heuristics in Edge + `services/aiSafety.ts`; still reject safety-classifier stubs)
+- [ ] Full fraud ML / analytics_events re-rank — **Future** (M6+)
+
+> **Redeploy Edge Function:** `supabase functions deploy ai-chat`  
+> (Requires existing `OPENROUTER_API_KEY` secret. No new SQL migration for M5.)
 
 #### M6 — Analytics, disputes, polish — **Medium** (session 7+)
 

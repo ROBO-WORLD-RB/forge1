@@ -10,20 +10,25 @@ import {
   sendOpenRouterMessage,
   isOpenRouterConfigured,
   OpenRouterMessage,
+  type AiChatMode,
 } from './openrouterService';
 import { logger } from '../utils/logger';
 
 export type AIProvider = 'openrouter' | 'gemini' | 'ollama';
+export type { AiChatMode };
 
 export interface AIResponse {
   text: string;
   groundingUrls: { uri: string; title: string }[];
   provider: AIProvider;
+  urgencyFlag?: boolean;
+  mode?: AiChatMode;
 }
 
 export interface AIServiceConfig {
   provider: AIProvider;
   useSearch?: boolean; // Only for Gemini
+  mode?: AiChatMode;
 }
 
 function resolveDefaultProvider(): AIProvider {
@@ -85,7 +90,9 @@ export async function sendAIMessage(
 
   try {
     if (provider === 'openrouter') {
-      const response = await sendOpenRouterMessage(message, openrouterConversationHistory);
+      const response = await sendOpenRouterMessage(message, openrouterConversationHistory, {
+        mode: config.mode || 'general',
+      });
 
       openrouterConversationHistory.push(
         { role: 'user', content: message },
@@ -98,6 +105,8 @@ export async function sendAIMessage(
       return {
         ...response,
         provider: 'openrouter',
+        urgencyFlag: response.urgencyFlag,
+        mode: response.mode || config.mode,
       };
     }
 
@@ -133,8 +142,10 @@ export async function sendAIMessage(
 
     if (provider !== 'openrouter' && status.openrouter.available) {
       logger.info('Falling back to OpenRouter', {}, 'aiService');
-      const response = await sendOpenRouterMessage(message, openrouterConversationHistory);
-      return { ...response, provider: 'openrouter' };
+      const response = await sendOpenRouterMessage(message, openrouterConversationHistory, {
+        mode: config.mode || 'general',
+      });
+      return { ...response, provider: 'openrouter', urgencyFlag: response.urgencyFlag };
     }
 
     if (provider === 'ollama' && status.gemini.available) {

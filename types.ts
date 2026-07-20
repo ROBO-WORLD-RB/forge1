@@ -68,12 +68,26 @@ export interface WorkerProfile {
   experienceYears?: number;
 }
 
+export interface ChatMatchedWorker {
+  userId: string;
+  name: string;
+  role: string;
+  location: string;
+  rating: number;
+  reviewCount: number;
+  matchReason: string;
+  profilePath: string;
+  verified?: boolean;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
   groundingUrls?: { uri: string; title: string }[];
+  matchedWorkers?: ChatMatchedWorker[];
+  urgencyFlag?: boolean;
 }
 
 export interface JobCategory {

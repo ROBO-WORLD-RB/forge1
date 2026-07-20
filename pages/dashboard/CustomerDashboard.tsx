@@ -7,12 +7,21 @@ import { getNotifications, markNotificationRead } from '../../services/notificat
 import { getUnreadCount } from '../../services/chatService';
 import { getCategories } from '../../services/workerService';
 import { getFavorites } from '../../services/favoriteService';
+import {
+  getRecommendedWorkersForCustomer,
+  type RecommendedWorker,
+} from '../../services/recommendationService';
+import { openForgeAi } from '../../utils/forgeAiEvents';
 import type { Booking, Job, Notification as DBNotification, FavoriteWithWorker } from '../../types/database';
 import {
   Briefcase, MessageSquare, Bell, Plus, ChevronRight, Loader2, X,
-  Calendar, Search, Heart, Star, CheckCircle, Clock, ArrowRight
+  Calendar, Search, Heart, Star, CheckCircle, Clock, ArrowRight, Sparkles
 } from 'lucide-react';
 import PageHelmet from '../../components/PageHelmet';
+
+function openForgeAiMatch() {
+  openForgeAi({ intent: 'match' });
+}
 
 const CustomerDashboard: React.FC = () => {
   const { user } = useAuth();
@@ -20,6 +29,7 @@ const CustomerDashboard: React.FC = () => {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [notifications, setNotifications] = useState<DBNotification[]>([]);
   const [favorites, setFavorites] = useState<FavoriteWithWorker[]>([]);
+  const [recommended, setRecommended] = useState<RecommendedWorker[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -70,6 +80,22 @@ const CustomerDashboard: React.FC = () => {
         if (unreadResult.data !== null) setUnreadMessages(unreadResult.data);
         setCategories(categoriesData.slice(0, 4));
         if (favoritesResult.data) setFavorites(favoritesResult.data);
+
+        const preferredSkills = [
+          ...new Set(
+            (jobsResult.data || [])
+              .map((j) => j.category)
+              .filter((c): c is string => Boolean(c))
+          ),
+        ].slice(0, 3);
+
+        const recResult = await getRecommendedWorkersForCustomer(user.id, {
+          country: user.country || null,
+          location: user.location || null,
+          preferredSkills,
+          limit: 6,
+        });
+        if (recResult.data) setRecommended(recResult.data);
       } catch (err: any) {
         console.error('Dashboard fetch error:', err);
         setError('Failed to load dashboard data');
@@ -205,6 +231,14 @@ const CustomerDashboard: React.FC = () => {
                 <Plus className="w-5 h-5" />
                 Post a Project
               </Link>
+              <button
+                type="button"
+                onClick={openForgeAiMatch}
+                className="bg-forge-navy text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-forge-orange transition-all font-medium"
+              >
+                <Sparkles className="w-5 h-5" />
+                Find a pro with AI
+              </button>
               <Link
                 to="/search"
                 className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
@@ -447,6 +481,47 @@ const CustomerDashboard: React.FC = () => {
               </div>
             </div>
           </div>
+
+          {/* Recommended workers */}
+          {recommended.length > 0 && (
+            <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h2 className="font-bold text-lg text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-forge-orange" />
+                  Recommended for you
+                </h2>
+                <button
+                  type="button"
+                  onClick={openForgeAiMatch}
+                  className="text-forge-orange text-sm font-medium hover:underline"
+                >
+                  Match with AI
+                </button>
+              </div>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-3 p-4">
+                {recommended.map((w) => {
+                  const avatar =
+                    (w as any)?.profiles?.avatar_url ||
+                    `https://ui-avatars.com/api/?name=${encodeURIComponent(w.name)}&background=random`;
+                  return (
+                    <Link
+                      key={w.user_id}
+                      to={w.profilePath}
+                      className="flex items-center gap-3 p-3 rounded-xl border border-gray-100 hover:border-forge-orange/30 hover:bg-orange-50/40 transition-colors"
+                    >
+                      <img src={avatar} alt="" className="w-12 h-12 rounded-xl object-cover bg-gray-100" />
+                      <div className="min-w-0 flex-1">
+                        <p className="font-medium text-gray-900 truncate">{w.name}</p>
+                        <p className="text-xs text-gray-500 truncate">{w.role || 'Skilled pro'}</p>
+                        <p className="text-xs text-forge-orange font-medium mt-0.5">{w.reason}</p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Saved workers */}
           <div className="mt-8 bg-white rounded-xl shadow-sm overflow-hidden">
