@@ -69,15 +69,26 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, onViewProfile }) => {
           <div>
             <h3 className="text-lg font-bold text-gray-900 flex items-center gap-1">
               {worker.name}
-              {worker.verified && <ShieldCheck className="w-4 h-4 text-forge-cyan" />}
+              {worker.verified && (
+                <span title="KYC verified">
+                  <ShieldCheck className="w-4 h-4 text-forge-cyan" />
+                </span>
+              )}
             </h3>
             <p className="text-sm text-gray-500 font-medium">{worker.role}</p>
+            {worker.verified && (
+              <p className="text-[10px] text-forge-cyan font-semibold mt-0.5">Verified pro</p>
+            )}
           </div>
-          <div className="flex items-center bg-gray-50 px-2 py-1 rounded">
-            <Star className="w-4 h-4 text-forge-warning fill-current" />
-            <span className="ml-1 text-sm font-bold text-gray-900">{worker.rating}</span>
-            <span className="ml-1 text-xs text-gray-500">({worker.reviewCount})</span>
-          </div>
+          {worker.reviewCount > 0 ? (
+            <div className="flex items-center bg-orange-50 px-2 py-1 rounded" title="Average from real customer reviews">
+              <Star className="w-4 h-4 text-forge-warning fill-current" />
+              <span className="ml-1 text-sm font-bold text-gray-900">{worker.rating.toFixed(1)}</span>
+              <span className="ml-1 text-xs text-gray-500">({worker.reviewCount})</span>
+            </div>
+          ) : (
+            <div className="text-xs text-gray-400 bg-gray-50 px-2 py-1 rounded">New</div>
+          )}
         </div>
 
         <div className="flex items-center text-gray-500 text-sm mb-3">

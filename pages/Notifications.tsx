@@ -10,14 +10,14 @@ import {
 import PageHelmet from '../components/PageHelmet';
 
 function getNotificationLink(type: NotificationType, metadata: Record<string, unknown> | null): string {
-  const jobId = metadata?.job_id as string | undefined;
   const conversationId = metadata?.conversation_id as string | undefined;
 
   switch (type) {
     case 'booking_request':
     case 'booking_accepted':
     case 'booking_completed':
-      return jobId ? `/jobs/${jobId}` : '/bookings';
+      // Always My Bookings — avoid ghost /bookings/:id or stale job deep-links
+      return '/bookings';
     case 'new_message':
       return conversationId ? '/messages' : '/messages';
     case 'subscription_expiring':
@@ -28,6 +28,33 @@ function getNotificationLink(type: NotificationType, metadata: Record<string, un
       return '/bookings';
     default:
       return '/dashboard';
+  }
+}
+
+/** Customer-friendly titles when stored copy is short / legacy */
+function getCustomerFacingCopy(
+  type: NotificationType,
+  title: string,
+  body: string
+): { title: string; body: string } {
+  switch (type) {
+    case 'booking_request':
+      return {
+        title: title || 'Booking update',
+        body: body || 'Open My Bookings to respond or track status.',
+      };
+    case 'booking_accepted':
+      return {
+        title: title.includes('started') ? title : title || 'Worker accepted',
+        body: body || 'Your pro accepted. Track progress in My Bookings.',
+      };
+    case 'booking_completed':
+      return {
+        title: title || 'Job completed',
+        body: body || 'Leave a review from My Bookings.',
+      };
+    default:
+      return { title, body };
   }
 }
 
@@ -158,6 +185,11 @@ const Notifications: React.FC = () => {
             {notifications.map(notification => {
               const Icon = getNotificationIcon(notification.type);
               const isUnread = !notification.read_at;
+              const copy = getCustomerFacingCopy(
+                notification.type,
+                notification.title,
+                notification.body
+              );
 
               return (
                 <button
@@ -175,13 +207,18 @@ const Notifications: React.FC = () => {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between gap-2">
                       <p className={`font-medium ${isUnread ? 'text-forge-navy' : 'text-gray-700'}`}>
-                        {notification.title}
+                        {copy.title}
                       </p>
                       <span className="text-xs text-gray-400 shrink-0">
                         {formatTime(notification.created_at)}
                       </span>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{notification.body}</p>
+                    <p className="text-sm text-gray-500 mt-1 line-clamp-2">{copy.body}</p>
+                    {(notification.type === 'booking_request' ||
+                      notification.type === 'booking_accepted' ||
+                      notification.type === 'booking_completed') && (
+                      <p className="text-xs text-forge-orange font-medium mt-1">Open My Bookings →</p>
+                    )}
                   </div>
                   <ChevronRight className="w-5 h-5 text-gray-300 shrink-0 mt-1" />
                 </button>

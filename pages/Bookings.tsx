@@ -226,12 +226,29 @@ const Bookings: React.FC = () => {
                   : 'You haven\'t made any bookings yet'}
             </p>
             {!isWorker && statusFilter === 'all' && (
-              <Link 
-                to="/search" 
-                className="inline-block mt-4 px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-4">
+                <Link 
+                  to="/search" 
+                  className="inline-block px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+                >
+                  Find Workers
+                </Link>
+                <Link 
+                  to="/jobs?create=1" 
+                  className="inline-block px-4 py-2 bg-gray-100 text-forge-navy rounded-lg text-sm font-medium hover:bg-gray-200 transition-colors"
+                >
+                  Post a Project
+                </Link>
+              </div>
+            )}
+            {!isWorker && statusFilter !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setStatusFilter('all')}
+                className="mt-4 text-forge-orange text-sm font-medium hover:underline"
               >
-                Find workers to book
-              </Link>
+                Show all bookings
+              </button>
             )}
             {isWorker && statusFilter === 'all' && (
               <Link 
@@ -359,6 +376,15 @@ const Bookings: React.FC = () => {
                         <CheckCircle className="w-4 h-4" />
                         Review submitted
                       </span>
+                    )}
+                    {!isWorker && ['COMPLETED', 'REVIEWED', 'CANCELLED'].includes(booking.status) && (
+                      <Link
+                        to={`/profile/${booking.worker_user_id}?book=1`}
+                        className="px-4 py-2 bg-white border border-gray-200 text-forge-navy rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+                      >
+                        <RefreshCw className="w-4 h-4" />
+                        Book again
+                      </Link>
                     )}
                   </div>
                   {canMessage(booking.status) ? (

@@ -13,6 +13,9 @@ vi.mock('./supabase', () => {
   return {
     supabase: {
       from: mockFrom,
+      auth: {
+        getUser: vi.fn().mockResolvedValue({ data: { user: null }, error: null }),
+      },
     },
   };
 });

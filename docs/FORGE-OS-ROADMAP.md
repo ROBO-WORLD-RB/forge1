@@ -3,7 +3,7 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; M2–M6 not started  
+**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); M3–M6 not started  
 
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
@@ -369,12 +369,14 @@ Labels: **High** | **Medium** | **Future**
 - [x] Shared Modal/Card primitives added (`components/Modal.tsx`, `components/Card.tsx`); gradual adopt — **Medium**
 - [ ] Broad Button/Input standardization across all pages — **Medium** (deferred; primitives exist)
 
-#### M2 — Customer OS hiring loop — **High** (session 3)
+#### M2 — Customer OS hiring loop — **High** (session 3) — **DONE (code)**
 
-- [ ] Favorites table + UI — **Medium**
-- [ ] Replace UserProfile review mocks with live data — **High**
-- [ ] Hire-loop polish: search → profile → book → track (UX continuity) — **High**
-- [ ] Customer notification clarity for booking FSM — **Medium**
+- [x] Favorites table + UI — **Medium** (`016_favorites.sql`, `favoriteService`, Save on WorkerProfile, Saved workers on Customer Hub)
+- [x] Replace UserProfile review mocks with live data — **High**
+- [x] Hire-loop polish: search → profile → book → track (UX continuity) — **High**
+- [x] Customer notification clarity for booking FSM — **Medium** (copy + links to `/bookings`; notify correct party on create)
+
+> **Apply SQL:** run migration `016_favorites.sql` in Supabase SQL Editor (after 015).
 
 #### M3 — Worker OS business loop — **High** (session 4)
 

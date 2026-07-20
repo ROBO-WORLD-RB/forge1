@@ -61,6 +61,23 @@ export interface Review {
   created_at: string;
 }
 
+/** Customer OS: saved workers for repeat hire (M2) */
+export interface Favorite {
+  id: string;
+  user_id: string;
+  worker_user_id: string;
+  created_at: string;
+}
+
+export interface FavoriteInsert {
+  user_id: string;
+  worker_user_id: string;
+}
+
+export interface FavoriteWithWorker extends Favorite {
+  worker?: WorkerProfile | null;
+}
+
 export interface ServiceCategory {
   id: number;
   name: string;
@@ -208,6 +225,25 @@ export interface Database {
           {
             foreignKeyName: 'reviews_author_id_fkey';
             columns: ['author_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      favorites: {
+        Row: Favorite;
+        Insert: FavoriteInsert;
+        Update: Partial<FavoriteInsert>;
+        Relationships: [
+          {
+            foreignKeyName: 'favorites_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'favorites_worker_user_id_fkey';
+            columns: ['worker_user_id'];
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           }

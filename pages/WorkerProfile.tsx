@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { resolvePublicProfile, getPortfolioItems, getEndorsements } from '../services/workerService';
 import { getReviewsForWorker } from '../services/reviewService';
+import { isFavorite, toggleFavorite } from '../services/favoriteService';
 import { supabase } from '../services/supabase';
 import Button from '../components/Button';
 import BookingModal from '../components/BookingModal';
 import ShareTools from '../components/ShareTools';
 import { useAuth } from '../context/AuthContext';
-import { ShieldCheck, MapPin, Star, MessageSquare, Flag, Loader2, Image as ImageIcon, ThumbsUp } from 'lucide-react';
-import type { WorkerProfile as DBWorkerProfile, Profile as DBProfile } from '../types/database';
+import { ShieldCheck, MapPin, Star, MessageSquare, Loader2, Image as ImageIcon, ThumbsUp, Heart, BadgeCheck } from 'lucide-react';
+import type { Profile as DBProfile } from '../types/database';
 import type { WorkerProfile, WorkerTier, Review as AppReview } from '../types';
 import PageHelmet from '../components/PageHelmet';
 
@@ -43,7 +44,8 @@ function mapToAppWorkerProfile(dbProfile: any): WorkerProfile {
 const WorkerProfilePage: React.FC = () => {
   const { id, username } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { isAuthenticated, user } = useAuth();
   
   const targetIdentifier = username || id;
   const [worker, setWorker] = useState<WorkerProfile | null>(null);
@@ -54,6 +56,8 @@ const WorkerProfilePage: React.FC = () => {
   const [portfolios, setPortfolios] = useState<any[]>([]);
   const [endorsements, setEndorsements] = useState<any[]>([]);
   const [usernameSlug, setUsernameSlug] = useState<string>('');
+  const [favorited, setFavorited] = useState(false);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -130,6 +134,13 @@ const WorkerProfilePage: React.FC = () => {
         }
 
         setWorker(mapped);
+
+        if (isAuthenticated && user?.id && user.id !== mapped.userId) {
+          const favRes = await isFavorite(user.id, mapped.userId);
+          if (favRes.data !== null) setFavorited(favRes.data);
+        } else {
+          setFavorited(false);
+        }
       } catch (err: any) {
         setError(err.message || 'Failed to load profile');
       } finally {
@@ -138,7 +149,21 @@ const WorkerProfilePage: React.FC = () => {
     };
 
     fetchProfile();
-  }, [targetIdentifier]);
+  }, [targetIdentifier, isAuthenticated, user?.id]);
+
+  // Deep-link: ?book=1 opens booking modal (e.g. Book again from My Bookings)
+  useEffect(() => {
+    if (!worker || loading) return;
+    if (searchParams.get('book') !== '1') return;
+    if (!isAuthenticated) {
+      navigate('/auth/login', { state: { from: `${window.location.pathname}?book=1` } });
+      return;
+    }
+    setIsBookingOpen(true);
+    const next = new URLSearchParams(searchParams);
+    next.delete('book');
+    setSearchParams(next, { replace: true });
+  }, [worker, loading, searchParams, isAuthenticated, navigate, setSearchParams]);
 
   const handleBookClick = () => {
     if (!isAuthenticated) {
@@ -146,6 +171,19 @@ const WorkerProfilePage: React.FC = () => {
     } else {
       setIsBookingOpen(true);
     }
+  };
+
+  const handleFavoriteClick = async () => {
+    if (!worker) return;
+    if (!isAuthenticated || !user?.id) {
+      navigate('/auth/login', { state: { from: window.location.pathname } });
+      return;
+    }
+    if (user.id === worker.userId) return;
+    setFavoriteLoading(true);
+    const result = await toggleFavorite(user.id, worker.userId);
+    if (result.data) setFavorited(result.data.favorited);
+    setFavoriteLoading(false);
   };
 
   const handleMessageClick = () => {
@@ -318,21 +356,49 @@ const WorkerProfilePage: React.FC = () => {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 mt-2">
+                <div className="flex flex-wrap items-center gap-3 text-sm text-gray-500 mt-2">
                   <div className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" /> {worker.location}
                   </div>
-                  <div className="flex items-center gap-1 text-forge-orange font-bold bg-orange-50 px-2 py-1 rounded">
-                    <Star className="w-4 h-4 fill-current" /> {worker.rating} ({worker.reviewCount} reviews)
-                  </div>
+                  {worker.reviewCount > 0 ? (
+                    <div className="flex items-center gap-1 text-forge-orange font-bold bg-orange-50 px-2 py-1 rounded">
+                      <Star className="w-4 h-4 fill-current" /> {worker.rating.toFixed(1)} ({worker.reviewCount} review{worker.reviewCount === 1 ? '' : 's'})
+                    </div>
+                  ) : (
+                    <div className="bg-gray-50 text-gray-500 px-2 py-1 rounded text-xs font-medium">
+                      No reviews yet
+                    </div>
+                  )}
+                  {worker.verified && (
+                    <div className="flex items-center gap-1 text-forge-cyan bg-cyan-50 px-2 py-1 rounded text-xs font-bold">
+                      <BadgeCheck className="w-3.5 h-3.5" /> KYC verified
+                    </div>
+                  )}
+                  {worker.tier === 'premium' && (
+                    <div className="bg-orange-50 text-forge-orange px-2 py-1 rounded text-xs font-bold uppercase">
+                      Premium
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 gap-4 mt-8 border-t border-gray-100 pt-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-8 border-t border-gray-100 pt-6">
               <Button size="lg" variant="primary" onClick={handleBookClick}>Book Now</Button>
               <Button size="lg" variant="secondary" icon={<MessageSquare className="w-4 h-4" />} onClick={handleMessageClick}>Message</Button>
+              {user?.id !== worker.userId && (
+                <Button
+                  size="lg"
+                  variant={favorited ? 'primary' : 'outline'}
+                  icon={<Heart className={`w-4 h-4 ${favorited ? 'fill-current' : ''}`} />}
+                  onClick={handleFavoriteClick}
+                  loading={favoriteLoading}
+                  className="col-span-2 sm:col-span-1"
+                >
+                  {favorited ? 'Saved' : 'Save'}
+                </Button>
+              )}
             </div>
 
             {/* Booking Modal */}
@@ -340,10 +406,6 @@ const WorkerProfilePage: React.FC = () => {
               worker={worker}
               isOpen={isBookingOpen}
               onClose={() => setIsBookingOpen(false)}
-              onSuccess={() => {
-                setIsBookingOpen(false);
-                navigate('/bookings');
-              }}
             />
 
             {/* Tabs / Content */}
@@ -472,27 +534,43 @@ const WorkerProfilePage: React.FC = () => {
                 </section>
               </div>
 
-              {/* Right Column: Stats & Share Tools */}
+              {/* Right Column: Trust signals & Share Tools */}
               <div className="space-y-6">
-                {/* Share Tools Component */}
                 <ShareTools worker={worker} usernameSlug={usernameSlug} />
 
                 <div className="bg-gray-50 rounded-xl p-6 border border-gray-100">
-                  <h4 className="font-bold text-gray-900 mb-4">Availability</h4>
-                  <div className="space-y-3 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Mon - Fri</span>
-                      <span className="font-medium">8:00 AM - 6:00 PM</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Saturday</span>
-                      <span className="font-medium">9:00 AM - 4:00 PM</span>
-                    </div>
-                    <div className="flex justify-between text-gray-400">
-                      <span>Sunday</span>
-                      <span>Closed</span>
-                    </div>
-                  </div>
+                  <h4 className="font-bold text-gray-900 mb-4">Trust signals</h4>
+                  <ul className="space-y-3 text-sm">
+                    <li className="flex items-start justify-between gap-2">
+                      <span className="text-gray-600">Identity / KYC</span>
+                      <span className={`font-medium text-right ${worker.verified ? 'text-forge-cyan' : 'text-gray-500'}`}>
+                        {worker.verified ? 'Verified' : 'Not verified yet'}
+                      </span>
+                    </li>
+                    <li className="flex items-start justify-between gap-2">
+                      <span className="text-gray-600">Customer reviews</span>
+                      <span className="font-medium text-right text-gray-900">
+                        {worker.reviewCount > 0
+                          ? `${worker.rating.toFixed(1)} · ${worker.reviewCount}`
+                          : 'None yet'}
+                      </span>
+                    </li>
+                    <li className="flex items-start justify-between gap-2">
+                      <span className="text-gray-600">Portfolio items</span>
+                      <span className="font-medium text-gray-900">{portfolios.length}</span>
+                    </li>
+                    <li className="flex items-start justify-between gap-2">
+                      <span className="text-gray-600">Peer endorsements</span>
+                      <span className="font-medium text-gray-900">{endorsements.length}</span>
+                    </li>
+                    <li className="flex items-start justify-between gap-2">
+                      <span className="text-gray-600">Plan</span>
+                      <span className="font-medium text-gray-900 capitalize">{worker.tier}</span>
+                    </li>
+                  </ul>
+                  <p className="text-xs text-gray-400 mt-4">
+                    Only real DB signals — no placeholder hours or fake completion rates.
+                  </p>
                 </div>
 
                 {worker.experienceYears && (

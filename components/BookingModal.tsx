@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { X, Calendar, Clock, CreditCard, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import Button from './Button';
 import Input from './Input';
@@ -38,6 +39,7 @@ type BookingStep = 'details' | 'processing' | 'success' | 'error';
 
 const BookingModal: React.FC<BookingModalProps> = ({ worker, isOpen, onClose, onSuccess }) => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [step, setStep] = useState<BookingStep>('details');
   const [hours, setHours] = useState(1);
   const [scheduledDate, setScheduledDate] = useState('');
@@ -331,6 +333,18 @@ const BookingModal: React.FC<BookingModalProps> = ({ worker, isOpen, onClose, on
                 <span className="text-2xl font-bold text-forge-navy">{formattedTotal}</span>
               </div>
 
+              <div className="p-3 bg-blue-50 border border-blue-100 rounded-xl text-xs text-blue-900 space-y-1">
+                <p className="font-semibold">What happens after you pay</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-blue-800">
+                  <li>Paystack confirms your payment</li>
+                  <li>We create a booking request for {worker.name}</li>
+                  <li>They accept or decline — you track it in My Bookings</li>
+                </ol>
+                <p className="text-blue-700/80 pt-1">
+                  Escrow wallet release is not live yet; this payment records your booking intent.
+                </p>
+              </div>
+
               {/* Pay Button */}
               <Button
                 onClick={handlePayment}
@@ -359,18 +373,22 @@ const BookingModal: React.FC<BookingModalProps> = ({ worker, isOpen, onClose, on
           {step === 'success' && transaction && createdBooking && (
             <div className="py-8 text-center">
               <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 mb-2">Payment Successful!</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">Booking request sent</h3>
               <p className="text-gray-600 mb-4">
-                Your booking with {worker.name} has been confirmed.
+                Payment succeeded. {worker.name} has been notified and needs to accept before work starts.
               </p>
               <div className="bg-gray-50 rounded-lg p-4 text-left text-sm space-y-2">
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Status</span>
+                  <span className="font-medium text-yellow-700">Waiting for worker</span>
+                </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Booking ID</span>
                   <span className="font-mono text-xs">{createdBooking.id.slice(0, 8)}...</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Reference</span>
-                  <span className="font-mono">{transaction.reference}</span>
+                  <span className="font-mono text-xs break-all">{transaction.reference}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-500">Amount</span>
@@ -381,9 +399,20 @@ const BookingModal: React.FC<BookingModalProps> = ({ worker, isOpen, onClose, on
                   <span>{scheduledDate}</span>
                 </div>
               </div>
-              <Button onClick={handleClose} className="mt-6">
-                Done
-              </Button>
+              <div className="flex flex-col gap-2 mt-6">
+                <Button
+                  onClick={() => {
+                    handleClose();
+                    navigate('/bookings');
+                  }}
+                  className="w-full"
+                >
+                  View My Bookings
+                </Button>
+                <Button onClick={handleClose} variant="secondary" className="w-full">
+                  Close
+                </Button>
+              </div>
             </div>
           )}
 

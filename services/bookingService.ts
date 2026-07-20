@@ -150,13 +150,31 @@ export async function createBooking(
 
     const booking = data as Booking;
 
+    // Notify the other party (not the creator):
+    // - Customer books worker → notify worker
+    // - Worker applies to job → notify customer (poster)
+    let actorId: string | null = null;
+    try {
+      const authResult = await supabase.auth.getUser();
+      actorId = authResult?.data?.user?.id ?? null;
+    } catch {
+      actorId = null;
+    }
+    // Fallback: if poster === customer on the booking, prefer notifying the worker
+    const isWorkerApplication = !!actorId && actorId === workerId;
+    const notifyUserId = isWorkerApplication ? job.poster_user_id : workerId;
+
     void notifyBookingEvent(
-      job.poster_user_id,
+      notifyUserId,
       'booking_request',
-      'New booking request',
-      job.title
-        ? `You have a new booking request for "${job.title}".`
-        : 'You have a new booking request.',
+      isWorkerApplication ? 'New application on your project' : 'New booking request',
+      isWorkerApplication
+        ? job.title
+          ? `A worker applied to "${job.title}". Open Bookings to respond.`
+          : 'A worker applied to your project. Open Bookings to respond.'
+        : job.title
+          ? `A customer booked you for "${job.title}". Open Bookings to accept or decline.`
+          : 'A customer booked you. Open Bookings to accept or decline.',
       { booking_id: booking.id, job_id: jobId }
     );
 
@@ -396,8 +414,8 @@ export async function acceptBooking(
     void notifyBookingEvent(
       currentBooking.customer_user_id,
       'booking_accepted',
-      'Booking accepted',
-      'Your booking request has been accepted by the worker.',
+      'Worker accepted your booking',
+      'Your pro accepted the job. They will start when ready — track progress in My Bookings.',
       { booking_id: bookingId, job_id: currentBooking.job_id }
     );
 
@@ -468,6 +486,14 @@ export async function startBooking(
         error: handleDatabaseError(error),
       };
     }
+
+    void notifyBookingEvent(
+      currentBooking.customer_user_id,
+      'booking_accepted',
+      'Work has started',
+      'Your pro marked the job as in progress. Message them anytime from My Bookings.',
+      { booking_id: bookingId, job_id: currentBooking.job_id }
+    );
 
     return {
       data: data as Booking,
@@ -542,8 +568,8 @@ export async function completeBooking(
     void notifyBookingEvent(
       currentBooking.customer_user_id,
       'booking_completed',
-      'Booking completed',
-      'Your booking has been marked as completed.',
+      'Job completed — leave a review',
+      'Work is done. Open My Bookings to leave a review and help other customers hire with confidence.',
       { booking_id: bookingId, job_id: currentBooking.job_id }
     );
 

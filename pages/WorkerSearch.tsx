@@ -44,7 +44,8 @@ const WorkerSearch: React.FC = () => {
   const [searchParams] = useSearchParams();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState('');
-  const categoryParam = searchParams.get('category');
+  // Support both ?category= and legacy ?cat= (Customer Hub links)
+  const categoryParam = searchParams.get('category') || searchParams.get('cat');
   const [selectedCategory, setSelectedCategory] = useState<string | 'all'>(categoryParam || 'all');
   // Default to user's country for "For You" experience, or 'all' if not logged in
   const [selectedCountry, setSelectedCountry] = useState<string | 'all'>(user?.country || 'all');
@@ -252,9 +253,12 @@ const WorkerSearch: React.FC = () => {
               </h1>
               {selectedCountry !== 'all' && (
                 <p className="text-gray-500 mt-1">
-                  Showing workers in {selectedCountry === 'GH' ? '🇬🇭 Ghana' : '🇳🇬 Nigeria'}
+                  Showing workers in {selectedCountry === 'GH' ? 'Ghana' : 'Nigeria'}
                 </p>
               )}
+              <p className="text-xs text-gray-400 mt-1">
+                Trust cues: KYC verified badge · real ratings · Premium = paid visibility (not fake reviews)
+              </p>
             </div>
             {!loading && (
               <p className="text-sm text-gray-500">

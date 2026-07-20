@@ -40,6 +40,7 @@ const Jobs: React.FC = () => {
   });
   const [creating, setCreating] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
   
   // Media upload state
@@ -245,6 +246,9 @@ const Jobs: React.FC = () => {
       setMediaFiles([]);
       setMediaPreviews([]);
       setActiveTab('my-jobs');
+      setCreateSuccess(
+        `"${created.title}" is live. Workers can apply — track requests in My Bookings, or hire from Find Workers.`
+      );
       // Confirm persist from DB (catches silent RLS / filter mismatches)
       void fetchMyJobs();
     } catch (err: any) {
@@ -416,6 +420,25 @@ const Jobs: React.FC = () => {
           </div>
         )}
 
+        {createSuccess && canPostProject && (
+          <div className="mb-4 bg-emerald-50 text-emerald-800 p-3 rounded-xl text-sm flex items-start justify-between gap-3">
+            <span>{createSuccess}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              <Link to="/bookings" className="font-medium text-forge-orange hover:underline">
+                My Bookings
+              </Link>
+              <button
+                type="button"
+                onClick={() => setCreateSuccess(null)}
+                className="text-emerald-600 hover:text-emerald-900"
+                aria-label="Dismiss"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
         {myJobsError && activeTab === 'my-jobs' && canPostProject && (
           <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-xl text-sm flex items-center justify-between gap-3">
             <span className="flex items-center gap-2">
@@ -578,7 +601,10 @@ const Jobs: React.FC = () => {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-forge-navy">Post a Project</h2>
+              <div>
+                <h2 className="text-xl font-bold text-forge-navy">Post a Project</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Customers only — workers will find and apply</p>
+              </div>
               <button onClick={() => { setShowCreateModal(false); setCreateError(null); }} className="text-gray-400 hover:text-gray-600">
                 <X className="w-6 h-6" />
               </button>
@@ -590,6 +616,14 @@ const Jobs: React.FC = () => {
                   <span>{createError}</span>
                 </div>
               )}
+              <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-xs text-blue-900 space-y-1">
+                <p className="font-semibold">After you post</p>
+                <ol className="list-decimal list-inside space-y-0.5 text-blue-800">
+                  <li>Your project appears on the job board for workers in your country</li>
+                  <li>Interested pros apply — you&apos;ll see requests in My Bookings</li>
+                  <li>Or hire directly from Find Workers anytime</li>
+                </ol>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Project Title *</label>
                 <input

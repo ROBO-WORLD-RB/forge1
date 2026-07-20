@@ -82,6 +82,7 @@ export function getOsSidebarLinks(os: OsRole, unreadNotifications = 0): OsNavLin
     { to: '/bookings', label: 'Bookings' },
     { to: '/messages', label: 'Messages' },
     { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+    { to: '/dashboard/customer', label: 'Saved workers', sidebarOnly: true },
     { to: '/my-profile', label: 'Profile' },
     { to: '/settings/privacy', label: 'Settings', sidebarOnly: true },
   ];
