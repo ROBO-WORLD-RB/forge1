@@ -1,18 +1,28 @@
 # Send Push Notification Edge Function
 
-Server-side FCM delivery for Forge. **Do not** expose the Firebase server key via `VITE_FCM_SERVER_KEY` in production — it is bundled into the browser.
+Server-side FCM delivery for Forge. **Do not** expose the Firebase server key via `VITE_FCM_SERVER_KEY` — that pattern is removed from the SPA.
+
+## Auth (required)
+
+Unauthenticated calls are rejected (`401`). Accepted:
+
+| Method | Who |
+|--------|-----|
+| `Authorization: Bearer <user JWT>` | User may target **own** `userId` only; admins may target any |
+| `Authorization: Bearer <service_role>` | Trusted server / other Edge Functions |
+| Header `x-cron-secret` or `x-push-secret` | Must match secret `PUSH_CRON_SECRET` or `CRON_SECRET` |
 
 ## Deploy
 
 ```bash
 cd supabase
 supabase secrets set FCM_SERVER_KEY=your_firebase_server_key
+# optional for cron/service invokes:
+# supabase secrets set PUSH_CRON_SECRET=long-random-string
 supabase functions deploy send-push-notification
 ```
 
 ## Usage
-
-Authenticated callers (service role or user JWT) POST:
 
 ```json
 {
@@ -23,6 +33,6 @@ Authenticated callers (service role or user JWT) POST:
 }
 ```
 
-## Client migration
+Client: `notificationService.sendPushNotification()` → `supabase.functions.invoke('send-push-notification', …)` with the session JWT.
 
-Replace direct `notificationService.sendPushNotification()` FCM calls with an invoke to this function once deployed. In-app notifications (`createInAppNotification`) remain client-safe.
+In-app notifications (`createInAppNotification` → RPC `create_notification`) remain the primary channel until FCM is proven.

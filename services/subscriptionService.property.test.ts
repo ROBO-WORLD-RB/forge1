@@ -135,21 +135,22 @@ describe('Subscription Service Property Tests', () => {
 
 
   /**
-   * Feature: backend-services, Property 2: Subscription Creation Sets Active Status and 30-Day Expiry
-   * Validates: Requirements 1.2
-   * 
-   * For any valid subscription creation with userId and planId, the resulting
-   * subscription should have status 'active' and expires_at exactly 30 days from started_at.
+   * Feature: backend-services, Property 2: Subscription Creation Sets Pending Status and 30-Day Expiry
+   * Validates: Requirements 1.2 (M0: client creates pending only; webhook activates)
+   *
+   * For any valid paid subscription intent, the resulting row is status 'pending'
+   * with expires_at ~30 days from started_at. Free tier is rejected (no row).
    */
-  describe('Property 2: Subscription Creation Sets Active Status and 30-Day Expiry', () => {
-    it('for any valid subscription creation, status is active and expiry is 30 days from start', async () => {
+  describe('Property 2: Subscription Creation Sets Pending Status and 30-Day Expiry', () => {
+    const paidTier: fc.Arbitrary<WorkerTier> = fc.constantFrom('basic', 'premium');
+
+    it('for any valid paid subscription creation, status is pending and expiry is 30 days from start', async () => {
       await fc.assert(
         fc.asyncProperty(
           userIdArbitrary,
           countryArbitrary,
-          tierArbitrary,
+          paidTier,
           async (userId, country, tier) => {
-            // Reset mocks for each iteration
             vi.mocked(supabase.from).mockReset();
             
             const planId = `${tier}-${country.toLowerCase()}`;
@@ -158,16 +159,15 @@ describe('Subscription Service Property Tests', () => {
             const expectedExpiry = new Date(now);
             expectedExpiry.setDate(expectedExpiry.getDate() + 30);
 
-            // Build expected subscription
             const expectedSubscription: Subscription = {
               id: mockSubscriptionId,
               user_id: userId,
               tier,
               currency: EXPECTED_PRICING[country][tier].currency,
               amount: EXPECTED_PRICING[country][tier].price,
-              status: 'active',
+              status: 'pending',
               payment_provider: 'paystack',
-              provider_subscription_id: null,
+              provider_subscription_id: 'SUB_ref',
               started_at: now.toISOString(),
               expires_at: expectedExpiry.toISOString(),
               auto_renew: true,
@@ -175,44 +175,28 @@ describe('Subscription Service Property Tests', () => {
               updated_at: now.toISOString(),
             };
 
-            // Mock successful insert with chained methods
             const mockSingle = vi.fn().mockResolvedValue({
               data: expectedSubscription,
               error: null,
             });
             const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
             const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-            
-            // Mock worker profile update
-            const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
-            const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
-            let callCount = 0;
-            vi.mocked(supabase.from).mockImplementation(() => {
-              callCount++;
-              if (callCount === 1) {
-                return { insert: mockInsert } as any;
-              }
-              return { update: mockUpdate } as any;
-            });
+            vi.mocked(supabase.from).mockReturnValue({ insert: mockInsert } as any);
 
-            const result = await createSubscription(userId, planId, 'paystack');
+            const result = await createSubscription(userId, planId, 'paystack', 'SUB_ref');
 
-            // Verify no error
             expect(result.error).toBeNull();
             expect(result.data).not.toBeNull();
 
             if (result.data) {
-              // Verify status is active
-              expect(result.data.status).toBe('active');
+              expect(result.data.status).toBe('pending');
 
-              // Verify expiry is approximately 30 days from start
               const startDate = new Date(result.data.started_at);
               const expiryDate = new Date(result.data.expires_at);
               const daysDiff = Math.round((expiryDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
               expect(daysDiff).toBe(30);
 
-              // Verify auto_renew is true
               expect(result.data.auto_renew).toBe(true);
             }
           }
@@ -221,14 +205,13 @@ describe('Subscription Service Property Tests', () => {
       );
     });
 
-    it('for any subscription creation, the tier and pricing match the plan', async () => {
+    it('for any paid subscription creation, the tier and pricing match the plan', async () => {
       await fc.assert(
         fc.asyncProperty(
           userIdArbitrary,
           countryArbitrary,
-          tierArbitrary,
+          paidTier,
           async (userId, country, tier) => {
-            // Reset mocks for each iteration
             vi.mocked(supabase.from).mockReset();
             
             const planId = `${tier}-${country.toLowerCase()}`;
@@ -245,7 +228,7 @@ describe('Subscription Service Property Tests', () => {
               tier,
               currency: expectedPricing.currency,
               amount: expectedPricing.price,
-              status: 'active',
+              status: 'pending',
               payment_provider: 'paystack',
               provider_subscription_id: null,
               started_at: now.toISOString(),
@@ -261,17 +244,8 @@ describe('Subscription Service Property Tests', () => {
             });
             const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
             const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-            const mockEq = vi.fn().mockResolvedValue({ data: null, error: null });
-            const mockUpdate = vi.fn().mockReturnValue({ eq: mockEq });
 
-            let callCount = 0;
-            vi.mocked(supabase.from).mockImplementation(() => {
-              callCount++;
-              if (callCount === 1) {
-                return { insert: mockInsert } as any;
-              }
-              return { update: mockUpdate } as any;
-            });
+            vi.mocked(supabase.from).mockReturnValue({ insert: mockInsert } as any);
 
             const result = await createSubscription(userId, planId, 'paystack');
 
@@ -280,6 +254,7 @@ describe('Subscription Service Property Tests', () => {
               expect(result.data.tier).toBe(tier);
               expect(result.data.currency).toBe(expectedPricing.currency);
               expect(result.data.amount).toBe(expectedPricing.price);
+              expect(result.data.status).toBe('pending');
             }
           }
         ),

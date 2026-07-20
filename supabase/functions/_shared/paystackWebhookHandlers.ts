@@ -117,7 +117,8 @@ export async function handleSubscriptionPayment(
     return { ok: false, error: txnError.message };
   }
 
-  let userId: string | null = txn?.user_id ?? null;
+  const metadata = (txn?.metadata ?? {}) as Record<string, unknown>;
+  let userId: string | null = txn?.user_id ?? (typeof metadata.user_id === 'string' ? metadata.user_id : null);
 
   if (!userId) {
     const { data: sub, error: subError } = await supabase
@@ -143,22 +144,92 @@ export async function handleSubscriptionPayment(
     const newExpiry = new Date(now);
     newExpiry.setDate(newExpiry.getDate() + 30);
 
-    const updateData: SubscriptionUpdate = {
-      status: 'active',
-      expires_at: newExpiry.toISOString(),
-    };
+    const tierRaw = typeof metadata.tier === 'string' ? metadata.tier : null;
+    const tier = tierRaw && ['basic', 'premium', 'free'].includes(tierRaw) ? tierRaw : null;
+    const currency = (txn?.currency as string) || 'GHS';
+    const amount = typeof txn?.amount === 'number' ? txn.amount : 0;
 
-    const { error: updateError } = await supabase
+    // Prefer pending row created by client after checkout; else active (renewal); else insert.
+    const { data: pendingOrActive, error: findError } = await supabase
       .from('subscriptions')
-      .update(updateData)
+      .select('id, tier, status')
       .eq('user_id', userId)
-      .eq('status', 'active');
+      .in('status', ['pending', 'active'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (updateError) {
-      return { ok: false, error: updateError.message };
+    if (findError) {
+      return { ok: false, error: findError.message };
     }
+
+    const resolvedTier = tier || pendingOrActive?.tier || 'basic';
+
+    if (pendingOrActive) {
+      const updateData: SubscriptionUpdate & {
+        provider_subscription_id?: string;
+        started_at?: string;
+        tier?: string;
+        amount?: number;
+        currency?: string;
+      } = {
+        status: 'active',
+        expires_at: newExpiry.toISOString(),
+        provider_subscription_id: reference,
+        started_at: now.toISOString(),
+        tier: resolvedTier,
+      };
+      if (txn?.amount != null) updateData.amount = amount;
+      if (txn?.currency) updateData.currency = currency;
+
+      const { error: updateError } = await supabase
+        .from('subscriptions')
+        .update(updateData)
+        .eq('id', pendingOrActive.id);
+
+      if (updateError) {
+        return { ok: false, error: updateError.message };
+      }
+    } else {
+      const { error: insertError } = await supabase.from('subscriptions').insert({
+        user_id: userId,
+        tier: resolvedTier,
+        currency,
+        amount,
+        status: 'active',
+        payment_provider: 'paystack',
+        provider_subscription_id: reference,
+        started_at: now.toISOString(),
+        expires_at: newExpiry.toISOString(),
+        auto_renew: true,
+      });
+
+      if (insertError) {
+        return { ok: false, error: insertError.message };
+      }
+    }
+
+    if (resolvedTier !== 'free') {
+      const { error: workerError } = await supabase
+        .from('worker_profiles')
+        .update({ tier: resolvedTier })
+        .eq('user_id', userId);
+
+      if (workerError) {
+        console.warn('Failed to update worker tier after subscription:', workerError.message);
+      }
+    }
+
+    await supabase
+      .from('transactions')
+      .update({ status: 'success' })
+      .eq('provider_txn_id', reference);
   } else if (status === 'failed') {
     console.warn(`Subscription payment failed for user: ${userId}, reference: ${reference}`);
+    await supabase
+      .from('transactions')
+      .update({ status: 'failed' })
+      .eq('provider_txn_id', reference);
   }
 
   return { ok: true };

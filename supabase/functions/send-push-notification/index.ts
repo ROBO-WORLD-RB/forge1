@@ -1,22 +1,24 @@
 /**
- * Send Push Notification — Supabase Edge Function (stub)
+ * Send Push Notification — Supabase Edge Function
  *
- * Production push notifications must NOT use VITE_FCM_SERVER_KEY in the browser.
- * Store FCM_SERVER_KEY as a Supabase secret and send from this function instead.
+ * Production push must NOT use VITE_FCM_SERVER_KEY in the browser.
+ * Store FCM_SERVER_KEY as a Supabase secret and send from this function.
+ *
+ * Auth (required):
+ *   • Bearer user JWT — may only target their own userId (or admin → any)
+ *   • Bearer service role key — any userId
+ *   • Header x-cron-secret / x-push-secret matching PUSH_CRON_SECRET or CRON_SECRET
  *
  * Deploy: supabase functions deploy send-push-notification
- * Secret: supabase secrets set FCM_SERVER_KEY=your_firebase_server_key
- *
- * This stub validates auth and returns 501 until FCM sending is implemented.
- * Client code should call this function instead of notificationService.sendPushNotification()
- * for server-side delivery.
+ * Secrets: FCM_SERVER_KEY, optional PUSH_CRON_SECRET
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-cron-secret, x-push-secret',
 };
 
 const FCM_API_URL = 'https://fcm.googleapis.com/fcm/send';
@@ -46,13 +48,52 @@ Deno.serve(async (req: Request) => {
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
   const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+  const anonKey = Deno.env.get('SUPABASE_ANON_KEY');
   if (!supabaseUrl || !serviceRoleKey) {
     return jsonResponse({ error: 'Server configuration error' }, 500);
   }
 
-  const supabase = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+  const cronHeader =
+    req.headers.get('x-cron-secret') ?? req.headers.get('x-push-secret') ?? '';
+  const expectedCron =
+    Deno.env.get('PUSH_CRON_SECRET') ?? Deno.env.get('CRON_SECRET') ?? '';
+
+  let privileged = false;
+  let callerUserId: string | null = null;
+  let callerIsAdmin = false;
+
+  if (expectedCron && cronHeader && cronHeader === expectedCron) {
+    privileged = true;
+  } else if (bearer && bearer === serviceRoleKey) {
+    privileged = true;
+  } else if (bearer && anonKey) {
+    const userClient = createClient(supabaseUrl, anonKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+      global: { headers: { Authorization: `Bearer ${bearer}` } },
+    });
+    const { data: userData, error: userError } = await userClient.auth.getUser();
+    if (userError || !userData?.user) {
+      return jsonResponse({ error: 'Unauthorized' }, 401);
+    }
+    callerUserId = userData.user.id;
+
+    const adminClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: profile } = await adminClient
+      .from('profiles')
+      .select('role')
+      .eq('id', callerUserId)
+      .maybeSingle();
+    callerIsAdmin = profile?.role === 'admin';
+  } else {
+    return jsonResponse({
+      error: 'Unauthorized',
+      hint: 'Send Authorization: Bearer <user JWT or service role>, or x-cron-secret',
+    }, 401);
+  }
 
   let payload: PushRequestBody;
   try {
@@ -64,6 +105,19 @@ Deno.serve(async (req: Request) => {
   if (!payload?.userId || !payload?.title || !payload?.body) {
     return jsonResponse({ error: 'userId, title, and body are required' }, 400);
   }
+
+  if (!privileged && callerUserId) {
+    if (payload.userId !== callerUserId && !callerIsAdmin) {
+      return jsonResponse({
+        error: 'Forbidden',
+        hint: 'Users may only send push to their own userId',
+      }, 403);
+    }
+  }
+
+  const supabase = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
 
   const fcmServerKey = Deno.env.get('FCM_SERVER_KEY');
   if (!fcmServerKey) {

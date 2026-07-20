@@ -430,7 +430,7 @@ export interface Database {
 // Status Enums for Backend Services
 // ============================================
 
-export type SubscriptionStatus = 'active' | 'cancelled' | 'expired';
+export type SubscriptionStatus = 'pending' | 'active' | 'cancelled' | 'expired';
 export type JobStatus = 'open' | 'filled' | 'cancelled';
 export type BookingStatus = 'PENDING' | 'ACCEPTED' | 'IN_PROGRESS' | 'COMPLETED' | 'REVIEWED' | 'CANCELLED';
 export type NotificationType = 'new_message' | 'booking_request' | 'booking_accepted' | 'booking_completed' | 

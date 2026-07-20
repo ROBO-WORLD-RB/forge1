@@ -2,6 +2,10 @@
  * Subscription Service
  * Manages worker subscription tiers with local pricing for Ghana and Nigeria
  * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
+ *
+ * SECURITY (M0): Clients must NOT activate paid tiers. After Paystack checkout,
+ * create a pending subscription + transaction; only the paystack-webhook Edge
+ * Function (service role) may set status=active and update worker_profiles.tier.
  */
 
 import { supabase } from './supabase';
@@ -83,16 +87,19 @@ export function getSubscriptionPlans(country: Country): SubscriptionPlan[] {
 
 
 /**
- * Create a new subscription for a user
- * Creates subscription with status 'active' and expiry date 30 days from creation
- * Requirements: 1.2
+ * Create a pending subscription after Paystack checkout succeeds in the UI.
+ * Does NOT activate the plan or update worker_profiles.tier — webhook only.
+ *
+ * @param paymentReference Paystack reference (stored as provider_subscription_id for webhook match)
+ * Requirements: 1.2 (intent only; activation is server-side)
  */
 export async function createSubscription(
   userId: string,
   planId: string,
-  paymentMethod: string
+  paymentMethod: string,
+  paymentReference?: string
 ): Promise<SubscriptionServiceResult<Subscription>> {
-  const transaction = startTransaction('subscription.create', 'db');
+  const transaction = startTransaction('subscription.createPending', 'db');
 
   try {
     // Parse plan ID to get tier and country
@@ -121,6 +128,17 @@ export async function createSubscription(
       };
     }
 
+    // Free tier needs no payment / pending row
+    if (tier === 'free') {
+      return {
+        data: null,
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: 'Free tier does not require a subscription record',
+        },
+      };
+    }
+
     const pricing = PRICING[country][tier];
     const now = new Date();
     const expiresAt = new Date(now);
@@ -131,8 +149,9 @@ export async function createSubscription(
       tier,
       currency: pricing.currency,
       amount: pricing.price,
-      status: 'active',
+      status: 'pending',
       payment_provider: paymentMethod,
+      provider_subscription_id: paymentReference ?? null,
       started_at: now.toISOString(),
       expires_at: expiresAt.toISOString(),
       auto_renew: true,
@@ -152,14 +171,6 @@ export async function createSubscription(
       };
     }
 
-    // Update worker profile visibility if not free tier
-    if (tier !== 'free') {
-      await (supabase
-        .from('worker_profiles') as any)
-        .update({ tier, verified: false })
-        .eq('user_id', userId);
-    }
-
     return {
       data: data as Subscription,
       error: null,
@@ -167,6 +178,39 @@ export async function createSubscription(
   } finally {
     transaction.finish();
   }
+}
+
+/**
+ * Poll until webhook activates the subscription (or timeout).
+ * Call after Paystack onSuccess + createSubscription(pending).
+ */
+export async function waitForActiveSubscription(
+  userId: string,
+  options?: { timeoutMs?: number; intervalMs?: number }
+): Promise<SubscriptionServiceResult<Subscription | null>> {
+  const timeoutMs = options?.timeoutMs ?? 45000;
+  const intervalMs = options?.intervalMs ?? 2000;
+  const started = Date.now();
+
+  while (Date.now() - started < timeoutMs) {
+    const result = await getActiveSubscription(userId);
+    if (result.error) {
+      return result;
+    }
+    if (result.data) {
+      return result;
+    }
+    await new Promise((r) => setTimeout(r, intervalMs));
+  }
+
+  return {
+    data: null,
+    error: {
+      code: ERROR_CODES.VALIDATION_ERROR,
+      message:
+        'Payment received but subscription is not active yet. It usually activates within a minute via webhook — refresh this page shortly. Do not pay again.',
+    },
+  };
 }
 
 /**
@@ -259,6 +303,7 @@ export async function checkSubscriptionStatus(
     .from('subscriptions') as any)
     .select('*')
     .eq('user_id', userId)
+    .eq('status', 'active')
     .order('created_at', { ascending: false })
     .limit(1)
     .single();
@@ -366,7 +411,7 @@ export async function handleSubscriptionExpiry(): Promise<SubscriptionServiceRes
       };
     }
 
-    // Update worker visibility to false for expired subscriptions
+    // Update worker visibility to free for expired subscriptions (service/cron path)
     const userIds = expiredSubscriptions.map((s: { user_id: string }) => s.user_id);
     const { error: updateWorkerError } = await (supabase
       .from('worker_profiles') as any)
@@ -392,7 +437,8 @@ export async function handleSubscriptionExpiry(): Promise<SubscriptionServiceRes
  */
 export interface SubscriptionService {
   getSubscriptionPlans(country: Country): SubscriptionPlan[];
-  createSubscription(userId: string, planId: string, paymentMethod: string): Promise<SubscriptionServiceResult<Subscription>>;
+  createSubscription(userId: string, planId: string, paymentMethod: string, paymentReference?: string): Promise<SubscriptionServiceResult<Subscription>>;
+  waitForActiveSubscription(userId: string, options?: { timeoutMs?: number; intervalMs?: number }): Promise<SubscriptionServiceResult<Subscription | null>>;
   getActiveSubscription(userId: string): Promise<SubscriptionServiceResult<Subscription | null>>;
   cancelSubscription(subscriptionId: string): Promise<SubscriptionServiceResult<Subscription>>;
   checkSubscriptionStatus(userId: string): Promise<SubscriptionStatusCheck>;
@@ -403,6 +449,7 @@ export interface SubscriptionService {
 export const subscriptionService: SubscriptionService = {
   getSubscriptionPlans,
   createSubscription,
+  waitForActiveSubscription,
   getActiveSubscription,
   cancelSubscription,
   checkSubscriptionStatus,

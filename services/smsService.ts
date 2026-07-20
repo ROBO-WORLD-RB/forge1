@@ -1,8 +1,11 @@
 /**
  * SMS/OTP Verification Service
- * Handles phone number verification via OTP codes
- * Twilio (primary) or Africa's Talking (fallback). When neither is configured
- * or send fails, returns displayCode so beta users can still verify on-screen.
+ * Handles phone number verification via OTP codes.
+ *
+ * SECURITY (M0): Twilio / Africa's Talking credentials must NOT be required as
+ * VITE_* in production — they would ship in the browser bundle. Client SMS
+ * sending is disabled when `import.meta.env.PROD` is true; production should
+ * use a future Edge Function with server-only secrets.
  *
  * NOTE (beta): Signup/login UI no longer calls sendOTP/verifyOTP — verification is deferred.
  * Keep this module for a future rollout. formatPhoneNumber may still be used by signup.
@@ -33,14 +36,25 @@ export interface VerifyOTPResult {
 // OTP expiry time in minutes
 const OTP_EXPIRY_MINUTES = 10;
 
-// Twilio Configuration from environment
-const TWILIO_SID = import.meta.env.VITE_TWILIO_ACCOUNT_SID as string | undefined;
-const TWILIO_TOKEN = import.meta.env.VITE_TWILIO_AUTH_TOKEN as string | undefined;
-const TWILIO_PHONE = import.meta.env.VITE_TWILIO_PHONE_NUMBER as string | undefined;
+// DEV-only optional client credentials (never required for production builds).
+// Prefer future Edge Function secrets: TWILIO_* / AT_* (no VITE_ prefix).
+const ALLOW_CLIENT_SMS = Boolean(import.meta.env.DEV);
+const TWILIO_SID = ALLOW_CLIENT_SMS
+  ? (import.meta.env.VITE_TWILIO_ACCOUNT_SID as string | undefined)
+  : undefined;
+const TWILIO_TOKEN = ALLOW_CLIENT_SMS
+  ? (import.meta.env.VITE_TWILIO_AUTH_TOKEN as string | undefined)
+  : undefined;
+const TWILIO_PHONE = ALLOW_CLIENT_SMS
+  ? (import.meta.env.VITE_TWILIO_PHONE_NUMBER as string | undefined)
+  : undefined;
 
-// Africa's Talking (optional alternative)
-const AT_API_KEY = import.meta.env.VITE_AT_API_KEY as string | undefined;
-const AT_USERNAME = import.meta.env.VITE_AT_USERNAME as string | undefined;
+const AT_API_KEY = ALLOW_CLIENT_SMS
+  ? (import.meta.env.VITE_AT_API_KEY as string | undefined)
+  : undefined;
+const AT_USERNAME = ALLOW_CLIENT_SMS
+  ? (import.meta.env.VITE_AT_USERNAME as string | undefined)
+  : undefined;
 
 const OTP_STORAGE_KEY = 'forge_otp_store';
 
@@ -236,13 +250,13 @@ export async function sendOTP(phone: string, country: 'GH' | 'NG'): Promise<Send
 
     if (!isSmsProviderConfigured()) {
       logger.warn(
-        'SMS provider not configured. Returning on-screen OTP for beta.',
+        'SMS provider not configured (or blocked in production). Returning on-screen OTP for beta.',
         { phone: formattedPhone }
       );
       return fallbackResult(
         otp,
         expiresAt,
-        'SMS not configured — use this code to continue. Add Twilio or Africa\'s Talking env vars on Render for real SMS.'
+        'SMS not configured — use this code to continue. Production SMS must use an Edge Function with server-only secrets (not VITE_*).'
       );
     }
 

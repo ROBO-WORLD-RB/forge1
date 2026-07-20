@@ -209,19 +209,18 @@ export default defineConfig(({ mode }) => {
                   },
                 },
               },
+              // Never cache authenticated Supabase REST (stale auth-scoped data / privacy).
               {
                 urlPattern: /^https:\/\/.*\.supabase\.co\/rest\/v1\/.*/i,
-                handler: 'StaleWhileRevalidate',
-                options: {
-                  cacheName: 'supabase-api-cache',
-                  expiration: {
-                    maxEntries: 100,
-                    maxAgeSeconds: 60 * 60 * 24 // 24 hours
-                  },
-                  cacheableResponse: {
-                    statuses: [0, 200]
-                  }
-                }
+                handler: 'NetworkOnly',
+              },
+              {
+                urlPattern: /^https:\/\/.*\.supabase\.co\/auth\/v1\/.*/i,
+                handler: 'NetworkOnly',
+              },
+              {
+                urlPattern: /^https:\/\/.*\.supabase\.co\/functions\/v1\/.*/i,
+                handler: 'NetworkOnly',
               },
               {
                 urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

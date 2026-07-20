@@ -10,9 +10,12 @@ import type { Notification, DeviceToken, NotificationType } from '../types/datab
 // Mock Supabase module - must be hoisted
 vi.mock('./supabase', () => {
   const mockFrom = vi.fn();
+  const mockRpc = vi.fn();
   return {
     supabase: {
       from: mockFrom,
+      rpc: mockRpc,
+      functions: { invoke: vi.fn() },
     },
   };
 });
@@ -146,15 +149,10 @@ describe('Notification Service Property Tests', () => {
               metadata as Record<string, unknown> | undefined
             );
 
-            // Mock insert
-            const mockSingle = vi.fn().mockResolvedValue({
+            vi.mocked((supabase as any).rpc).mockResolvedValue({
               data: expectedNotification,
               error: null,
             });
-            const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-            const mockInsert = vi.fn().mockReturnValue({ select: mockSelect });
-
-            vi.mocked(supabase.from).mockReturnValue({ insert: mockInsert } as any);
 
             const result = await createInAppNotification(userId, type, title, body, metadata as Record<string, unknown> | undefined);
 
@@ -177,7 +175,7 @@ describe('Notification Service Property Tests', () => {
       );
     });
 
-    it('createInAppNotification inserts with correct data structure', async () => {
+    it('createInAppNotification calls create_notification RPC with correct args', async () => {
       await fc.assert(
         fc.asyncProperty(
           userIdArbitrary,
@@ -185,29 +183,25 @@ describe('Notification Service Property Tests', () => {
           titleArbitrary,
           bodyArbitrary,
           async (userId, type, title, body) => {
-            vi.mocked(supabase.from).mockReset();
+            vi.mocked((supabase as any).rpc).mockReset();
 
-            let capturedInsertData: any = null;
+            let capturedArgs: any = null;
 
-            const mockSingle = vi.fn().mockResolvedValue({
-              data: createMockNotification(fc.sample(fc.uuid(), 1)[0], userId, type, title, body),
-              error: null,
+            vi.mocked((supabase as any).rpc).mockImplementation((_name: string, args: unknown) => {
+              capturedArgs = args;
+              return Promise.resolve({
+                data: createMockNotification(fc.sample(fc.uuid(), 1)[0], userId, type, title, body),
+                error: null,
+              });
             });
-            const mockSelect = vi.fn().mockReturnValue({ single: mockSingle });
-            const mockInsert = vi.fn().mockImplementation((data) => {
-              capturedInsertData = data;
-              return { select: mockSelect };
-            });
-
-            vi.mocked(supabase.from).mockReturnValue({ insert: mockInsert } as any);
 
             await createInAppNotification(userId, type, title, body);
 
-            expect(capturedInsertData).not.toBeNull();
-            expect(capturedInsertData.user_id).toBe(userId);
-            expect(capturedInsertData.type).toBe(type);
-            expect(capturedInsertData.title).toBe(title);
-            expect(capturedInsertData.body).toBe(body);
+            expect(capturedArgs).not.toBeNull();
+            expect(capturedArgs.p_user_id).toBe(userId);
+            expect(capturedArgs.p_type).toBe(type);
+            expect(capturedArgs.p_title).toBe(title);
+            expect(capturedArgs.p_body).toBe(body);
           }
         ),
         { numRuns: 100 }
@@ -704,15 +698,10 @@ describe('Notification Service Property Tests', () => {
               metadata as Record<string, unknown> | undefined
             );
 
-            // Mock insert for create
-            const mockCreateSingle = vi.fn().mockResolvedValue({
+            vi.mocked((supabase as any).rpc).mockResolvedValue({
               data: createdNotification,
               error: null,
             });
-            const mockCreateSelect = vi.fn().mockReturnValue({ single: mockCreateSingle });
-            const mockInsert = vi.fn().mockReturnValue({ select: mockCreateSelect });
-
-            vi.mocked(supabase.from).mockReturnValue({ insert: mockInsert } as any);
 
             const createResult = await createInAppNotification(
               userId,

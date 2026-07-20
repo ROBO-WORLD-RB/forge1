@@ -5,8 +5,9 @@
  * routing, which can select content-safety / guardrail models that only return
  * "User Safety: safe" instead of a helpful answer.
  *
- * Prefer Supabase Edge Function `ai-chat` (OPENROUTER_API_KEY secret).
- * Falls back to VITE_OPENROUTER_API_KEY for SPA-only / Render quick setup.
+ * Prefer Supabase Edge Function `ai-chat` (OPENROUTER_API_KEY secret) — required
+ * for production. Optional VITE_OPENROUTER_API_KEY SPA fallback is public in the
+ * bundle; avoid setting it when `ai-chat` is deployed.
  */
 
 import { aiLimiter, RateLimitError } from '../utils/rateLimiter';

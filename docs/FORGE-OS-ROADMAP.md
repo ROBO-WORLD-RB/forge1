@@ -3,7 +3,8 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 1 discovery → Phases 2–5 plan (no product implementation)  
+**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); M1–M6 not started  
+
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
 ---
@@ -347,16 +348,18 @@ Optional columns (additive on existing tables): `bookings.payment_status`, `book
 
 Labels: **High** | **Medium** | **Future**
 
-#### M0 — Security hardening — **High** (session 1)
+#### M0 — Security hardening — **High** (session 1) — **DONE (code)**
 
-- [ ] Remove client FCM/Twilio/AI secrets; server-only send paths — **High**
-- [ ] RLS: block client updates to `worker_profiles.tier` / `verified` — **High**
-- [ ] RLS: KYC status changes admin/service only — **High**
-- [ ] Subscription activation webhook-only; client cannot set `active` — **High**
-- [ ] Authenticate `send-push-notification` — **High**
-- [ ] Notifications INSERT policy fix — **High**
-- [ ] Stop SW caching Supabase REST — **High**
-- [ ] Admin KYC approve via secure RPC/function — **High**
+- [x] Remove client FCM/Twilio/AI secrets; server-only send paths — **High**
+- [x] RLS: block client updates to `worker_profiles.tier` / `verified` — **High**
+- [x] RLS: KYC status changes admin/service only — **High**
+- [x] Subscription activation webhook-only; client cannot set `active` — **High**
+- [x] Authenticate `send-push-notification` — **High**
+- [x] Notifications INSERT policy fix — **High**
+- [x] Stop SW caching Supabase REST — **High**
+- [x] Admin KYC approve via secure RPC/function — **High**
+
+> **Apply SQL:** run migrations `012`–`015` in Supabase SQL Editor. Redeploy Edge Functions `send-push-notification` and `paystack-webhook`.
 
 #### M1 — Dual OS shell & navigation — **High** (session 2)
 

@@ -7,7 +7,6 @@
 import { supabase } from './supabase';
 import type {
   Notification,
-  NotificationInsert,
   NotificationUpdate,
   NotificationType,
   DeviceToken,
@@ -35,28 +34,8 @@ export interface NotificationServiceResult<T> {
 }
 
 /**
- * FCM configuration — DEV / STUB ONLY.
- *
- * SECURITY WARNING: `VITE_FCM_SERVER_KEY` is bundled into the browser at build time.
- * Anyone can extract it from `dist/` and send push notifications on your behalf.
- * Do NOT set this variable in production. Use the `send-push-notification` Edge
- * Function with `FCM_SERVER_KEY` stored as a Supabase secret instead.
- *
- * @see supabase/functions/send-push-notification/
- */
-const FCM_SERVER_KEY = import.meta.env.VITE_FCM_SERVER_KEY || '';
-const FCM_API_URL = 'https://fcm.googleapis.com/fcm/send';
-
-if (import.meta.env.DEV && FCM_SERVER_KEY) {
-  console.warn(
-    '[notificationService] VITE_FCM_SERVER_KEY is set — this exposes your FCM server key in the client bundle. ' +
-      'Use supabase/functions/send-push-notification for production push delivery.',
-  );
-}
-
-/**
- * Create an in-app notification
- * Stores the notification with type, title, body, and metadata
+ * Create an in-app notification via SECURITY DEFINER RPC (migration 015).
+ * Direct INSERT on `notifications` is not allowed for clients (anti-spam).
  * Requirements: 6.2
  */
 export async function createInAppNotification(
@@ -69,19 +48,13 @@ export async function createInAppNotification(
   const transaction = startTransaction('notification.createInAppNotification', 'db');
 
   try {
-    const insertData: NotificationInsert = {
-      user_id: userId,
-      type,
-      title,
-      body,
-      metadata: metadata ?? null,
-    };
-
-    const { data, error } = await (supabase
-      .from('notifications') as any)
-      .insert(insertData)
-      .select()
-      .single();
+    const { data, error } = await (supabase as any).rpc('create_notification', {
+      p_user_id: userId,
+      p_type: type,
+      p_title: title,
+      p_body: body,
+      p_metadata: metadata ?? null,
+    });
 
     if (error) {
       captureError(new Error(error.message), { tags: { operation: 'createInAppNotification' } });
@@ -228,11 +201,10 @@ export async function getNotification(
 }
 
 /**
- * Send a push notification via FCM.
+ * Send a push notification via the authenticated `send-push-notification` Edge Function.
  *
- * SECURITY: This function uses `VITE_FCM_SERVER_KEY` client-side — suitable for local
- * dev only. In production, invoke `supabase/functions/send-push-notification` instead
- * so the Firebase server key never leaves the server.
+ * SECURITY: Never uses VITE_FCM_SERVER_KEY (removed from client paths). FCM_SERVER_KEY
+ * must live only as a Supabase Function secret.
  *
  * Requirements: 6.1
  */
@@ -245,75 +217,33 @@ export async function sendPushNotification(
   const transaction = startTransaction('notification.sendPushNotification', 'fcm');
 
   try {
-    // Get user's device tokens
-    const { data: tokens, error: tokenError } = await (supabase
-      .from('device_tokens') as any)
-      .select('token')
-      .eq('user_id', userId);
+    const { data: fnData, error: fnError } = await supabase.functions.invoke(
+      'send-push-notification',
+      {
+        body: { userId, title, body, data: data || {} },
+      }
+    );
 
-    if (tokenError) {
-      captureError(new Error(tokenError.message), { tags: { operation: 'sendPushNotification.getTokens' } });
-      return {
-        data: null,
-        error: handleDatabaseError(tokenError),
-      };
-    }
-
-    if (!tokens || tokens.length === 0) {
-      // No device tokens registered, but not an error
-      return {
-        data: undefined,
-        error: null,
-      };
-    }
-
-    // Send to all registered devices
-    const deviceTokens = tokens.map((t: { token: string }) => t.token);
-
-    // If FCM is not configured, skip sending but don't error.
-    // In production, route push through send-push-notification Edge Function instead.
-    if (!FCM_SERVER_KEY) {
-      console.warn(
-        'FCM server key not configured, skipping push notification. ' +
-          'Set FCM_SERVER_KEY on the send-push-notification Edge Function for production.',
-      );
-      return {
-        data: undefined,
-        error: null,
-      };
-    }
-
-    // Send FCM notification
-    const fcmPayload = {
-      registration_ids: deviceTokens,
-      notification: {
-        title,
-        body,
-      },
-      data: data || {},
-    };
-
-    const response = await fetch(FCM_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `key=${FCM_SERVER_KEY}`,
-      },
-      body: JSON.stringify(fcmPayload),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      captureError(new Error(`FCM send failed: ${errorText}`), { 
-        tags: { operation: 'sendPushNotification.fcm' } 
+    if (fnError) {
+      captureError(new Error(fnError.message), {
+        tags: { operation: 'sendPushNotification.edge' },
       });
       return {
         data: null,
         error: {
           code: NOTIFICATION_ERROR_CODES.FCM_SEND_FAILED as any,
-          message: 'Failed to send push notification',
+          message: fnError.message || 'Failed to send push notification',
         },
       };
+    }
+
+    // 501 = FCM not configured on Edge — soft-skip (in-app notifications still work)
+    if (fnData && typeof fnData === 'object' && (fnData as { error?: string }).error === 'FCM not configured') {
+      console.warn(
+        'FCM not configured on send-push-notification Edge Function. ' +
+          'Set FCM_SERVER_KEY via supabase secrets; in-app notifications remain primary.',
+      );
+      return { data: undefined, error: null };
     }
 
     return {

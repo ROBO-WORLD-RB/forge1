@@ -41,6 +41,12 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | 8 | `supabase/migrations/006_profile_public_read_rls.sql` ← public worker discovery |
    | 9 | `supabase/migrations/007_verification_documents_update_rls.sql` ← **KYC replace/re-upload (fixes hanging Replace)** |
    | 10 | `supabase/migrations/008_customers_only_create_jobs.sql` ← **only customers post projects; workers apply** |
+   | 11 | `supabase/migrations/009_complete_worker_onboarding.sql` (if used) |
+   | 12 | `supabase/migrations/010_skip_onboarding_payment.sql` ← **beta: skip onboarding fee** |
+   | 13 | `supabase/migrations/012_worker_profiles_privilege_guard.sql` ← **M0: block self tier/verified** |
+   | 14 | `supabase/migrations/013_verification_kyc_and_admin.sql` ← **M0: KYC self-approve block + admin SELECT/UPDATE** |
+   | 15 | `supabase/migrations/014_subscriptions_webhook_activation.sql` ← **M0: pending-only client subs** |
+   | 16 | `supabase/migrations/015_notifications_secure_insert.sql` ← **M0: notify via RPC only** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
 
@@ -259,9 +265,20 @@ Free-tier static sites spin down after 15 minutes of inactivity; first visit may
 
 ---
 
+## M0 security hardening (apply if already live)
+
+Phase 0 Critical/High fixes are in the repo. If the DB was set up before M0, run these **in order** in the SQL Editor:
+
+1. [`012_worker_profiles_privilege_guard.sql`](./supabase/migrations/012_worker_profiles_privilege_guard.sql)
+2. [`013_verification_kyc_and_admin.sql`](./supabase/migrations/013_verification_kyc_and_admin.sql)
+3. [`014_subscriptions_webhook_activation.sql`](./supabase/migrations/014_subscriptions_webhook_activation.sql)
+4. [`015_notifications_secure_insert.sql`](./supabase/migrations/015_notifications_secure_insert.sql)
+
+Also redeploy Edge Functions: `paystack-webhook`, `send-push-notification` (JWT/cron auth required). Prefer `ai-chat` + `OPENROUTER_API_KEY` secret over `VITE_OPENROUTER_API_KEY`. Do **not** set `VITE_FCM_SERVER_KEY` / `VITE_TWILIO_*` / `VITE_AT_*`.
+
 ## Security topics for a later review
 
-Before scaling traffic or payments, schedule a short security pass covering: **service worker update integrity** (subresource hashes in `version.json`, CSP for `sw.js`), **client-exposed API keys** (`VITE_*` vars are public in the browser bundle — prefer Supabase Edge Functions for OpenRouter/FCM/Paystack secrets), **RLS and auth redirect allowlists** on Supabase, and **upload/storage policies** for verification docs. None of these block beta launch, but they should be explicit before production hardening.
+Remaining before scale: **service worker update integrity** (subresource hashes in `version.json`, CSP for `sw.js`), **auth redirect allowlists**, and **upload/storage policy audits**. M0 covers client secrets, KYC/subscription privilege, push auth, notifications insert, and SW REST cache.
 
 ---
 

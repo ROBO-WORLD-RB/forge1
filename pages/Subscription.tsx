@@ -4,6 +4,7 @@ import {
   getSubscriptionPlans, 
   getActiveSubscription, 
   createSubscription,
+  waitForActiveSubscription,
   cancelSubscription,
   checkSubscriptionStatus
 } from '../services/subscriptionService';
@@ -78,6 +79,7 @@ const Subscription: React.FC = () => {
       await initializePayment(
         paymentParams,
         async (transaction) => {
+          // Log pending txn + pending subscription — activation is webhook-only (M0).
           const logResult = await logTransaction(
             user.id,
             'subscription',
@@ -85,7 +87,7 @@ const Subscription: React.FC = () => {
             plan.currency,
             'paystack',
             'pending',
-            { plan_id: planId, tier: plan.tier },
+            { plan_id: planId, tier: plan.tier, user_id: user.id, type: 'subscription' },
             transaction.reference
           );
 
@@ -96,14 +98,32 @@ const Subscription: React.FC = () => {
             });
           }
 
-          const result = await createSubscription(user.id, planId, 'paystack');
-          if (result.data) {
-            setCurrentSubscription(result.data);
+          const pendingResult = await createSubscription(
+            user.id,
+            planId,
+            'paystack',
+            transaction.reference
+          );
+          if (pendingResult.error) {
+            logger.warn('Could not create pending subscription', {
+              reference: transaction.reference,
+              error: pendingResult.error.message,
+            });
+          }
+
+          const activated = await waitForActiveSubscription(user.id, {
+            timeoutMs: 45000,
+            intervalMs: 2000,
+          });
+
+          if (activated.data) {
+            setCurrentSubscription(activated.data);
             setSubscriptionStatus('active');
             alert(`Successfully subscribed to ${plan.name} plan!`);
           } else {
             setPaymentError(
-              `Payment received (${transaction.reference}) but subscription activation failed. Please contact support — do not pay again.`
+              activated.error?.message ||
+                `Payment received (${transaction.reference}). Waiting for webhook confirmation — refresh shortly. Do not pay again.`
             );
           }
           setSubscribing(null);

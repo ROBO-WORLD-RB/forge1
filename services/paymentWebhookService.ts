@@ -339,31 +339,89 @@ export async function handleSubscriptionPayment(
     }
 
     if (status === 'success') {
-      // Extend subscription expiry by 30 days
+      // Activate pending (or renew active) — service-role path only in production Edge Function.
+      // Client must not set status=active (M0 / migration 014).
       const now = new Date();
       const newExpiry = new Date(now);
       newExpiry.setDate(newExpiry.getDate() + 30);
 
+      const metadata = (txn?.metadata ?? {}) as Record<string, unknown>;
+      const tierRaw = typeof metadata.tier === 'string' ? metadata.tier : null;
+      const tier = tierRaw && ['basic', 'premium', 'free'].includes(tierRaw) ? tierRaw : null;
+
+      const { data: pendingOrActive, error: findError } = await (supabase
+        .from('subscriptions') as any)
+        .select('id, tier, status')
+        .eq('user_id', userId)
+        .in('status', ['pending', 'active'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (findError) {
+        return { data: null, error: handleDatabaseError(findError) };
+      }
+
+      const resolvedTier = tier || pendingOrActive?.tier || 'basic';
+
       const updateData: SubscriptionUpdate = {
         status: 'active',
         expires_at: newExpiry.toISOString(),
+        provider_subscription_id: reference,
+        tier: resolvedTier as SubscriptionUpdate['tier'],
       };
 
-      const { error: updateError } = await (supabase
-        .from('subscriptions') as any)
-        .update(updateData)
-        .eq('user_id', userId)
-        .eq('status', 'active');
+      if (pendingOrActive) {
+        const { error: updateError } = await (supabase
+          .from('subscriptions') as any)
+          .update(updateData)
+          .eq('id', pendingOrActive.id);
 
-      if (updateError) {
-        captureError(new Error(updateError.message), { 
-          tags: { operation: 'handleSubscriptionPayment' } 
-        });
-        return {
-          data: null,
-          error: handleDatabaseError(updateError),
-        };
+        if (updateError) {
+          captureError(new Error(updateError.message), {
+            tags: { operation: 'handleSubscriptionPayment' },
+          });
+          return {
+            data: null,
+            error: handleDatabaseError(updateError),
+          };
+        }
+      } else {
+        const { error: insertError } = await (supabase
+          .from('subscriptions') as any)
+          .insert({
+            user_id: userId,
+            tier: resolvedTier,
+            currency: txn?.currency || 'GHS',
+            amount: txn?.amount ?? 0,
+            status: 'active',
+            payment_provider: 'paystack',
+            provider_subscription_id: reference,
+            started_at: now.toISOString(),
+            expires_at: newExpiry.toISOString(),
+            auto_renew: true,
+          });
+
+        if (insertError) {
+          captureError(new Error(insertError.message), {
+            tags: { operation: 'handleSubscriptionPayment' },
+          });
+          return {
+            data: null,
+            error: handleDatabaseError(insertError),
+          };
+        }
       }
+
+      if (resolvedTier !== 'free') {
+        await (supabase.from('worker_profiles') as any)
+          .update({ tier: resolvedTier })
+          .eq('user_id', userId);
+      }
+
+      await (supabase.from('transactions') as any)
+        .update({ status: 'success' })
+        .eq('provider_txn_id', reference);
     } else if (status === 'failed') {
       // Mark subscription as needing attention but don't expire immediately
       // The scheduled expiry handler will take care of expired subscriptions
