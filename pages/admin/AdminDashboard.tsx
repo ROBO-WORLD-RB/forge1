@@ -1,9 +1,11 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { approveVerification, rejectVerification } from '../../services/verificationService';
-import type { VerificationDocument } from '../../types/database';
+import { listDisputesAdmin, resolveDispute, type DisputeWithMeta } from '../../services/disputeService';
+import { searchProfilesAdmin, type AdminProfileRow } from '../../services/adminService';
+import type { DisputeStatus, VerificationDocument } from '../../types/database';
 import { 
   Users, Briefcase, CreditCard, Shield, AlertTriangle,
   CheckCircle, XCircle, Loader2, ChevronRight, Search,
@@ -20,6 +22,7 @@ interface Stats {
   totalBookings: number;
   pendingVerifications: number;
   activeSubscriptions: number;
+  openDisputes: number;
 }
 
 const DOC_TYPE_LABELS: Record<string, string> = {
@@ -67,8 +70,16 @@ const AdminDashboard: React.FC = () => {
   const [pendingVerifications, setPendingVerifications] = useState<VerificationDocument[]>([]);
   const [statsLoading, setStatsLoading] = useState(true);
   const [verificationsLoading, setVerificationsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'overview' | 'verifications' | 'users'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'verifications' | 'users' | 'disputes'>('overview');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  const [users, setUsers] = useState<AdminProfileRow[]>([]);
+  const [usersLoading, setUsersLoading] = useState(false);
+  const [userSearch, setUserSearch] = useState('');
+
+  const [disputes, setDisputes] = useState<DisputeWithMeta[]>([]);
+  const [disputesLoading, setDisputesLoading] = useState(false);
+  const [disputeFilter, setDisputeFilter] = useState<DisputeStatus | 'all'>('open');
 
   // Check if user is admin
   useEffect(() => {
@@ -97,6 +108,7 @@ const AdminDashboard: React.FC = () => {
         { count: totalBookings },
         { count: pendingVerifications },
         { count: activeSubscriptions },
+        { count: openDisputes },
       ] = await Promise.all([
         supabase.from('profiles').select('*', { count: 'exact', head: true }),
         supabase.from('profiles').select('*', { count: 'exact', head: true }).eq('role', 'worker'),
@@ -106,6 +118,7 @@ const AdminDashboard: React.FC = () => {
         supabase.from('bookings').select('*', { count: 'exact', head: true }),
         supabase.from('verification_documents').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
         supabase.from('subscriptions').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+        (supabase.from('disputes') as any).select('*', { count: 'exact', head: true }).eq('status', 'open'),
       ]);
 
       setStats({
@@ -117,6 +130,7 @@ const AdminDashboard: React.FC = () => {
         totalBookings: totalBookings || 0,
         pendingVerifications: pendingVerifications || 0,
         activeSubscriptions: activeSubscriptions || 0,
+        openDisputes: openDisputes || 0,
       });
     } catch (err) {
       console.error('Failed to fetch stats:', err);
@@ -124,6 +138,30 @@ const AdminDashboard: React.FC = () => {
       setStatsLoading(false);
     }
   };
+
+  const fetchUsers = useCallback(async (q?: string) => {
+    setUsersLoading(true);
+    const result = await searchProfilesAdmin(q, 50);
+    if (result.data) setUsers(result.data);
+    else setUsers([]);
+    setUsersLoading(false);
+  }, []);
+
+  const fetchDisputes = useCallback(async (filter: DisputeStatus | 'all') => {
+    setDisputesLoading(true);
+    const result = await listDisputesAdmin(filter);
+    if (result.data) setDisputes(result.data);
+    else setDisputes([]);
+    setDisputesLoading(false);
+  }, []);
+
+  useEffect(() => {
+    if (activeTab === 'users') void fetchUsers(userSearch);
+  }, [activeTab, fetchUsers]);
+
+  useEffect(() => {
+    if (activeTab === 'disputes') void fetchDisputes(disputeFilter);
+  }, [activeTab, disputeFilter, fetchDisputes]);
 
   const fetchPendingVerifications = async () => {
     setVerificationsLoading(true);
@@ -183,6 +221,21 @@ const AdminDashboard: React.FC = () => {
   }
 
   const pendingCount = stats?.pendingVerifications ?? pendingVerifications.length;
+  const openDisputeCount = stats?.openDisputes ?? 0;
+
+  const handleResolveDispute = async (dispute: DisputeWithMeta, status: 'resolved' | 'closed') => {
+    const notes =
+      prompt(status === 'resolved' ? 'Resolution notes (optional):' : 'Close notes (optional):') ?? undefined;
+    setActionLoading(dispute.id);
+    const result = await resolveDispute(dispute.id, status, notes || undefined);
+    if (!result.error) {
+      await fetchDisputes(disputeFilter);
+      await fetchStats();
+    } else {
+      alert(result.error.message || 'Failed to update dispute');
+    }
+    setActionLoading(null);
+  };
 
   return (
     <>
@@ -192,16 +245,16 @@ const AdminDashboard: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-2xl font-bold text-forge-navy">Admin Dashboard</h1>
-          <p className="text-gray-500 mt-1">Manage users, verifications, and platform settings</p>
+          <p className="text-gray-500 mt-1">Manage users, verifications, disputes, and platform health</p>
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200">
-          {(['overview', 'verifications', 'users'] as const).map(tab => (
+        <div className="flex gap-4 mb-6 border-b border-gray-200 overflow-x-auto">
+          {(['overview', 'verifications', 'users', 'disputes'] as const).map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`pb-3 px-1 font-medium capitalize transition-colors flex items-center gap-2 ${
+              className={`pb-3 px-1 font-medium capitalize transition-colors flex items-center gap-2 whitespace-nowrap ${
                 activeTab === tab
                   ? 'text-forge-orange border-b-2 border-forge-orange'
                   : 'text-gray-500 hover:text-gray-700'
@@ -211,6 +264,11 @@ const AdminDashboard: React.FC = () => {
               {tab === 'verifications' && pendingCount > 0 && (
                 <span className="text-xs font-semibold bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full">
                   {pendingCount}
+                </span>
+              )}
+              {tab === 'disputes' && openDisputeCount > 0 && (
+                <span className="text-xs font-semibold bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">
+                  {openDisputeCount}
                 </span>
               )}
             </button>
@@ -285,6 +343,17 @@ const AdminDashboard: React.FC = () => {
               />
             </div>
 
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <StatCard
+                icon={<AlertTriangle className="w-6 h-6" />}
+                label="Open Disputes"
+                value={stats?.openDisputes}
+                color="yellow"
+                highlight={!statsLoading && (stats?.openDisputes ?? 0) > 0}
+                loading={statsLoading}
+              />
+            </div>
+
             {/* Quick Actions */}
             {!statsLoading && stats && stats.pendingVerifications > 0 && (
               <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-center justify-between">
@@ -297,6 +366,22 @@ const AdminDashboard: React.FC = () => {
                 <button
                   onClick={() => setActiveTab('verifications')}
                   className="text-yellow-700 hover:text-yellow-900 font-medium flex items-center gap-1"
+                >
+                  Review <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+            {!statsLoading && stats && (stats.openDisputes ?? 0) > 0 && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  <span className="text-amber-800 font-medium">
+                    {stats.openDisputes} open dispute{stats.openDisputes !== 1 ? 's' : ''} (escrow paused)
+                  </span>
+                </div>
+                <button
+                  onClick={() => setActiveTab('disputes')}
+                  className="text-amber-700 hover:text-amber-900 font-medium flex items-center gap-1"
                 >
                   Review <ChevronRight className="w-4 h-4" />
                 </button>
@@ -397,22 +482,172 @@ const AdminDashboard: React.FC = () => {
         {/* Users Tab */}
         {activeTab === 'users' && (
           <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="font-bold text-lg text-gray-900">User Management</h2>
-              <div className="relative">
+            <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">Users</h2>
+                <p className="text-sm text-gray-500 mt-0.5">Search by name, username, phone, or email</p>
+              </div>
+              <form
+                className="relative"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  void fetchUsers(userSearch);
+                }}
+              >
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                 <input
                   type="text"
+                  value={userSearch}
+                  onChange={(e) => setUserSearch(e.target.value)}
                   placeholder="Search users..."
-                  className="pl-9 pr-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-forge-orange"
+                  className="pl-9 pr-4 py-2 rounded-lg border border-gray-200 text-sm focus:outline-none focus:border-forge-orange w-full sm:w-64"
                 />
+              </form>
+            </div>
+            {usersLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 text-forge-orange animate-spin" />
+                <p className="text-sm text-gray-500">Loading users...</p>
+              </div>
+            ) : users.length === 0 ? (
+              <div className="p-12 text-center text-gray-500">
+                <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <p className="font-medium text-gray-900">No users found</p>
+                <p className="text-sm mt-1">Try a different search, or clear the query</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {users.map((u) => {
+                  const name = [u.first_name, u.last_name].filter(Boolean).join(' ') || u.username || '—';
+                  return (
+                    <div key={u.id} className="p-4 flex items-center justify-between gap-4 hover:bg-gray-50">
+                      <div className="min-w-0">
+                        <p className="font-medium text-gray-900 truncate">{name}</p>
+                        <p className="text-sm text-gray-500 truncate">{u.email || 'No email'}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">
+                          {u.role} · {u.country || '—'} · joined {formatRelativeDate(u.created_at)}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1 shrink-0">
+                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 capitalize">
+                          {u.role}
+                        </span>
+                        {u.verified && (
+                          <span className="text-xs text-green-700">Verified</span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Disputes Tab */}
+        {activeTab === 'disputes' && (
+          <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="px-6 py-4 border-b border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <h2 className="font-bold text-lg text-gray-900">Disputes</h2>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  Open disputes pause escrow release until resolved
+                </p>
+              </div>
+              <div className="flex gap-2">
+                {(['open', 'resolved', 'closed', 'all'] as const).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    onClick={() => setDisputeFilter(f)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-medium capitalize ${
+                      disputeFilter === f
+                        ? 'bg-forge-orange text-white'
+                        : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                    }`}
+                  >
+                    {f}
+                  </button>
+                ))}
               </div>
             </div>
-            <div className="p-12 text-center text-gray-500">
-              <Users className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-              <p>User management coming soon</p>
-              <p className="text-sm mt-1">View and manage all platform users</p>
-            </div>
+            {disputesLoading ? (
+              <div className="p-12 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 text-forge-orange animate-spin" />
+                <p className="text-sm text-gray-500">Loading disputes...</p>
+              </div>
+            ) : disputes.length === 0 ? (
+              <div className="p-12 text-center">
+                <CheckCircle className="w-12 h-12 text-green-500 mx-auto mb-4" />
+                <p className="text-gray-900 font-medium">No disputes</p>
+                <p className="text-gray-500 text-sm mt-1">
+                  {disputeFilter === 'open' ? 'No open disputes right now' : 'Nothing matches this filter'}
+                </p>
+              </div>
+            ) : (
+              <div className="divide-y divide-gray-100">
+                {disputes.map((d) => (
+                  <div key={d.id} className="p-4 hover:bg-gray-50">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap mb-1">
+                          <span
+                            className={`text-xs font-semibold px-2 py-0.5 rounded-full capitalize ${
+                              d.status === 'open'
+                                ? 'bg-amber-100 text-amber-800'
+                                : d.status === 'resolved'
+                                  ? 'bg-green-100 text-green-800'
+                                  : 'bg-gray-100 text-gray-700'
+                            }`}
+                          >
+                            {d.status}
+                          </span>
+                          {d.booking_status && (
+                            <span className="text-xs text-gray-500">Booking: {d.booking_status}</span>
+                          )}
+                        </div>
+                        <p className="text-sm text-gray-900">{d.reason}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Opened by {d.opener_name || d.opener_id.slice(0, 8)} ·{' '}
+                          {formatRelativeDate(d.created_at)} · Booking #{d.booking_id.slice(0, 8)}
+                        </p>
+                        {d.notes && (
+                          <p className="text-xs text-gray-600 mt-2 bg-gray-50 rounded-lg p-2">
+                            Notes: {d.notes}
+                          </p>
+                        )}
+                      </div>
+                      {d.status === 'open' && (
+                        <div className="flex gap-1 shrink-0">
+                          <button
+                            type="button"
+                            title="Resolve"
+                            disabled={actionLoading === d.id}
+                            onClick={() => void handleResolveDispute(d, 'resolved')}
+                            className="p-2 text-green-600 hover:bg-green-50 rounded-lg disabled:opacity-50"
+                          >
+                            {actionLoading === d.id ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <CheckCircle className="w-5 h-5" />
+                            )}
+                          </button>
+                          <button
+                            type="button"
+                            title="Close"
+                            disabled={actionLoading === d.id}
+                            onClick={() => void handleResolveDispute(d, 'closed')}
+                            className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg disabled:opacity-50"
+                          >
+                            <XCircle className="w-5 h-5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>

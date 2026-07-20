@@ -6,6 +6,7 @@ import { supabase } from './supabase';
 import type { Favorite, FavoriteWithWorker, WorkerProfile } from '../types/database';
 import { handleDatabaseError, DatabaseError } from './databaseErrors';
 import { captureError, startTransaction } from './monitoringService';
+import { trackFavorite } from '../utils/analytics';
 
 export interface FavoriteServiceResult<T> {
   data: T | null;
@@ -162,10 +163,12 @@ export async function toggleFavorite(
   if (current.data) {
     const removed = await removeFavorite(userId, workerUserId);
     if (removed.error) return { data: null, error: removed.error };
+    trackFavorite(workerUserId, false);
     return { data: { favorited: false }, error: null };
   }
 
   const added = await addFavorite(userId, workerUserId);
   if (added.error) return { data: null, error: added.error };
+  trackFavorite(workerUserId, true);
   return { data: { favorited: true }, error: null };
 }

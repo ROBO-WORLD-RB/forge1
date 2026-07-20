@@ -17,6 +17,7 @@ import type {
 } from '../types/database';
 import { handleDatabaseError, DatabaseError } from './databaseErrors';
 import { captureError, startTransaction } from './monitoringService';
+import { trackApply } from '../utils/analytics';
 
 export interface JobApplicationServiceResult<T> {
   data: T | null;
@@ -91,6 +92,8 @@ export async function applyToJob(
       // Application stands; booking may already exist from a prior path
       console.warn('applyToJob: booking dual-write failed', bookingResult.error.message);
     }
+
+    trackApply(jobId, application.id);
 
     return { data: { application, booking }, error: null };
   } finally {

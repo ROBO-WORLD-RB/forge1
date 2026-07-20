@@ -21,6 +21,7 @@ import { createJob, getJob } from './jobService';
 import { createInAppNotification } from './notificationService';
 import { logTransaction, getTransactionByReference } from './paymentWebhookService';
 import { logger } from '../utils/logger';
+import { trackBookingCreated } from '../utils/analytics';
 
 /**
  * Extended error codes for booking operations
@@ -177,6 +178,12 @@ export async function createBooking(
           : 'A customer booked you. Open Bookings to accept or decline.',
       { booking_id: booking.id, job_id: jobId }
     );
+
+    trackBookingCreated(booking.id, {
+      jobId,
+      workerId,
+      source: isWorkerApplication ? 'worker_apply' : 'customer_book',
+    });
 
     return {
       data: booking,

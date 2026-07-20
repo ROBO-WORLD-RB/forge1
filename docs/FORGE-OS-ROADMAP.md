@@ -3,7 +3,7 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); **M3 Worker OS business loop done in code** (apply SQL `017_job_applications.sql`); **M4 wallet + escrow foundations done in code** (apply SQL `018_wallet_escrow_foundations.sql` + redeploy `paystack-webhook`); **M5 AI matching & assistants done in code** (redeploy `ai-chat`); M6 not started  
+**Document status:** **M0–M6 complete in code.** Apply SQL migrations `012`–`019` in order + redeploy Edge Functions as listed in `START-HERE.md`. Roadmap milestones closed; remaining items are explicitly deferred (OTP, invoices, bank withdrawals, full fraud ML).
 
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
@@ -410,18 +410,27 @@ Labels: **High** | **Medium** | **Future**
 - [x] Customer + Worker assistants — **High** (customer: cost bands / emergency flag; worker: tips + JobDetail **Generate quote** draft via `action=draft_quote`)
 - [x] Recommendations using skills/geo/favorites — **Medium** (`recommendationService` on Customer Hub; Worker Hub recommended jobs limit raised)
 - [x] Fraud rules v1 (non-LLM) — **Medium** (light spam heuristics in Edge + `services/aiSafety.ts`; still reject safety-classifier stubs)
-- [ ] Full fraud ML / analytics_events re-rank — **Future** (M6+)
+- [ ] Full fraud ML / analytics_events re-rank — **Future** (deferred after M6; rules + `analytics_events` logging ship in M5/M6)
 
 > **Redeploy Edge Function:** `supabase functions deploy ai-chat`  
 > (Requires existing `OPENROUTER_API_KEY` secret. No new SQL migration for M5.)
 
-#### M6 — Analytics, disputes, polish — **Medium** (session 7+)
+#### M6 — Analytics, disputes, polish — **Medium** (session 7+) — **DONE (code)**
 
-- [ ] `analytics_events` + retire sole reliance on localStorage — **Medium**
-- [ ] Disputes table + OS surfaces — **Medium**
-- [ ] Admin users tab beyond placeholder — **Medium**
-- [ ] OTP auth if still required — **Future**
+- [x] `analytics_events` + `logEvent` service; localStorage kept as offline buffer only — **Medium** (`019_analytics_disputes.sql`, `analyticsService`, `utils/analytics.ts` mirrors to DB)
+- [x] Key events wired: `page_view`, `booking_created`, `apply`, `favorite`, `ai_match` — **Medium**
+- [x] Disputes table + Bookings UI + Admin Disputes tab — **Medium** (open from IN_PROGRESS / COMPLETED / REVIEWED; open dispute **blocks escrow release**; auto-retry release on resolve)
+- [x] Admin Users tab: search profiles by name / username / phone / email — **Medium** (`admin_search_profiles` RPC)
+- [x] Hub booking trends (CSS bars, no chart lib) on Customer + Worker dashboards — **Medium**
+- [x] Home copy aligned to hold-on-booking / release-on-complete + Forge AI assistant — **Medium**
+- [ ] OTP auth if still required — **Future** (deferred; beta uses email/password + optional Google; Confirm email OFF)
 - [ ] Availability calendar / service radius — **Future**
+- [ ] Invoices MVP — **Deferred** (M4 note: ledger + holds cover money trail)
+- [ ] Bank withdrawals / Paystack Transfer — **Deferred** (wallet stub “coming soon”)
+- [ ] Full fraud ML / analytics re-rank — **Future**
+
+> **Apply SQL:** run migration `019_analytics_disputes.sql` in Supabase SQL Editor (after 018).  
+> **No new Edge Function required for M6.** Prior redeploys still needed if not done: `paystack-webhook`, `ai-chat`, `send-push-notification`.
 
 ### Explicit rule for execution
 
@@ -435,22 +444,16 @@ Labels: **High** | **Medium** | **Future**
 
 ## Approval gate
 
-**Phase 6 (implementation of this roadmap) starts ONLY after the founder explicitly approves this document** (`docs/FORGE-OS-ROADMAP.md`).
-
-Until approval:
-
-- No Customer OS / Worker OS product feature build from this plan.
-- Security hotfixes (Phase 0 / M0) may proceed if the founder prioritizes them independently — they are prerequisites, not optional OS scope.
-- Marketing copy must not claim live escrow, wallet, or push reliability until the corresponding milestones ship.
+**Founder approved.** Phase 6 implementation sessions (M0→M6) are complete in code. Remaining work is ops (apply SQL 012–019, Edge redeploys) plus explicitly deferred product items above.
 
 **Approval checklist (founder):**
 
-1. Accept Phase 0 as a hard gate.  
-2. Accept dual-OS-on-one-backend (no rewrite).  
-3. Accept milestone session model (M0→M6).  
-4. Accept honest payments narrative until M4.  
-5. Reply with approval (or requested edits) to unlock Phase 6 implementation sessions.
+1. ~~Accept Phase 0 as a hard gate.~~  
+2. ~~Accept dual-OS-on-one-backend (no rewrite).~~  
+3. ~~Accept milestone session model (M0→M6).~~  
+4. ~~Accept honest payments narrative until M4.~~  
+5. ~~Reply with approval~~ — **approved; M0–M6 shipped in code.**
 
 ---
 
-*End of roadmap — discovery synthesis only; no product code in this change.*
+*End of roadmap — M0–M6 status tracked above; apply migrations before relying on new tables in production.*

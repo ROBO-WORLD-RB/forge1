@@ -8,12 +8,16 @@ import {
   startBooking,
   completeBooking,
   cancelBooking,
-  getBookingDetails
 } from '../services/bookingService';
-import type { Booking, BookingStatus } from '../types/database';
+import {
+  canOpenDispute,
+  openDispute,
+  getDisputesForUser,
+} from '../services/disputeService';
+import type { Booking, BookingStatus, Dispute } from '../types/database';
 import { 
   Briefcase, Clock, CheckCircle, XCircle, Play, 
-  Loader2, MessageSquare, Calendar, Star, AlertCircle, RefreshCw
+  Loader2, MessageSquare, Calendar, Star, AlertCircle, RefreshCw, AlertTriangle
 } from 'lucide-react';
 import PageHelmet from '../components/PageHelmet';
 import ReviewModal from '../components/ReviewModal';
@@ -27,6 +31,10 @@ const Bookings: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [reviewBooking, setReviewBooking] = useState<Booking | null>(null);
+  const [disputesByBooking, setDisputesByBooking] = useState<Record<string, Dispute>>({});
+  const [disputeBookingId, setDisputeBookingId] = useState<string | null>(null);
+  const [disputeReason, setDisputeReason] = useState('');
+  const [disputeSubmitting, setDisputeSubmitting] = useState(false);
 
   const isWorker = user?.role === 'worker';
 
@@ -41,9 +49,12 @@ const Bookings: React.FC = () => {
     setFetchError(null);
     
     const status = statusFilter === 'all' ? undefined : statusFilter;
-    const result = isWorker 
-      ? await getBookingsByWorker(user.id, status)
-      : await getBookingsByCustomer(user.id, status);
+    const [result, disputesResult] = await Promise.all([
+      isWorker 
+        ? getBookingsByWorker(user.id, status)
+        : getBookingsByCustomer(user.id, status),
+      getDisputesForUser(user.id),
+    ]);
     
     if (result.error) {
       setFetchError(result.error.message || 'Failed to load bookings.');
@@ -51,7 +62,34 @@ const Bookings: React.FC = () => {
     } else if (result.data) {
       setBookings(result.data);
     }
+
+    if (disputesResult.data) {
+      const map: Record<string, Dispute> = {};
+      for (const d of disputesResult.data) {
+        // Prefer open dispute; else keep latest
+        if (!map[d.booking_id] || d.status === 'open') {
+          map[d.booking_id] = d;
+        }
+      }
+      setDisputesByBooking(map);
+    }
+
     setLoading(false);
+  };
+
+  const handleOpenDispute = async () => {
+    if (!user?.id || !disputeBookingId) return;
+    setDisputeSubmitting(true);
+    setActionError(null);
+    const result = await openDispute(disputeBookingId, user.id, disputeReason);
+    if (result.error) {
+      setActionError(result.error.message || 'Could not open dispute.');
+    } else if (result.data) {
+      setDisputesByBooking((prev) => ({ ...prev, [disputeBookingId]: result.data! }));
+      setDisputeBookingId(null);
+      setDisputeReason('');
+    }
+    setDisputeSubmitting(false);
   };
 
   const runAction = async (
@@ -391,6 +429,36 @@ const Bookings: React.FC = () => {
                         Book again
                       </Link>
                     )}
+                    {canOpenDispute(booking.status) && !disputesByBooking[booking.id] && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setDisputeBookingId(booking.id);
+                          setDisputeReason('');
+                        }}
+                        className="px-4 py-2 bg-white border border-amber-200 text-amber-800 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors flex items-center gap-2"
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                        Open dispute
+                      </button>
+                    )}
+                    {disputesByBooking[booking.id] && (
+                      <span
+                        className={`px-3 py-2 text-sm rounded-lg flex items-center gap-1.5 ${
+                          disputesByBooking[booking.id].status === 'open'
+                            ? 'text-amber-800 bg-amber-50'
+                            : 'text-gray-600 bg-gray-50'
+                        }`}
+                        title={disputesByBooking[booking.id].reason}
+                      >
+                        <AlertTriangle className="w-4 h-4" />
+                        Dispute {disputesByBooking[booking.id].status}
+                        {disputesByBooking[booking.id].status === 'open' &&
+                          booking.payment_status === 'held' && (
+                            <span className="text-xs text-amber-700">(escrow paused)</span>
+                          )}
+                      </span>
+                    )}
                   </div>
                   {canMessage(booking.status) ? (
                     <Link
@@ -423,6 +491,47 @@ const Bookings: React.FC = () => {
         onClose={() => setReviewBooking(null)}
         onSuccess={handleReviewSuccess}
       />
+    )}
+
+    {disputeBookingId && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
+        <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+          <h3 className="text-lg font-bold text-forge-navy mb-1">Open a dispute</h3>
+          <p className="text-sm text-gray-500 mb-4">
+            Describe the issue. While a dispute is open, escrow release is paused until an admin
+            resolves it.
+          </p>
+          <textarea
+            value={disputeReason}
+            onChange={(e) => setDisputeReason(e.target.value)}
+            rows={4}
+            placeholder="What went wrong? (min. 10 characters)"
+            className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-forge-orange resize-none"
+          />
+          <div className="flex justify-end gap-2 mt-4">
+            <button
+              type="button"
+              onClick={() => {
+                setDisputeBookingId(null);
+                setDisputeReason('');
+              }}
+              className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-50 rounded-lg"
+              disabled={disputeSubmitting}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleOpenDispute()}
+              disabled={disputeSubmitting || disputeReason.trim().length < 10}
+              className="px-4 py-2 text-sm font-medium bg-amber-600 text-white rounded-lg hover:bg-amber-700 disabled:opacity-50 flex items-center gap-2"
+            >
+              {disputeSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+              Submit dispute
+            </button>
+          </div>
+        </div>
+      </div>
     )}
     </>
   );

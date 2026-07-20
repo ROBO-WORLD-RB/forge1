@@ -257,9 +257,10 @@ const Home: React.FC = () => {
                 <div className="w-12 h-12 bg-forge-green/20 text-forge-green rounded-xl flex items-center justify-center mb-4">
                   <span className="font-bold text-lg">AI</span>
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">AI Price Insights</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">AI hire assistant</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Use our Gemini-powered assistant to check fair market rates before you book.
+                  Ask Forge AI to scope a job, suggest fair GHS/NGN bands, and match you with ranked
+                  workers — you confirm every booking and payment.
                 </p>
               </div>
             </div>

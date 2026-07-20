@@ -47,6 +47,10 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | 14 | `supabase/migrations/013_verification_kyc_and_admin.sql` ← **M0: KYC self-approve block + admin SELECT/UPDATE** |
    | 15 | `supabase/migrations/014_subscriptions_webhook_activation.sql` ← **M0: pending-only client subs** |
    | 16 | `supabase/migrations/015_notifications_secure_insert.sql` ← **M0: notify via RPC only** |
+   | 17 | `supabase/migrations/016_favorites.sql` ← **M2: customer saved workers** |
+   | 18 | `supabase/migrations/017_job_applications.sql` ← **M3: first-class job applications** |
+   | 19 | `supabase/migrations/018_wallet_escrow_foundations.sql` ← **M4: wallets, ledger, escrow holds** |
+   | 20 | `supabase/migrations/019_analytics_disputes.sql` ← **M6: analytics_events + disputes + escrow pause on open dispute** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
 
@@ -265,16 +269,42 @@ Free-tier static sites spin down after 15 minutes of inactivity; first visit may
 
 ---
 
-## M0 security hardening (apply if already live)
+## FORGE OS migrations (012–019) — apply if already live
 
-Phase 0 Critical/High fixes are in the repo. If the DB was set up before M0, run these **in order** in the SQL Editor:
+Roadmap **M0–M6** is in the repo. If the DB was set up before these milestones, run the following **in order** in the SQL Editor (skip any already applied):
 
-1. [`012_worker_profiles_privilege_guard.sql`](./supabase/migrations/012_worker_profiles_privilege_guard.sql)
-2. [`013_verification_kyc_and_admin.sql`](./supabase/migrations/013_verification_kyc_and_admin.sql)
-3. [`014_subscriptions_webhook_activation.sql`](./supabase/migrations/014_subscriptions_webhook_activation.sql)
-4. [`015_notifications_secure_insert.sql`](./supabase/migrations/015_notifications_secure_insert.sql)
+| Order | File | Milestone |
+|-------|------|-----------|
+| 1 | [`012_worker_profiles_privilege_guard.sql`](./supabase/migrations/012_worker_profiles_privilege_guard.sql) | M0 |
+| 2 | [`013_verification_kyc_and_admin.sql`](./supabase/migrations/013_verification_kyc_and_admin.sql) | M0 |
+| 3 | [`014_subscriptions_webhook_activation.sql`](./supabase/migrations/014_subscriptions_webhook_activation.sql) | M0 |
+| 4 | [`015_notifications_secure_insert.sql`](./supabase/migrations/015_notifications_secure_insert.sql) | M0 |
+| 5 | [`016_favorites.sql`](./supabase/migrations/016_favorites.sql) | M2 |
+| 6 | [`017_job_applications.sql`](./supabase/migrations/017_job_applications.sql) | M3 |
+| 7 | [`018_wallet_escrow_foundations.sql`](./supabase/migrations/018_wallet_escrow_foundations.sql) | M4 |
+| 8 | [`019_analytics_disputes.sql`](./supabase/migrations/019_analytics_disputes.sql) | M6 |
 
-Also redeploy Edge Functions: `paystack-webhook`, `send-push-notification` (JWT/cron auth required). Prefer `ai-chat` + `OPENROUTER_API_KEY` secret over `VITE_OPENROUTER_API_KEY`. Do **not** set `VITE_FCM_SERVER_KEY` / `VITE_TWILIO_*` / `VITE_AT_*`.
+### Edge Function redeploys (required for live money / AI / push)
+
+After secrets are set in Supabase, redeploy:
+
+```bash
+supabase functions deploy paystack-webhook --no-verify-jwt
+supabase functions deploy ai-chat
+supabase functions deploy send-push-notification
+```
+
+| Function | Why |
+|----------|-----|
+| `paystack-webhook` | M0 subscription activation + M4 escrow fund path |
+| `ai-chat` | M5 modes / parse_job / draft_quote (+ `OPENROUTER_API_KEY` secret) |
+| `send-push-notification` | M0 JWT/cron auth (do not leave unauthenticated) |
+
+Prefer `OPENROUTER_API_KEY` as a Function secret over `VITE_OPENROUTER_API_KEY`. Do **not** set `VITE_FCM_SERVER_KEY` / `VITE_TWILIO_*` / `VITE_AT_*`.
+
+**M6** adds no new Edge Function — only SQL `019`.
+
+See also [`docs/FORGE-OS-ROADMAP.md`](./docs/FORGE-OS-ROADMAP.md) for milestone status (M0–M6 DONE; OTP / invoices / bank withdrawals deferred).
 
 ## Security topics for a later review
 

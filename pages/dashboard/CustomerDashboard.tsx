@@ -11,6 +11,7 @@ import {
   getRecommendedWorkersForCustomer,
   type RecommendedWorker,
 } from '../../services/recommendationService';
+import { getBookingTrend } from '../../services/analyticsService';
 import { openForgeAi } from '../../utils/forgeAiEvents';
 import type { Booking, Job, Notification as DBNotification, FavoriteWithWorker } from '../../types/database';
 import {
@@ -18,6 +19,7 @@ import {
   Calendar, Search, Heart, Star, CheckCircle, Clock, ArrowRight, Sparkles
 } from 'lucide-react';
 import PageHelmet from '../../components/PageHelmet';
+import BookingTrendBars, { type TrendPoint } from '../../components/BookingTrendBars';
 
 function openForgeAiMatch() {
   openForgeAi({ intent: 'match' });
@@ -32,6 +34,7 @@ const CustomerDashboard: React.FC = () => {
   const [recommended, setRecommended] = useState<RecommendedWorker[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [unreadMessages, setUnreadMessages] = useState(0);
+  const [bookingTrend, setBookingTrend] = useState<TrendPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -64,7 +67,7 @@ const CustomerDashboard: React.FC = () => {
           }
         };
 
-        const [bookingsResult, jobsResult, notifResult, unreadResult, categoriesData, favoritesResult] =
+        const [bookingsResult, jobsResult, notifResult, unreadResult, categoriesData, favoritesResult, trendResult] =
           await Promise.all([
             getBookingsByCustomer(user.id),
             getJobsByPoster(user.id),
@@ -72,6 +75,7 @@ const CustomerDashboard: React.FC = () => {
             getUnreadCount(user.id),
             categoriesFetch(),
             getFavorites(user.id),
+            getBookingTrend(user.id, 'customer', 14),
           ]);
 
         if (bookingsResult.data) setBookings(bookingsResult.data);
@@ -80,6 +84,7 @@ const CustomerDashboard: React.FC = () => {
         if (unreadResult.data !== null) setUnreadMessages(unreadResult.data);
         setCategories(categoriesData.slice(0, 4));
         if (favoritesResult.data) setFavorites(favoritesResult.data);
+        if (trendResult.data) setBookingTrend(trendResult.data);
 
         const preferredSkills = [
           ...new Set(
@@ -322,6 +327,10 @@ const CustomerDashboard: React.FC = () => {
                 Open inbox <ChevronRight className="w-3.5 h-3.5" />
               </span>
             </Link>
+          </div>
+
+          <div className="mb-6">
+            <BookingTrendBars points={bookingTrend} label="Your bookings (last 14 days)" />
           </div>
 
           {/* Recommended next actions */}

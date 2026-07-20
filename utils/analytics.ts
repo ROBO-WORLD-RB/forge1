@@ -1,3 +1,5 @@
+import { logEvent } from '../services/analyticsService';
+
 interface AnalyticsEvent {
   name: string;
   properties?: Record<string, unknown>;
@@ -18,7 +20,7 @@ const getSessionId = (): string => {
   return sessionId;
 };
 
-const persistEvent = (event: AnalyticsEvent) => {
+const persistEventLocal = (event: AnalyticsEvent) => {
   try {
     const stored = localStorage.getItem(ANALYTICS_KEY);
     const events: AnalyticsEvent[] = stored ? JSON.parse(stored) : [];
@@ -26,8 +28,25 @@ const persistEvent = (event: AnalyticsEvent) => {
     if (events.length > MAX_EVENTS) events.shift();
     localStorage.setItem(ANALYTICS_KEY, JSON.stringify(events));
   } catch (err) {
-    console.error('[Analytics] Failed to persist event:', err);
+    console.error('[Analytics] Failed to persist event locally:', err);
   }
+};
+
+/** Mirror key events to Supabase analytics_events (best-effort). */
+const persistEventRemote = (event: AnalyticsEvent) => {
+  const pagePath =
+    typeof event.properties?.page === 'string'
+      ? event.properties.page
+      : typeof window !== 'undefined'
+        ? window.location.pathname
+        : null;
+
+  void logEvent({
+    eventName: event.name,
+    properties: event.properties,
+    sessionId: event.sessionId,
+    pagePath,
+  });
 };
 
 export const analytics = {
@@ -36,11 +55,11 @@ export const analytics = {
       name,
       properties,
       timestamp: new Date().toISOString(),
-      sessionId: getSessionId()
+      sessionId: getSessionId(),
     };
-    persistEvent(event);
-    
-    // In production, you'd send this to your analytics service
+    persistEventLocal(event);
+    persistEventRemote(event);
+
     if (import.meta.env.DEV) {
       console.debug('[Analytics]', name, properties || '');
     }
@@ -66,21 +85,30 @@ export const analytics = {
 
   clearEvents: () => {
     localStorage.removeItem(ANALYTICS_KEY);
-  }
+  },
 };
 
 // Common event helpers
-export const trackSearch = (query: string, resultsCount: number) => 
+export const trackSearch = (query: string, resultsCount: number) =>
   analytics.track('search', { query, resultsCount });
 
-export const trackWorkerView = (workerId: string, workerName: string) => 
+export const trackWorkerView = (workerId: string, workerName: string) =>
   analytics.track('worker_view', { workerId, workerName });
 
-export const trackSignup = (role: string, country: string) => 
+export const trackSignup = (role: string, country: string) =>
   analytics.track('signup', { role, country });
 
-export const trackLogin = (method: string) => 
+export const trackLogin = (method: string) =>
   analytics.track('login', { method });
 
-export const trackError = (error: string, context?: string) => 
+export const trackError = (error: string, context?: string) =>
   analytics.track('error', { error, context });
+
+export const trackBookingCreated = (bookingId: string, meta?: Record<string, unknown>) =>
+  analytics.track('booking_created', { bookingId, ...meta });
+
+export const trackApply = (jobId: string, applicationId?: string) =>
+  analytics.track('apply', { jobId, applicationId });
+
+export const trackFavorite = (workerUserId: string, favorited: boolean) =>
+  analytics.track('favorite', { workerUserId, favorited });

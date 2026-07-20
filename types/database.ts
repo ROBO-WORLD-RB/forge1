@@ -80,6 +80,41 @@ export interface FavoriteWithWorker extends Favorite {
   worker?: WorkerProfile | null;
 }
 
+/** M6: product analytics event row */
+export interface AnalyticsEventRow {
+  id: string;
+  user_id: string | null;
+  event_name: string;
+  properties: Record<string, unknown>;
+  session_id: string | null;
+  page_path: string | null;
+  created_at: string;
+}
+
+/** M6: booking dispute */
+export type DisputeStatus = 'open' | 'resolved' | 'closed';
+
+export interface Dispute {
+  id: string;
+  booking_id: string;
+  opener_id: string;
+  reason: string;
+  status: DisputeStatus;
+  notes: string | null;
+  resolved_by: string | null;
+  resolved_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DisputeInsert {
+  booking_id: string;
+  opener_id: string;
+  reason: string;
+  status?: DisputeStatus;
+  notes?: string | null;
+}
+
 /** Booking payment / escrow surface status (M4) */
 export type BookingPaymentStatus =
   | 'unpaid'
@@ -355,6 +390,42 @@ export interface Database {
           {
             foreignKeyName: 'favorites_worker_user_id_fkey';
             columns: ['worker_user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      analytics_events: {
+        Row: AnalyticsEventRow;
+        Insert: Omit<AnalyticsEventRow, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+          properties?: Record<string, unknown>;
+        };
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'analytics_events_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      disputes: {
+        Row: Dispute;
+        Insert: DisputeInsert;
+        Update: Partial<Pick<Dispute, 'status' | 'notes' | 'resolved_by' | 'resolved_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'disputes_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'disputes_opener_id_fkey';
+            columns: ['opener_id'];
             referencedRelation: 'profiles';
             referencedColumns: ['id'];
           }

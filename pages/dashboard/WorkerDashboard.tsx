@@ -21,6 +21,7 @@ import {
 import { getVerificationStatus } from '../../services/verificationService';
 import { getTransactionsByUser } from '../../services/paymentWebhookService';
 import { searchJobs } from '../../services/jobService';
+import { getBookingTrend } from '../../services/analyticsService';
 import ShareTools from '../../components/ShareTools';
 import type {
   Booking,
@@ -37,6 +38,7 @@ import {
   Shield, Pencil
 } from 'lucide-react';
 import PageHelmet from '../../components/PageHelmet';
+import BookingTrendBars, { type TrendPoint } from '../../components/BookingTrendBars';
 import { uploadPublicFile } from '../../utils/storageUpload';
 
 const WorkerDashboard: React.FC = () => {
@@ -58,6 +60,7 @@ const WorkerDashboard: React.FC = () => {
   const [recommendedJobs, setRecommendedJobs] = useState<Array<Job & { matchScore: number; matchReason: string }>>([]);
   const [acceptingWork, setAcceptingWork] = useState(true);
   const [rawWorkerProfile, setRawWorkerProfile] = useState<any>(null);
+  const [bookingTrend, setBookingTrend] = useState<TrendPoint[]>([]);
 
   // Portfolio states
   const [portfolios, setPortfolios] = useState<any[]>([]);
@@ -95,6 +98,7 @@ const WorkerDashboard: React.FC = () => {
           kycResult,
           txnResult,
           jobsResult,
+          trendResult,
         ] = await Promise.all([
           getBookingsByWorker(user.id),
           getNotifications(user.id),
@@ -108,9 +112,11 @@ const WorkerDashboard: React.FC = () => {
           getVerificationStatus(user.id),
           getTransactionsByUser(user.id, 'booking'),
           searchJobs({ status: 'open', country: user.country as any }),
+          getBookingTrend(user.id, 'worker', 14),
         ]);
 
         if (bookingsResult.data) setBookings(bookingsResult.data);
+        if (trendResult.data) setBookingTrend(trendResult.data);
         if (notifResult.data) setNotifications(notifResult.data.slice(0, 5));
         if (subResult.data) setSubscription(subResult.data);
         setSubscriptionStatus(status);
@@ -545,6 +551,10 @@ const WorkerDashboard: React.FC = () => {
                     Open wallet <ChevronRight className="w-3.5 h-3.5" />
                   </span>
                 </Link>
+              </div>
+
+              <div className="mb-6">
+                <BookingTrendBars points={bookingTrend} label="Your bookings (last 14 days)" />
               </div>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
