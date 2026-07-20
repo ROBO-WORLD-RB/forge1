@@ -154,7 +154,7 @@ const UserProfile: React.FC = () => {
   return (
     <>
       <PageHelmet title="My Profile" path="/my-profile" />
-      <div className="min-h-dynamic bg-gray-50 pb-nav">
+      <div className="min-h-dynamic bg-gray-50 pb-nav overflow-x-hidden">
         <div className="h-32 bg-gradient-to-r from-forge-navy to-forge-navy/80 relative">
           <button
             onClick={() => navigate(-1)}

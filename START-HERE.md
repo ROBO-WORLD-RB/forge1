@@ -12,6 +12,7 @@ You’re close. Your local config is wired up; the main thing left before the ap
 | ✅ Done | **`npm install`** — `node_modules` is present |
 | ✅ Done | App has been built before (`dist/` exists) |
 | ✅ Done | Code fixes are in the repo |
+| ✅ Done | **Mobile UX pass** — safe-area shell, BottomNav clearance, thumb-friendly CTAs (phone-first) |
 | 👉 **Do this next** | **Database schema** - tables, RLS, and storage (run in Supabase Dashboard) |
 | ⬜ Later | Enable Realtime on `messages`, Paystack webhook, first admin user |
 | ⏳ Your action | **Production auth redirects** - add https://forge-9ieq.onrender.com/auth/callback and https://forge-9ieq.onrender.com/auth/reset-password in Supabase (see below) |

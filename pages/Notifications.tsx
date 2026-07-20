@@ -132,11 +132,11 @@ const Notifications: React.FC = () => {
   return (
     <>
       <PageHelmet title="Notifications" path="/notifications" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-forge-navy">Notifications</h1>
-          <p className="text-gray-500 mt-1">
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">
             {filter === 'unread' && unreadCount > 0
               ? `${unreadCount} unread notification${unreadCount === 1 ? '' : 's'}`
               : 'Stay updated on your bookings and activity'}
@@ -145,8 +145,9 @@ const Notifications: React.FC = () => {
 
         <div className="flex gap-2 mb-6">
           <button
+            type="button"
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               filter === 'all'
                 ? 'bg-forge-orange text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -155,8 +156,9 @@ const Notifications: React.FC = () => {
             All
           </button>
           <button
+            type="button"
             onClick={() => setFilter('unread')}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${
+            className={`min-h-[40px] px-4 py-2 rounded-full text-sm font-medium transition-colors ${
               filter === 'unread'
                 ? 'bg-forge-orange text-white'
                 : 'bg-white text-gray-600 hover:bg-gray-100'

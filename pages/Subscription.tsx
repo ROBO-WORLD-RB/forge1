@@ -183,7 +183,7 @@ const Subscription: React.FC = () => {
   return (
     <>
       <PageHelmet title="Subscription" path="/subscription" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
       <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">

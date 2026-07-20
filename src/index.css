@@ -66,11 +66,26 @@
   }
 }
 
+/* Alias used by several pages for horizontal chip/filter rows */
+@utility no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/** Fixed banners/prompts that must sit above BottomNav + home indicator */
+@utility bottom-above-nav {
+  bottom: max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom, 0px)));
+}
+
 @layer base {
   html {
     height: -webkit-fill-available;
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
   }
 
   body {
@@ -78,6 +93,7 @@
     min-height: -webkit-fill-available;
     @apply bg-forge-bg text-forge-navy antialiased;
     overscroll-behavior-y: none;
+    overflow-x: hidden;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }

@@ -339,9 +339,11 @@ const Signup: React.FC = () => {
 
   // --- Render Helpers ---
   const renderBackBtn = (target: Step | string) => (
-    <button 
+    <button
+      type="button"
       onClick={() => typeof target === 'string' && target !== '/' ? setStep(target as Step) : navigate(target)}
-      className="absolute top-4 left-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+      className="absolute top-3 left-3 inline-flex items-center justify-center min-w-[44px] min-h-[44px] text-gray-500 hover:bg-gray-100 rounded-full transition-colors"
+      aria-label="Go back"
     >
       <ArrowLeft className="w-6 h-6" />
     </button>
@@ -350,19 +352,19 @@ const Signup: React.FC = () => {
   return (
     <>
       <PageHelmet title="Create Account" path="/auth/signup" />
-      <div className="min-h-dynamic bg-white md:bg-gray-50 flex items-center justify-center p-4 pb-nav">
-      <div className="w-full max-w-md bg-white md:rounded-3xl md:shadow-xl overflow-hidden relative min-h-[500px] flex flex-col">
+      <div className="min-h-dynamic bg-white md:bg-gray-50 flex items-center justify-center p-3 sm:p-4 pb-nav overflow-x-hidden">
+      <div className="w-full max-w-md bg-white md:rounded-3xl md:shadow-xl overflow-x-hidden overflow-y-auto relative min-h-0 sm:min-h-[500px] flex flex-col max-h-[calc(100dvh-5.5rem)] md:max-h-none">
         
         {/* Step 1: Role Selection */}
         {step === 'role' && (
-          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex-1 flex flex-col p-5 sm:p-8 animate-in fade-in slide-in-from-right-4 duration-300">
             {renderBackBtn('/')}
-            <div className="mt-12 mb-6 text-center">
-              <div className="flex justify-center mb-6">
-                <img src="/logo.png" alt="Forge Logo" className="w-20 h-20 object-contain" />
+            <div className="mt-12 mb-5 sm:mb-6 text-center">
+              <div className="flex justify-center mb-5 sm:mb-6">
+                <img src="/logo.png" alt="Forge Logo" className="w-16 h-16 sm:w-20 sm:h-20 object-contain" />
               </div>
-              <h1 className="text-3xl font-bold text-forge-navy mb-2">Welcome to FORGE</h1>
-              <p className="text-gray-500">What brings you here today?</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-forge-navy mb-2">Welcome to FORGE</h1>
+              <p className="text-gray-500 text-sm sm:text-base">What brings you here today?</p>
             </div>
 
             {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-4">{error}</div>}
@@ -438,7 +440,7 @@ const Signup: React.FC = () => {
 
         {/* Step 2: Details - Different for Customer vs Worker */}
         {step === 'details' && (
-          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex-1 flex flex-col p-5 sm:p-8 animate-in fade-in slide-in-from-right-4 duration-300">
             {renderBackBtn('role')}
             <div className="mt-8 mb-6">
               <h2 className="text-2xl font-bold text-forge-navy mb-2">
@@ -564,7 +566,7 @@ const Signup: React.FC = () => {
 
         {/* Step 2.5: Subscription Selection (Workers only) */}
         {step === 'subscription' && (
-          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex-1 flex flex-col p-5 sm:p-8 animate-in fade-in slide-in-from-right-4 duration-300">
             {renderBackBtn('details')}
             <div className="mt-8 mb-6">
               <h2 className="text-2xl font-bold text-forge-navy mb-2">Choose Your Plan</h2>
@@ -625,7 +627,7 @@ const Signup: React.FC = () => {
 
         {/* Step 3: Password */}
         {step === 'password' && (
-          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex-1 flex flex-col p-5 sm:p-8 animate-in fade-in slide-in-from-right-4 duration-300">
              {renderBackBtn(role === UserRole.WORKER ? 'subscription' : 'details')}
              <div className="mt-8 mb-6">
               <h2 className="text-2xl font-bold text-forge-navy mb-2">Secure your account</h2>
@@ -683,7 +685,7 @@ const Signup: React.FC = () => {
 
         {/* Fallback when Supabase Confirm email is ON (no session after signup) */}
         {step === 'checkEmail' && (
-          <div className="flex-1 flex flex-col p-8 animate-in fade-in slide-in-from-right-4 duration-300">
+          <div className="flex-1 flex flex-col p-5 sm:p-8 animate-in fade-in slide-in-from-right-4 duration-300">
             <div className="mt-12 mb-8 text-center">
               <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Check className="w-8 h-8 text-green-600" />

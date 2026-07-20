@@ -17,7 +17,7 @@ const PrivacySettings: React.FC = () => {
   return (
     <>
       <PageHelmet title="Privacy & Security" path="/settings/privacy" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
         <div className="max-w-2xl mx-auto py-6">
           <Link
             to="/my-profile"

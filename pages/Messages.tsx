@@ -198,8 +198,9 @@ const Messages: React.FC = () => {
   return (
     <>
       <PageHelmet title="Messages" path="/messages" />
-      {/* Mobile: full-height column above bottom nav. Desktop: padded side-by-side card. */}
-      <div className="bg-gray-50 h-[calc(100dvh-4rem)] pb-nav md:pb-0 flex flex-col">
+      {/* Mobile: full-height column above bottom nav. Desktop: padded side-by-side card.
+          TopNav ≈ 3.5–4rem + safe-area-top; BottomNav cleared via pb-nav. */}
+      <div className="bg-gray-50 h-[calc(100dvh-3.5rem-env(safe-area-inset-top,0px))] sm:h-[calc(100dvh-4rem-env(safe-area-inset-top,0px))] pb-nav md:pb-0 flex flex-col overflow-hidden">
         <div className="flex-1 min-h-0 w-full max-w-6xl mx-auto md:p-4">
           <div className="flex h-full bg-white overflow-hidden md:rounded-xl md:shadow-sm">
           {/* Conversations List — full screen on mobile when no thread open */}
@@ -387,16 +388,16 @@ const Messages: React.FC = () => {
                 {/* Composer — sticky above bottom nav; send always clear of FAB (FAB hidden on this route) */}
                 <form
                   onSubmit={handleSendMessage}
-                  className="shrink-0 border-t border-gray-200 bg-white p-3 sm:p-4"
+                  className="shrink-0 border-t border-gray-200 bg-white p-3 sm:p-4 safe-area-bottom"
                 >
                   {sendError && (
                     <div className="mb-3 bg-red-50 text-red-600 p-2.5 rounded-lg text-sm flex items-center gap-2">
                       <AlertCircle className="w-4 h-4 flex-shrink-0" />
-                      <span className="flex-1">{sendError}</span>
+                      <span className="flex-1 min-w-0 break-words">{sendError}</span>
                       <button
                         type="button"
                         onClick={() => setSendError(null)}
-                        className="text-red-400 hover:text-red-600 text-xs"
+                        className="text-red-400 hover:text-red-600 text-xs min-h-[44px] px-2"
                       >
                         Dismiss
                       </button>
@@ -412,13 +413,14 @@ const Messages: React.FC = () => {
                       }}
                       placeholder="Type a message..."
                       enterKeyHint="send"
+                      autoComplete="off"
                       className="flex-1 min-w-0 px-4 py-2.5 rounded-full border border-gray-200 focus:outline-none focus:border-forge-orange text-base"
                     />
                     <button
                       type="submit"
                       disabled={!newMessage.trim() || sending}
                       aria-label="Send message"
-                      className="shrink-0 p-3 bg-forge-orange text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="shrink-0 inline-flex items-center justify-center min-w-[44px] min-h-[44px] p-3 bg-forge-orange text-white rounded-full hover:bg-orange-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {sending ? (
                         <Loader2 className="w-5 h-5 animate-spin" />

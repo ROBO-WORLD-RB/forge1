@@ -128,19 +128,19 @@ const Login: React.FC = () => {
   return (
     <>
       <PageHelmet title="Sign In" path="/auth/login" />
-      <div className="min-h-dynamic bg-white md:bg-gray-50 flex items-center justify-center p-4 pb-nav">
-      <div className="w-full max-w-md bg-white md:rounded-3xl md:shadow-xl overflow-hidden relative min-h-[550px] flex flex-col p-8">
+      <div className="min-h-dynamic bg-white md:bg-gray-50 flex items-center justify-center p-4 pb-nav overflow-x-hidden">
+      <div className="w-full max-w-md bg-white md:rounded-3xl md:shadow-xl overflow-hidden relative min-h-0 sm:min-h-[550px] flex flex-col p-5 sm:p-8">
         
-        <Link to="/" className="absolute top-4 left-4 p-2 text-gray-500 hover:bg-gray-100 rounded-full transition-colors">
+        <Link to="/" className="absolute top-3 left-3 inline-flex items-center justify-center min-w-[44px] min-h-[44px] text-gray-500 hover:bg-gray-100 rounded-full transition-colors" aria-label="Back to home">
           <ArrowLeft className="w-6 h-6" />
         </Link>
 
-        <div className="mt-12 mb-8 text-center md:text-left">
-          <div className="flex justify-center md:justify-start mb-6">
-            <img src="/logo.png" alt="Forge Logo" className="w-16 h-16 object-contain" />
+        <div className="mt-12 mb-6 sm:mb-8 text-center md:text-left">
+          <div className="flex justify-center md:justify-start mb-5 sm:mb-6">
+            <img src="/logo.png" alt="Forge Logo" className="w-14 h-14 sm:w-16 sm:h-16 object-contain" />
           </div>
-          <h1 className="text-3xl font-bold text-forge-navy mb-2">Welcome Back</h1>
-          <p className="text-gray-500">Sign in to continue to Forge.</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-forge-navy mb-2">Welcome Back</h1>
+          <p className="text-gray-500 text-sm sm:text-base">Sign in to continue to Forge.</p>
         </div>
 
         {error && <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm mb-6 whitespace-pre-line">{error}</div>}

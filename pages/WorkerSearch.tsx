@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { searchWorkersRanked, type RankedWorker, type UserLocation, getCategories } from '../services/workerService';
 import { useAuth } from '../context/AuthContext';
 import WorkerCard, { WorkerCardSkeleton } from '../components/WorkerCard';
-import { Search, Filter, Map, SlidersHorizontal, Briefcase } from 'lucide-react';
+import { Search } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { WorkerProfile as DBWorkerProfile, Country } from '../types/database';
 import type { WorkerProfile, WorkerTier } from '../types';
@@ -238,52 +238,53 @@ const WorkerSearch: React.FC = () => {
   })();
 
   return (
-    <div className="min-h-dynamic bg-gray-50 pt-6 pb-nav px-4 md:px-8">
+    <div className="min-h-dynamic bg-gray-50 pt-4 sm:pt-6 pb-nav px-4 md:px-8 overflow-x-hidden">
       <PageHelmet title="Find Workers" path="/search" />
       <div className="max-w-7xl mx-auto">
         
         {/* Header & Filters */}
-        <div className="mb-8 space-y-4">
+        <div className="mb-6 sm:mb-8 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-            <div>
-              <h1 className="text-3xl font-bold text-forge-navy">
+            <div className="min-w-0">
+              <h1 className="text-2xl sm:text-3xl font-bold text-forge-navy">
                 {selectedCountry !== 'all' && selectedCountry === user?.country 
                   ? 'For You' 
                   : 'Find Professionals'}
               </h1>
               {selectedCountry !== 'all' && (
-                <p className="text-gray-500 mt-1">
+                <p className="text-gray-500 mt-1 text-sm">
                   Showing workers in {selectedCountry === 'GH' ? 'Ghana' : 'Nigeria'}
                 </p>
               )}
-              <p className="text-xs text-gray-400 mt-1">
-                Trust cues: KYC verified badge · real ratings · Premium = paid visibility (not fake reviews)
+              <p className="text-xs text-gray-400 mt-1 leading-snug">
+                KYC badge · real ratings · Premium = paid visibility
               </p>
             </div>
             {!loading && (
-              <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 shrink-0">
                 {filteredWorkers.length} professional{filteredWorkers.length !== 1 ? 's' : ''} found
               </p>
             )}
           </div>
           
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 relative">
+          <div className="flex flex-col gap-3">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
               <input
                 type="text"
                 placeholder="Search by name, skill, or role..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-forge-orange/20 focus:border-forge-orange bg-white shadow-sm"
+                className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-forge-orange/20 focus:border-forge-orange bg-white shadow-sm text-base"
               />
             </div>
             
-            <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0 no-scrollbar">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                <select 
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm min-w-[140px]"
+                  aria-label="Filter by skill"
+                  className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm text-sm"
                >
                  <option value="all">All Skills</option>
                  {categories.map(cat => (
@@ -294,7 +295,8 @@ const WorkerSearch: React.FC = () => {
                <select 
                   value={selectedCountry}
                   onChange={(e) => setSelectedCountry(e.target.value)}
-                  className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm min-w-[140px]"
+                  aria-label="Filter by location"
+                  className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm text-sm"
                >
                  <option value="all">All Locations</option>
                  <option value="GH">Ghana</option>
@@ -304,7 +306,8 @@ const WorkerSearch: React.FC = () => {
                <select 
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value as SortOption)}
-                  className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm min-w-[140px]"
+                  aria-label="Sort workers"
+                  className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm text-sm"
                >
                  <option value="recommended">Recommended</option>
                  <option value="rating">Top Rated</option>
@@ -312,11 +315,6 @@ const WorkerSearch: React.FC = () => {
                  <option value="price_low">Price: Low to High</option>
                  <option value="price_high">Price: High to Low</option>
                </select>
-
-               <button className="px-4 py-3 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 shadow-sm flex items-center gap-2 text-gray-700">
-                  <SlidersHorizontal className="w-4 h-4" />
-                  <span className="hidden sm:inline">More</span>
-               </button>
             </div>
           </div>
         </div>

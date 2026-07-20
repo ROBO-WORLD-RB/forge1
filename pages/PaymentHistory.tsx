@@ -48,11 +48,11 @@ const PaymentHistory: React.FC = () => {
   return (
     <>
       <PageHelmet title="Payment History" path="/payments" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
-        <div className="max-w-3xl mx-auto py-6">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
+        <div className="max-w-3xl mx-auto py-2 sm:py-6">
           <Link
             to="/dashboard/customer"
-            className="inline-flex items-center gap-1 text-sm text-forge-orange font-medium hover:underline mb-4"
+            className="inline-flex items-center gap-1 text-sm text-forge-orange font-medium hover:underline mb-4 min-h-[44px]"
           >
             <ArrowLeft className="w-4 h-4" /> Customer Hub
           </Link>

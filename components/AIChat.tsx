@@ -312,9 +312,10 @@ const AIChat: React.FC = () => {
   if (!isOpen) {
     return (
       <button
+        type="button"
         onClick={() => setIsOpen(true)}
         aria-label="Open Forge AI assistant"
-        className="fixed bottom-20 md:bottom-8 right-4 z-40 bg-forge-navy hover:bg-forge-orange text-white p-3.5 rounded-full shadow-xl transition-all duration-300 hover:scale-105 flex items-center gap-2 group"
+        className="fixed z-40 bg-forge-navy hover:bg-forge-orange text-white p-3.5 rounded-full shadow-xl transition-all duration-300 hover:scale-105 flex items-center justify-center gap-2 group min-w-[52px] min-h-[52px] right-3 md:right-4 bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-8"
       >
         <img src="/logo.png" alt="" className="w-7 h-7 object-contain" aria-hidden="true" />
         <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-300 whitespace-nowrap font-medium">
@@ -334,37 +335,43 @@ const AIChat: React.FC = () => {
           : 'Ask about prices, workers, or advice...';
 
   return (
-    <div className="fixed bottom-20 md:bottom-8 right-4 z-40 w-[90vw] md:w-[400px] h-[min(600px,75dvh)] max-h-[calc(100dvh-8rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
-      <div className="bg-forge-navy text-white p-4 flex justify-between items-center shrink-0">
-        <div className="flex items-center gap-2">
-          <div className="bg-white/10 p-1.5 rounded-lg">
+    <div className="fixed z-40 left-3 right-3 md:left-auto md:right-4 md:w-[400px] bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-8 h-[min(560px,calc(100dvh-9.5rem))] max-h-[calc(100dvh-9rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-10 fade-in duration-300">
+      <div className="bg-forge-navy text-white p-3 sm:p-4 flex justify-between items-center shrink-0 gap-2">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="bg-white/10 p-1.5 rounded-lg shrink-0">
             <img src="/logo.png" alt="" className="w-5 h-5 object-contain" aria-hidden="true" />
           </div>
-          <div>
-            <h3 className="font-bold">Forge AI Assistant</h3>
-            <p className="text-[10px] text-white/70 capitalize">
+          <div className="min-w-0">
+            <h3 className="font-bold text-sm sm:text-base truncate">Forge AI Assistant</h3>
+            <p className="text-[10px] text-white/70 capitalize truncate">
               {mode === 'general' ? 'General' : `${mode} mode`}
               {matchMode ? ' · matching' : ''}
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 shrink-0">
           <button
+            type="button"
             onClick={handleClearChat}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="inline-flex items-center justify-center min-w-[40px] min-h-[40px] hover:bg-white/10 rounded-lg transition-colors"
             title="Clear chat"
+            aria-label="Clear chat"
           >
             <RefreshCw className="w-4 h-4" />
           </button>
           <button
+            type="button"
             onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="inline-flex items-center justify-center min-w-[40px] min-h-[40px] hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Minimize chat"
           >
             <Minimize2 className="w-5 h-5" />
           </button>
           <button
+            type="button"
             onClick={() => setIsOpen(false)}
-            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+            className="inline-flex items-center justify-center min-w-[40px] min-h-[40px] hover:bg-white/10 rounded-lg transition-colors"
+            aria-label="Close chat"
           >
             <X className="w-5 h-5" />
           </button>
@@ -504,13 +511,15 @@ const AIChat: React.FC = () => {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="flex-1 resize-none border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-forge-orange/20 focus:border-forge-orange max-h-32"
+            className="flex-1 min-w-0 resize-none border border-gray-200 rounded-xl px-3 sm:px-4 py-3 text-base sm:text-sm focus:outline-none focus:ring-2 focus:ring-forge-orange/20 focus:border-forge-orange max-h-28"
             rows={1}
           />
           <button
+            type="button"
             onClick={handleSend}
             disabled={!input.trim() || isLoading}
-            className="bg-forge-navy hover:bg-forge-orange disabled:bg-gray-300 disabled:cursor-not-allowed text-white p-3 rounded-xl transition-colors shadow-sm"
+            aria-label="Send message"
+            className="shrink-0 bg-forge-navy hover:bg-forge-orange disabled:bg-gray-300 disabled:cursor-not-allowed text-white min-w-[44px] min-h-[44px] p-3 rounded-xl transition-colors shadow-sm inline-flex items-center justify-center"
           >
             <Send className="w-5 h-5" />
           </button>

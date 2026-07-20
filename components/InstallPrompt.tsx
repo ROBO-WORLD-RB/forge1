@@ -126,10 +126,7 @@ export const InstallPrompt: React.FC = () => {
 
   return (
     <div
-      className="fixed inset-x-3 z-[60] animate-slide-up pointer-events-none"
-      style={{
-        bottom: 'max(5.5rem, calc(4.5rem + env(safe-area-inset-bottom, 0px)))',
-      }}
+      className="fixed inset-x-3 z-[60] animate-slide-up pointer-events-none bottom-above-nav"
       role="dialog"
       aria-label="Install FORGE"
       aria-modal="false"

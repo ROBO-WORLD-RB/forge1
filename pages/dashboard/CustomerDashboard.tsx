@@ -216,7 +216,7 @@ const CustomerDashboard: React.FC = () => {
   return (
     <>
       <PageHelmet title="Customer Hub" path="/dashboard/customer" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6 md:mb-8">
             <div className="min-w-0">

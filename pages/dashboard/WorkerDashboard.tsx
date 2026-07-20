@@ -435,7 +435,7 @@ const WorkerDashboard: React.FC = () => {
   return (
     <>
       <PageHelmet title="Worker Hub" path="/dashboard/worker" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6 md:mb-8">
             <div className="min-w-0">
@@ -871,24 +871,24 @@ const WorkerDashboard: React.FC = () => {
               </div>
 
               {(!subscription || subscription.tier === 'free' || subscriptionStatus === 'none') && (
-                <div className="mt-6 bg-gradient-to-r from-forge-navy to-slate-900 rounded-2xl shadow-lg overflow-hidden text-white p-8 relative">
+                <div className="mt-6 bg-gradient-to-r from-forge-navy to-slate-900 rounded-2xl shadow-lg overflow-hidden text-white p-5 sm:p-8 relative">
                   <div className="relative z-10">
-                    <div className="flex items-center gap-2 mb-4">
-                      <Star className="w-6 h-6 text-forge-orange fill-forge-orange" />
+                    <div className="flex items-center gap-2 mb-3 sm:mb-4">
+                      <Star className="w-6 h-6 text-forge-orange fill-forge-orange shrink-0" />
                       <span className="font-bold uppercase tracking-widest text-xs">Premium Forge</span>
                     </div>
-                    <h2 className="font-bold text-2xl mb-2">Boost your business visibility</h2>
-                    <p className="text-gray-300 max-w-lg mb-6">
+                    <h2 className="font-bold text-xl sm:text-2xl mb-2">Boost your business visibility</h2>
+                    <p className="text-gray-300 max-w-lg mb-5 sm:mb-6 text-sm sm:text-base">
                       Paid tiers activate via Paystack webhook only. Upgrade to appear higher in search.
                     </p>
                     <Link
                       to="/subscription"
-                      className="bg-forge-orange text-white px-8 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all inline-block shadow-lg shadow-forge-orange/20"
+                      className="bg-forge-orange text-white px-6 sm:px-8 py-3 rounded-xl font-bold hover:bg-orange-600 transition-all inline-flex items-center justify-center min-h-[48px] w-full sm:w-auto shadow-lg shadow-forge-orange/20"
                     >
                       Upgrade to Premium
                     </Link>
                   </div>
-                  <Zap className="absolute right-[-20px] top-[-20px] w-64 h-64 text-white/5 rotate-12" />
+                  <Zap className="absolute right-[-20px] top-[-20px] w-64 h-64 text-white/5 rotate-12 pointer-events-none" />
                 </div>
               )}
             </>

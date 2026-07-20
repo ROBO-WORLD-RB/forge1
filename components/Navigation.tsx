@@ -136,7 +136,7 @@ function navLinkClass(pathname: string, route: string, base = ''): string {
 
 function bottomNavClass(pathname: string, route: string): string {
   const active = isNavRouteActive(pathname, route);
-  return `flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 max-w-[4.5rem] py-1 transition-colors ${
+  return `flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 max-w-[5rem] min-h-[44px] py-1.5 px-0.5 transition-colors ${
     active ? 'text-forge-orange' : 'text-gray-400 hover:text-gray-600'
   }`;
 }
@@ -167,18 +167,19 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
 
   return (
     <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm pt-safe">
-      <div className="h-16 px-4 flex items-center justify-between">
-        <div className="flex items-center gap-2 min-w-0">
+      <div className="h-14 sm:h-16 px-3 sm:px-4 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
           <button
-            className="md:hidden p-2 -ml-2 text-gray-600 hover:text-forge-navy rounded-lg"
+            type="button"
+            className="md:hidden inline-flex items-center justify-center min-w-[44px] min-h-[44px] -ml-1 text-gray-600 hover:text-forge-navy rounded-lg"
             onClick={onToggleSidebar}
             aria-label="Open menu"
           >
             <Menu className="w-6 h-6" />
           </button>
-          <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-2 min-w-0">
+          <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-2 min-w-0 min-h-[44px]">
             <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain shrink-0" />
-            <span className="text-xl font-bold text-forge-navy tracking-tight">FORGE</span>
+            <span className="text-lg sm:text-xl font-bold text-forge-navy tracking-tight truncate">FORGE</span>
             {os !== 'guest' && (
               <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-forge-muted border border-gray-200 rounded px-1.5 py-0.5">
                 {os === 'worker' ? 'Worker' : 'Customer'}
@@ -225,7 +226,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
               <Link
                 to="/dashboard"
                 aria-label={isWorker ? 'Open Worker Hub' : 'Open Customer Hub'}
-                className={`flex items-center gap-2 text-sm font-medium rounded-lg px-1.5 py-1 ${
+                className={`flex items-center gap-2 text-sm font-medium rounded-lg min-h-[44px] px-1.5 py-1 ${
                   isNavRouteActive(pathname, '/dashboard')
                     ? 'text-forge-orange'
                     : 'text-gray-700 hover:text-forge-navy'
@@ -238,7 +239,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
                   {user?.firstName || 'User'}
                 </span>
                 <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center overflow-hidden border ${
+                  className={`w-9 h-9 rounded-full flex items-center justify-center overflow-hidden border ${
                     isNavRouteActive(pathname, '/dashboard')
                       ? 'bg-forge-orange/10 border-forge-orange/30'
                       : 'bg-forge-navy/10 border-gray-200'
@@ -267,7 +268,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
               </Link>
               <Link
                 to="/auth/signup"
-                className="bg-forge-navy text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors"
+                className="bg-forge-navy text-white px-3 sm:px-4 py-2 rounded-lg text-sm font-medium hover:bg-slate-800 transition-colors min-h-[44px] inline-flex items-center"
               >
                 Join Now
               </Link>
@@ -323,7 +324,7 @@ export const BottomNav: React.FC = () => {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-1.5 px-1 flex justify-around items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-area-bottom"
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-1 px-0.5 flex justify-around items-stretch z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
       aria-label={os === 'worker' ? 'Worker OS navigation' : os === 'customer' ? 'Customer OS navigation' : 'Mobile navigation'}
     >
       {items.map(({ to, label, icon }) => {
@@ -336,7 +337,9 @@ export const BottomNav: React.FC = () => {
             aria-current={active ? 'page' : undefined}
             className={bottomNavClass(pathname, routeKey)}
           >
-            {icon}
+            <span className={`flex items-center justify-center ${active ? 'text-forge-orange' : ''}`}>
+              {icon}
+            </span>
             <span className="text-[10px] font-medium leading-tight text-center px-0.5 truncate w-full">
               {label}
             </span>

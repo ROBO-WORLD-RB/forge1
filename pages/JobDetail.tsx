@@ -259,12 +259,13 @@ const JobDetail: React.FC = () => {
   return (
     <>
       <PageHelmet title="Project Details" path="/jobs/:id" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-0 overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
         <button
+          type="button"
           onClick={() => navigate('/jobs')}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"
+          className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-4 sm:mb-6 min-h-[44px]"
         >
           <ArrowLeft className="w-5 h-5" />
           Back to Projects
@@ -510,19 +511,19 @@ const JobDetail: React.FC = () => {
                       <p className="text-xs text-green-600 mt-1">
                         Tip: send a short message so the customer can reply quickly.
                       </p>
-                      <div className="flex flex-wrap items-center gap-3 mt-3">
+                      <div className="flex flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-2 sm:gap-3 mt-3">
                         <button
                           type="button"
                           onClick={handleMessagePoster}
-                          className="inline-flex items-center gap-2 px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
+                          className="inline-flex items-center justify-center gap-2 min-h-[44px] px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors"
                         >
                           <MessageSquare className="w-4 h-4" />
                           Message job poster
                         </button>
-                        <Link to="/bookings" className="text-sm text-forge-orange hover:underline">
+                        <Link to="/bookings" className="inline-flex items-center min-h-[44px] text-sm text-forge-orange hover:underline">
                           View in My Bookings →
                         </Link>
-                        <Link to="/dashboard/worker" className="text-sm text-gray-500 hover:underline">
+                        <Link to="/dashboard/worker" className="inline-flex items-center min-h-[44px] text-sm text-gray-500 hover:underline">
                           Worker Hub
                         </Link>
                       </div>
@@ -585,11 +586,12 @@ const JobDetail: React.FC = () => {
                         {applyError}
                       </div>
                     )}
-                    <div className="flex flex-col sm:flex-row gap-3">
+                    <div className="flex flex-col gap-2.5 sm:flex-row sm:gap-3">
                       <button
+                        type="button"
                         onClick={handleApply}
                         disabled={applying}
-                        className="flex-1 py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                        className="flex-1 min-h-[48px] py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                       >
                         {applying ? (
                           <Loader2 className="w-5 h-5 animate-spin" />
@@ -604,7 +606,7 @@ const JobDetail: React.FC = () => {
                         <button
                           type="button"
                           onClick={handleMessagePoster}
-                          className="flex-1 py-3 border border-forge-orange text-forge-orange rounded-xl font-medium hover:bg-orange-50 transition-colors flex items-center justify-center gap-2"
+                          className="flex-1 min-h-[48px] py-3 border border-forge-orange text-forge-orange rounded-xl font-medium hover:bg-orange-50 transition-colors inline-flex items-center justify-center gap-2"
                         >
                           <MessageSquare className="w-5 h-5" />
                           Message poster
@@ -622,7 +624,7 @@ const JobDetail: React.FC = () => {
                 <button
                   type="button"
                   onClick={handleMessagePoster}
-                  className="w-full py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors flex items-center justify-center gap-2"
+                  className="w-full min-h-[48px] py-3 bg-forge-orange text-white rounded-xl font-medium hover:bg-orange-600 transition-colors inline-flex items-center justify-center gap-2"
                 >
                   <MessageSquare className="w-5 h-5" />
                   Message Job Poster

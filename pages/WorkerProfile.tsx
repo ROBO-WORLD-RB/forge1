@@ -335,36 +335,37 @@ const WorkerProfilePage: React.FC = () => {
   return (
     <>
     <PageHelmet title="Worker Profile" path="/profile/:id" />
-    <div className="min-h-dynamic bg-gray-50 pb-nav">
+    <div className="min-h-dynamic bg-gray-50 pb-nav overflow-x-hidden">
       {/* Header Background */}
-      <div className="h-48 bg-forge-navy relative">
+      <div className="h-40 sm:h-48 bg-forge-navy relative">
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
         <button 
+          type="button"
           onClick={() => navigate(-1)}
-          className="absolute top-4 left-4 text-white bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg backdrop-blur-sm transition-colors"
+          className="absolute top-[max(1rem,env(safe-area-inset-top))] left-3 sm:left-4 text-white bg-white/10 hover:bg-white/20 px-3 sm:px-4 py-2 rounded-lg backdrop-blur-sm transition-colors min-h-[44px] inline-flex items-center"
         >
           &larr; Back
         </button>
       </div>
 
-      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative -mt-20">
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 relative -mt-16 sm:-mt-20">
         <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="p-6 md:p-8">
+          <div className="p-4 sm:p-6 md:p-8">
             
             {/* Top Section */}
-            <div className="flex flex-col md:flex-row gap-6 items-start">
+            <div className="flex flex-col md:flex-row gap-5 sm:gap-6 items-start">
               <img 
                 src={worker.avatarUrl} 
                 alt={worker.name} 
-                className="w-32 h-32 rounded-2xl border-4 border-white shadow-md object-cover bg-gray-200"
+                className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl border-4 border-white shadow-md object-cover bg-gray-200 shrink-0"
               />
               
-              <div className="flex-1 space-y-2">
+              <div className="flex-1 space-y-2 min-w-0 w-full">
                 <div className="flex flex-wrap justify-between items-start gap-2">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                      {worker.name}
-                      {worker.verified && <span title="Verified Pro"><ShieldCheck className="w-6 h-6 text-forge-cyan" /></span>}
+                  <div className="min-w-0">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 flex items-center gap-2 min-w-0">
+                      <span className="truncate">{worker.name}</span>
+                      {worker.verified && <span title="Verified Pro" className="shrink-0"><ShieldCheck className="w-6 h-6 text-forge-cyan" /></span>}
                     </h1>
                     <div className="flex items-center gap-2 mt-1">
                       <p className="text-lg text-gray-600 font-medium">{worker.role}</p>
@@ -411,9 +412,9 @@ const WorkerProfilePage: React.FC = () => {
             </div>
 
             {/* Action Buttons */}
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mt-8 border-t border-gray-100 pt-6">
-              <Button size="lg" variant="primary" onClick={handleBookClick}>Book Now</Button>
-              <Button size="lg" variant="secondary" icon={<MessageSquare className="w-4 h-4" />} onClick={handleMessageClick}>Message</Button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 mt-6 sm:mt-8 border-t border-gray-100 pt-5 sm:pt-6">
+              <Button size="lg" variant="primary" onClick={handleBookClick} className="min-h-[48px] w-full">Book Now</Button>
+              <Button size="lg" variant="secondary" icon={<MessageSquare className="w-4 h-4" />} onClick={handleMessageClick} className="min-h-[48px] w-full">Message</Button>
               {user?.id !== worker.userId && (
                 <Button
                   size="lg"
@@ -421,7 +422,7 @@ const WorkerProfilePage: React.FC = () => {
                   icon={<Heart className={`w-4 h-4 ${favorited ? 'fill-current' : ''}`} />}
                   onClick={handleFavoriteClick}
                   loading={favoriteLoading}
-                  className="col-span-2 sm:col-span-1"
+                  className="min-h-[48px] w-full"
                 >
                   {favorited ? 'Saved' : 'Save'}
                 </Button>

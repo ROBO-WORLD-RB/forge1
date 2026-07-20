@@ -240,7 +240,7 @@ const AdminDashboard: React.FC = () => {
   return (
     <>
       <PageHelmet title="Admin Dashboard" path="/admin" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-8">

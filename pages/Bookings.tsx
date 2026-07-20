@@ -194,7 +194,7 @@ const Bookings: React.FC = () => {
   return (
     <>
     <PageHelmet title="My Bookings" path="/bookings" />
-    <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+    <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
@@ -205,12 +205,13 @@ const Bookings: React.FC = () => {
         </div>
 
         {/* Status Filter */}
-        <div className="flex gap-2 overflow-x-auto pb-4 mb-6 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-3 mb-5 no-scrollbar -mx-1 px-1">
           {statuses.map(status => (
             <button
               key={status}
+              type="button"
               onClick={() => setStatusFilter(status)}
-              className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
+              className={`min-h-[40px] px-3.5 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors shrink-0 ${
                 statusFilter === status
                   ? 'bg-forge-orange text-white'
                   : 'bg-white text-gray-600 hover:bg-gray-100'
@@ -300,34 +301,36 @@ const Bookings: React.FC = () => {
         ) : (
           <div className="space-y-4">
             {bookings.map(booking => (
-              <div key={booking.id} className="bg-white rounded-xl shadow-sm p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${getStatusColor(booking.status)}`}>
+              <div key={booking.id} className="bg-white rounded-xl shadow-sm p-4 sm:p-6 overflow-hidden">
+                <div className="flex items-start justify-between gap-3 mb-4">
+                  <div className="flex items-start gap-3 min-w-0">
+                    <div className={`p-2 rounded-full shrink-0 ${getStatusColor(booking.status)}`}>
                       {getStatusIcon(booking.status)}
                     </div>
-                    <div>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
-                        {getStatusLabel(booking.status)}
-                      </span>
-                      {booking.payment_status && booking.payment_status !== 'unpaid' && (
-                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-100">
-                          Pay: {booking.payment_status}
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
+                          {getStatusLabel(booking.status)}
                         </span>
-                      )}
+                        {booking.payment_status && booking.payment_status !== 'unpaid' && (
+                          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-100">
+                            Pay: {booking.payment_status}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-gray-500 mt-1">
                         Booking #{booking.id.slice(0, 8)}
                       </p>
                       <Link
                         to={`/profile/${isWorker ? booking.customer_user_id : booking.worker_user_id}`}
-                        className="text-sm text-forge-orange hover:underline mt-1 inline-block"
+                        className="text-sm text-forge-orange hover:underline mt-1 inline-flex min-h-[44px] items-center"
                       >
                         View {isWorker ? 'customer' : 'worker'} profile
                       </Link>
                     </div>
                   </div>
-                  <div className="text-right text-sm text-gray-500">
-                    <div className="flex items-center gap-1">
+                  <div className="text-right text-xs sm:text-sm text-gray-500 shrink-0">
+                    <div className="flex items-center gap-1 justify-end">
                       <Calendar className="w-4 h-4" />
                       {new Date(booking.created_at).toLocaleDateString()}
                     </div>
@@ -354,23 +357,25 @@ const Bookings: React.FC = () => {
                   </div>
                 )}
 
-                {/* Actions */}
-                <div className="flex items-center justify-between pt-4 border-t border-gray-100">
-                  <div className="flex flex-wrap gap-2">
+                {/* Actions — stack on narrow screens so CTAs stay thumb-friendly */}
+                <div className="flex flex-col gap-3 pt-4 border-t border-gray-100 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="flex flex-wrap gap-2 w-full sm:w-auto">
                     {isWorker && booking.status === 'PENDING' && (
                       <>
                         <button
+                          type="button"
                           onClick={() => handleAccept(booking.id)}
                           disabled={actionLoading === booking.id}
-                          className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                          className="min-h-[44px] px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                         >
                           {actionLoading === booking.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                           Accept
                         </button>
                         <button
+                          type="button"
                           onClick={() => handleCancel(booking.id)}
                           disabled={actionLoading === booking.id}
-                          className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                          className="min-h-[44px] px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center"
                         >
                           Decline
                         </button>
@@ -378,9 +383,10 @@ const Bookings: React.FC = () => {
                     )}
                     {isWorker && booking.status === 'ACCEPTED' && (
                       <button
+                        type="button"
                         onClick={() => handleStart(booking.id)}
                         disabled={actionLoading === booking.id}
-                        className="px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="min-h-[44px] px-4 py-2 bg-purple-500 text-white rounded-lg text-sm font-medium hover:bg-purple-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                       >
                         {actionLoading === booking.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
                         Start Work
@@ -388,9 +394,10 @@ const Bookings: React.FC = () => {
                     )}
                     {isWorker && booking.status === 'IN_PROGRESS' && (
                       <button
+                        type="button"
                         onClick={() => handleComplete(booking.id)}
                         disabled={actionLoading === booking.id}
-                        className="px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 flex items-center gap-2"
+                        className="min-h-[44px] px-4 py-2 bg-green-500 text-white rounded-lg text-sm font-medium hover:bg-green-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                       >
                         {actionLoading === booking.id ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
                         Mark Complete
@@ -398,24 +405,26 @@ const Bookings: React.FC = () => {
                     )}
                     {!isWorker && ['PENDING', 'ACCEPTED'].includes(booking.status) && (
                       <button
+                        type="button"
                         onClick={() => handleCancel(booking.id)}
                         disabled={actionLoading === booking.id}
-                        className="px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50"
+                        className="min-h-[44px] px-4 py-2 bg-red-500 text-white rounded-lg text-sm font-medium hover:bg-red-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center"
                       >
                         Cancel Booking
                       </button>
                     )}
                     {!isWorker && booking.status === 'COMPLETED' && (
                       <button
+                        type="button"
                         onClick={() => setReviewBooking(booking)}
-                        className="px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
+                        className="min-h-[44px] px-4 py-2 bg-forge-orange text-white rounded-lg text-sm font-medium hover:bg-orange-600 transition-colors inline-flex items-center justify-center gap-2"
                       >
                         <Star className="w-4 h-4" />
                         Leave Review
                       </button>
                     )}
                     {!isWorker && booking.status === 'REVIEWED' && (
-                      <span className="px-3 py-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg flex items-center gap-1.5">
+                      <span className="px-3 py-2 text-sm text-emerald-700 bg-emerald-50 rounded-lg inline-flex items-center gap-1.5">
                         <CheckCircle className="w-4 h-4" />
                         Review submitted
                       </span>
@@ -423,7 +432,7 @@ const Bookings: React.FC = () => {
                     {!isWorker && ['COMPLETED', 'REVIEWED', 'CANCELLED'].includes(booking.status) && (
                       <Link
                         to={`/profile/${booking.worker_user_id}?book=1`}
-                        className="px-4 py-2 bg-white border border-gray-200 text-forge-navy rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+                        className="min-h-[44px] px-4 py-2 bg-white border border-gray-200 text-forge-navy rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors inline-flex items-center justify-center gap-2"
                       >
                         <RefreshCw className="w-4 h-4" />
                         Book again
@@ -436,7 +445,7 @@ const Bookings: React.FC = () => {
                           setDisputeBookingId(booking.id);
                           setDisputeReason('');
                         }}
-                        className="px-4 py-2 bg-white border border-amber-200 text-amber-800 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors flex items-center gap-2"
+                        className="min-h-[44px] px-4 py-2 bg-white border border-amber-200 text-amber-800 rounded-lg text-sm font-medium hover:bg-amber-50 transition-colors inline-flex items-center justify-center gap-2"
                       >
                         <AlertTriangle className="w-4 h-4" />
                         Open dispute
@@ -444,14 +453,14 @@ const Bookings: React.FC = () => {
                     )}
                     {disputesByBooking[booking.id] && (
                       <span
-                        className={`px-3 py-2 text-sm rounded-lg flex items-center gap-1.5 ${
+                        className={`px-3 py-2 text-sm rounded-lg inline-flex flex-wrap items-center gap-1.5 ${
                           disputesByBooking[booking.id].status === 'open'
                             ? 'text-amber-800 bg-amber-50'
                             : 'text-gray-600 bg-gray-50'
                         }`}
                         title={disputesByBooking[booking.id].reason}
                       >
-                        <AlertTriangle className="w-4 h-4" />
+                        <AlertTriangle className="w-4 h-4 shrink-0" />
                         Dispute {disputesByBooking[booking.id].status}
                         {disputesByBooking[booking.id].status === 'open' &&
                           booking.payment_status === 'held' && (
@@ -467,13 +476,13 @@ const Bookings: React.FC = () => {
                         recipientId: isWorker ? booking.customer_user_id : booking.worker_user_id,
                         bookingId: booking.id,
                       }}
-                      className="flex items-center gap-2 text-forge-orange hover:underline text-sm"
+                      className="inline-flex items-center justify-center gap-2 min-h-[44px] text-forge-orange hover:underline text-sm font-medium shrink-0"
                     >
                       <MessageSquare className="w-4 h-4" />
                       Message
                     </Link>
                   ) : (
-                    <span className="text-sm text-gray-400">Messaging unavailable</span>
+                    <span className="text-sm text-gray-400 py-2">Messaging unavailable</span>
                   )}
                 </div>
               </div>

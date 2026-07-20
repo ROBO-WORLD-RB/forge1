@@ -331,15 +331,15 @@ const Jobs: React.FC = () => {
   return (
     <>
       <PageHelmet title={isWorker ? 'Job Feed' : 'Projects'} path="/jobs" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between mb-6">
+          <div className="min-w-0">
             <h1 className="text-2xl font-bold text-forge-navy">
               {isWorker ? 'Job Feed' : 'Projects'}
             </h1>
-            <p className="text-gray-500 mt-1">
+            <p className="text-gray-500 mt-1 text-sm sm:text-base">
               {isWorker
                 ? 'Browse open customer projects and apply'
                 : 'Post a project or browse what others need done'}
@@ -347,17 +347,19 @@ const Jobs: React.FC = () => {
           </div>
           {canPostProject && (
             <button
+              type="button"
               onClick={() => setShowCreateModal(true)}
-              className="bg-forge-orange text-white px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-orange-600 transition-colors"
+              className="bg-forge-orange text-white px-4 py-2.5 rounded-lg inline-flex items-center justify-center gap-2 hover:bg-orange-600 transition-colors min-h-[44px] shrink-0 w-full sm:w-auto"
             >
               <Plus className="w-5 h-5" />
-              Post a Project
+              <span className="sm:hidden">Post</span>
+              <span className="hidden sm:inline">Post a Project</span>
             </button>
           )}
           {isWorker && (
             <Link
               to="/profile/edit"
-              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg flex items-center gap-2 hover:bg-gray-50 transition-colors text-sm font-medium"
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-lg inline-flex items-center justify-center gap-2 hover:bg-gray-50 transition-colors text-sm font-medium min-h-[44px] shrink-0 w-full sm:w-auto"
             >
               Grow your reach
             </Link>
@@ -365,10 +367,11 @@ const Jobs: React.FC = () => {
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b border-gray-200">
+        <div className="flex gap-4 mb-6 border-b border-gray-200 overflow-x-auto no-scrollbar">
           <button
+            type="button"
             onClick={() => setActiveTab('browse')}
-            className={`pb-3 px-1 font-medium transition-colors ${
+            className={`pb-3 px-1 font-medium transition-colors whitespace-nowrap min-h-[44px] ${
               activeTab === 'browse' 
                 ? 'text-forge-orange border-b-2 border-forge-orange' 
                 : 'text-gray-500 hover:text-gray-700'
@@ -378,8 +381,9 @@ const Jobs: React.FC = () => {
           </button>
           {canPostProject && (
             <button
+              type="button"
               onClick={() => setActiveTab('my-jobs')}
-              className={`pb-3 px-1 font-medium transition-colors ${
+              className={`pb-3 px-1 font-medium transition-colors whitespace-nowrap min-h-[44px] ${
                 activeTab === 'my-jobs' 
                   ? 'text-forge-orange border-b-2 border-forge-orange' 
                   : 'text-gray-500 hover:text-gray-700'
@@ -391,23 +395,24 @@ const Jobs: React.FC = () => {
         </div>
 
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="flex flex-col gap-3 mb-6">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
             <input
               type="text"
               placeholder="Search projects..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-forge-orange"
+              className="w-full pl-10 pr-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:border-forge-orange text-base"
             />
           </div>
           {activeTab === 'browse' && (
-            <>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange"
+                aria-label="Filter by category"
+                className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange text-sm"
               >
                 <option value="">All Categories</option>
                 {CATEGORIES.map(cat => (
@@ -417,13 +422,14 @@ const Jobs: React.FC = () => {
               <select
                 value={countryFilter}
                 onChange={(e) => setCountryFilter(e.target.value as Country | '')}
-                className="px-4 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange"
+                aria-label="Filter by country"
+                className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange text-sm"
               >
                 <option value="">All Countries</option>
                 <option value="GH">Ghana</option>
                 <option value="NG">Nigeria</option>
               </select>
-            </>
+            </div>
           )}
         </div>
 
@@ -643,18 +649,23 @@ const Jobs: React.FC = () => {
 
       {/* Create Project Modal — customers only */}
       {showCreateModal && canPostProject && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6 border-b border-gray-200 flex items-center justify-between">
-              <div>
-                <h2 className="text-xl font-bold text-forge-navy">Post a Project</h2>
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
+          <div className="bg-white rounded-t-2xl sm:rounded-xl max-w-lg w-full max-h-[92dvh] overflow-y-auto touch-scroll pb-safe">
+            <div className="p-4 sm:p-6 border-b border-gray-200 flex items-center justify-between gap-3 sticky top-0 bg-white z-10">
+              <div className="min-w-0">
+                <h2 className="text-lg sm:text-xl font-bold text-forge-navy">Post a Project</h2>
                 <p className="text-sm text-gray-500 mt-0.5">Customers only — workers will find and apply</p>
               </div>
-              <button onClick={() => { setShowCreateModal(false); setCreateError(null); }} className="text-gray-400 hover:text-gray-600">
+              <button
+                type="button"
+                onClick={() => { setShowCreateModal(false); setCreateError(null); }}
+                className="text-gray-400 hover:text-gray-600 inline-flex items-center justify-center min-w-[44px] min-h-[44px] shrink-0"
+                aria-label="Close"
+              >
                 <X className="w-6 h-6" />
               </button>
             </div>
-            <form onSubmit={handleCreateJob} className="p-6 space-y-4">
+            <form onSubmit={handleCreateJob} className="p-4 sm:p-6 space-y-4">
               {createError && (
                 <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start gap-2">
                   <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -807,18 +818,18 @@ const Jobs: React.FC = () => {
                 </div>
               </div>
               
-              <div className="flex gap-3 pt-4">
+              <div className="flex flex-col-reverse sm:flex-row gap-3 pt-4 pb-2">
                 <button
                   type="button"
                   onClick={() => { setShowCreateModal(false); setCreateError(null); }}
-                  className="flex-1 px-4 py-2 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
+                  className="flex-1 min-h-[44px] px-4 py-2.5 border border-gray-200 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={creating || uploading}
-                  className="flex-1 px-4 py-2 bg-forge-orange text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="flex-1 min-h-[44px] px-4 py-2.5 bg-forge-orange text-white rounded-lg hover:bg-orange-600 transition-colors disabled:opacity-50 inline-flex items-center justify-center gap-2"
                 >
                   {creating || uploading ? (
                     <>

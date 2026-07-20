@@ -62,7 +62,7 @@ const WalletPage: React.FC = () => {
   return (
     <>
       <PageHelmet title="Wallet & Earnings" path="/wallet" />
-      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
+      <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
         <div className="max-w-3xl mx-auto py-6">
           <Link
             to="/dashboard/worker"
