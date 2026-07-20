@@ -437,55 +437,80 @@ const WorkerDashboard: React.FC = () => {
       <PageHelmet title="Worker Hub" path="/dashboard/worker" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6 md:mb-8">
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
                 Worker OS
               </p>
               <h1 className="text-2xl font-bold text-forge-navy">Worker Hub</h1>
-              <p className="text-gray-500 mt-1">
+              <p className="text-gray-500 mt-1 text-sm md:text-base">
                 Welcome back, {user?.firstName || 'Pro'} — run your business: requests, jobs, portfolio, and
                 growth.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/jobs"
-                className="bg-forge-orange text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
-              >
-                <Briefcase className="w-4 h-4" />
-                Browse Job Feed
-              </Link>
-              <Link
-                to="/profile/edit"
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-              >
-                <Star className="w-4 h-4" />
-                Grow profile
-              </Link>
-              <button
-                type="button"
-                onClick={() => setActiveTab('portfolio')}
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-              >
-                <ImageIcon className="w-4 h-4" />
-                Portfolio
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('share')}
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-              >
-                <Share2 className="w-4 h-4" />
-                Share
-              </button>
-              <Link
-                to="/subscription"
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-              >
-                <Zap className="w-4 h-4" />
-                Upgrade
-              </Link>
+            <div className="flex flex-col gap-2 md:items-end shrink-0">
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <Link
+                  to="/jobs"
+                  className="bg-forge-orange text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-orange-600 transition-colors"
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span className="sm:hidden">Jobs</span>
+                  <span className="hidden sm:inline">Browse Jobs</span>
+                </Link>
+                <Link
+                  to="/profile/edit"
+                  className="bg-forge-navy text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 hover:bg-forge-orange transition-colors"
+                >
+                  <Star className="w-4 h-4" />
+                  <span className="sm:hidden">Profile</span>
+                  <span className="hidden sm:inline">Grow profile</span>
+                </Link>
+                {/* Desktop: compact secondary in same row */}
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('portfolio')}
+                  className="hidden md:inline-flex bg-white text-forge-navy border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <ImageIcon className="w-3.5 h-3.5" />
+                  Portfolio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('share')}
+                  className="hidden md:inline-flex bg-white text-forge-navy border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <Share2 className="w-3.5 h-3.5" />
+                  Share
+                </button>
+                <Link
+                  to="/subscription"
+                  className="hidden md:inline-flex bg-white text-forge-navy border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <Zap className="w-3.5 h-3.5" />
+                  Upgrade
+                </Link>
+              </div>
+              {/* Mobile: secondary as compact text links */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm md:hidden">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('portfolio')}
+                  className="text-gray-600 hover:text-forge-orange font-medium"
+                >
+                  Portfolio
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('share')}
+                  className="text-gray-600 hover:text-forge-orange font-medium"
+                >
+                  Share
+                </button>
+                <Link to="/subscription" className="text-gray-600 hover:text-forge-orange font-medium">
+                  Upgrade
+                </Link>
+              </div>
             </div>
           </div>
 

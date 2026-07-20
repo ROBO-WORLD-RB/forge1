@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   Crown,
   Calendar,
+  LogOut,
 } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -152,7 +153,7 @@ function UnreadBadge({ count, className = '' }: { count: number; className?: str
 }
 
 export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated, logout } = useAuth();
   const location = useLocation();
   const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
   const { pathname } = location;
@@ -209,9 +210,9 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
           })}
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 md:gap-3 shrink-0">
           {isAuthenticated ? (
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 md:gap-3">
               {isWorker && (
                 <Link
                   to="/subscription"
@@ -246,6 +247,15 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
                   <User className="w-5 h-5 text-forge-navy" />
                 </div>
               </Link>
+              {/* Desktop Sign Out — mobile keeps sidebar Sign Out (avoids safe-area clash) */}
+              <button
+                type="button"
+                onClick={() => void logout()}
+                className="hidden md:inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-red-600 px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
             </div>
           ) : (
             <div className="flex items-center gap-2">

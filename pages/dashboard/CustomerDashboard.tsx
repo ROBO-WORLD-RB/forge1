@@ -218,64 +218,90 @@ const CustomerDashboard: React.FC = () => {
       <PageHelmet title="Customer Hub" path="/dashboard/customer" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
         <div className="max-w-6xl mx-auto">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-            <div>
+          <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6 md:mb-8">
+            <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
                 Customer OS
               </p>
               <h1 className="text-2xl font-bold text-forge-navy">Customer Hub</h1>
-              <p className="text-gray-500 mt-1">
+              <p className="text-gray-500 mt-1 text-sm md:text-base">
                 Discover → Trust → Hire → Manage — your hiring pipeline in one place.
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Link
-                to="/jobs?create=1"
-                className="bg-forge-orange text-white px-6 py-2.5 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-forge-orange/20 font-bold"
-              >
-                <Plus className="w-5 h-5" />
-                Post a Project
-              </Link>
-              <button
-                type="button"
-                onClick={openForgeAiMatch}
-                className="bg-forge-navy text-white px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-forge-orange transition-all font-medium"
-              >
-                <Sparkles className="w-5 h-5" />
-                Find a pro with AI
-              </button>
-              <Link
-                to="/search"
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
-              >
-                <Search className="w-5 h-5" />
-                Find Workers
-              </Link>
-              <Link
-                to="/bookings"
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
-              >
-                <Calendar className="w-5 h-5" />
-                Bookings
-              </Link>
-              <Link
-                to="/payments"
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
-              >
-                Payments
-              </Link>
-              <Link
-                to="/notifications"
-                className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
-              >
-                <Bell className="w-5 h-5" />
-                Alerts
-                {unreadNotifications > 0 && (
-                  <span className="bg-red-500 text-white text-[10px] font-bold min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center">
-                    {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                  </span>
-                )}
-              </Link>
+            <div className="flex flex-col gap-2 md:items-end shrink-0">
+              {/* Primary actions — compact; secondary links below on mobile */}
+              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                <Link
+                  to="/jobs?create=1"
+                  className="bg-forge-orange text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-semibold flex items-center gap-1.5 hover:bg-orange-600 transition-colors shadow-sm shadow-forge-orange/15"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span className="sm:hidden">Post</span>
+                  <span className="hidden sm:inline">Post Project</span>
+                </Link>
+                <button
+                  type="button"
+                  onClick={openForgeAiMatch}
+                  className="bg-forge-navy text-white px-3 py-2 sm:px-4 sm:py-2 rounded-lg text-sm font-medium flex items-center gap-1.5 hover:bg-forge-orange transition-colors"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span className="sm:hidden">AI Match</span>
+                  <span className="hidden sm:inline">Find with AI</span>
+                </button>
+                <Link
+                  to="/search"
+                  className="hidden sm:inline-flex bg-white text-forge-navy border border-gray-200 px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <Search className="w-4 h-4" />
+                  Find Workers
+                </Link>
+                {/* Desktop: compact secondary pills in the same row */}
+                <Link
+                  to="/bookings"
+                  className="hidden md:inline-flex text-forge-navy border border-gray-200 bg-white px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  Bookings
+                </Link>
+                <Link
+                  to="/payments"
+                  className="hidden md:inline-flex text-forge-navy border border-gray-200 bg-white px-3 py-2 rounded-lg text-sm font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Payments
+                </Link>
+                <Link
+                  to="/notifications"
+                  className="hidden md:inline-flex text-forge-navy border border-gray-200 bg-white px-3 py-2 rounded-lg text-sm font-medium items-center gap-1.5 hover:bg-gray-50 transition-colors"
+                >
+                  <Bell className="w-3.5 h-3.5" />
+                  Alerts
+                  {unreadNotifications > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold min-w-[1.1rem] h-4 px-1 rounded-full flex items-center justify-center">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </Link>
+              </div>
+              {/* Mobile / tablet: secondary as compact text links */}
+              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs sm:text-sm md:hidden">
+                <Link to="/search" className="sm:hidden text-forge-navy font-medium hover:text-forge-orange">
+                  Find Workers
+                </Link>
+                <Link to="/bookings" className="text-gray-600 hover:text-forge-orange font-medium">
+                  Bookings
+                </Link>
+                <Link to="/payments" className="text-gray-600 hover:text-forge-orange font-medium">
+                  Payments
+                </Link>
+                <Link to="/notifications" className="text-gray-600 hover:text-forge-orange font-medium inline-flex items-center gap-1">
+                  Alerts
+                  {unreadNotifications > 0 && (
+                    <span className="bg-red-500 text-white text-[10px] font-bold min-w-[1.1rem] h-4 px-1 rounded-full flex items-center justify-center">
+                      {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                    </span>
+                  )}
+                </Link>
+              </div>
             </div>
           </div>
 
