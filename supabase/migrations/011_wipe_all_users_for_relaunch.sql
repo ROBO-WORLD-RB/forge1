@@ -1,5 +1,12 @@
 -- =============================================================================
--- ⚠️  WARNING — IRREVERSIBLE PRODUCTION WIPE
+-- ⚠️  SUPERSEDED — use 020_wipe_all_users_for_relaunch.sql instead
+-- =============================================================================
+-- This 011 wipe does NOT clear M2–M6 tables (favorites, job_applications,
+-- wallets, ledger, escrow, payouts, disputes, analytics). For a full relaunch
+-- after FORGE OS, paste and run:
+--   supabase/migrations/020_wipe_all_users_for_relaunch.sql
+-- =============================================================================
+-- ⚠️  WARNING — IRREVERSIBLE PRODUCTION WIPE (legacy 011)
 -- =============================================================================
 -- This script DELETES EVERY AUTH USER and related application data on Forge.
 -- After it runs, nobody can log in with an existing account — they must
