@@ -337,6 +337,27 @@ export async function createDirectBooking(
           bookingId: booking.id,
           error: logResult.error.message,
         });
+      } else {
+        // Link payment → escrow hold (idempotent with webhook path)
+        try {
+          const { fundBookingEscrow } = await import('./walletService');
+          const fundResult = await fundBookingEscrow(
+            booking.id,
+            input.payment.reference
+          );
+          if (fundResult.error) {
+            logger.warn('Could not fund escrow hold after booking create', {
+              bookingId: booking.id,
+              reference: input.payment.reference,
+              error: fundResult.error.message,
+            });
+          }
+        } catch (fundErr) {
+          logger.warn('Escrow fund call failed after booking create', {
+            bookingId: booking.id,
+            error: fundErr instanceof Error ? fundErr.message : String(fundErr),
+          });
+        }
       }
     }
 

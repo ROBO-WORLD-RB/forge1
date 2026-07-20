@@ -36,6 +36,8 @@ const ProfileEdit = lazyWithRetry(() => import('./pages/ProfileEdit'));
 const PrivacySettings = lazyWithRetry(() => import('./pages/PrivacySettings'));
 const CustomerDashboard = lazyWithRetry(() => import('./pages/dashboard/CustomerDashboard'));
 const WorkerDashboard = lazyWithRetry(() => import('./pages/dashboard/WorkerDashboard'));
+const PaymentHistory = lazyWithRetry(() => import('./pages/PaymentHistory'));
+const WalletPage = lazyWithRetry(() => import('./pages/Wallet'));
 // OnboardingPayment kept in pages/auth for later re-enable; route redirects to dashboard for beta
 const AdminDashboard = lazyWithRetry(() => import('./pages/admin/AdminDashboard'));
 const AIChat = lazyWithRetry(() => import('./components/AIChat'));
@@ -355,6 +357,22 @@ const AppContent: React.FC = () => {
                   <PageTransition><Bookings /></PageTransition>
                 </ProtectedRoute>
               } 
+            />
+            <Route
+              path="/payments"
+              element={
+                <CustomerRoute>
+                  <PageTransition><PaymentHistory /></PageTransition>
+                </CustomerRoute>
+              }
+            />
+            <Route
+              path="/wallet"
+              element={
+                <WorkerRoute>
+                  <PageTransition><WalletPage /></PageTransition>
+                </WorkerRoute>
+              }
             />
             <Route 
               path="/subscription" 

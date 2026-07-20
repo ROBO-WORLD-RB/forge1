@@ -7,7 +7,7 @@ interface PageHelmetProps {
 }
 
 const SITE_NAME = 'FORGE - Blue-Collar Marketplace';
-const DEFAULT_DESCRIPTION = 'Find verified electricians, plumbers, caterers, and more in Ghana and Nigeria. Safe escrow payments, AI price insights, and instant booking.';
+const DEFAULT_DESCRIPTION = 'Find verified electricians, plumbers, caterers, and more in Ghana and Nigeria. Pay on booking with funds held until work is done, AI price insights, and instant booking.';
 const BASE_URL = 'https://forge.app';
 
 const PageHelmet: React.FC<PageHelmetProps> = ({ title, description, path }) => {

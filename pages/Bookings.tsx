@@ -272,6 +272,11 @@ const Bookings: React.FC = () => {
                       <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(booking.status)}`}>
                         {getStatusLabel(booking.status)}
                       </span>
+                      {booking.payment_status && booking.payment_status !== 'unpaid' && (
+                        <span className="ml-2 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-100">
+                          Pay: {booking.payment_status}
+                        </span>
+                      )}
                       <p className="text-sm text-gray-500 mt-1">
                         Booking #{booking.id.slice(0, 8)}
                       </p>

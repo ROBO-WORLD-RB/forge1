@@ -80,8 +80,83 @@ export interface FavoriteWithWorker extends Favorite {
   worker?: WorkerProfile | null;
 }
 
+/** Booking payment / escrow surface status (M4) */
+export type BookingPaymentStatus =
+  | 'unpaid'
+  | 'pending'
+  | 'held'
+  | 'released'
+  | 'refunded'
+  | 'failed';
+
+export type EscrowHoldStatus = 'held' | 'released' | 'refunded' | 'cancelled';
+
+export type WalletLedgerEntryType =
+  | 'escrow_hold'
+  | 'escrow_release'
+  | 'escrow_refund'
+  | 'adjustment'
+  | 'withdrawal_request';
+
 /** Worker OS: application to a customer job (M3) */
 export type JobApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+
+/** M4: per-user currency wallet */
+export interface Wallet {
+  id: string;
+  user_id: string;
+  currency: Currency;
+  available_balance: number;
+  pending_balance: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WalletLedgerEntry {
+  id: string;
+  wallet_id: string;
+  entry_type: WalletLedgerEntryType;
+  amount: number;
+  currency: Currency;
+  direction: 'credit' | 'debit';
+  balance_available_after: number;
+  balance_pending_after: number;
+  booking_id: string | null;
+  escrow_hold_id: string | null;
+  provider_txn_id: string | null;
+  description: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface EscrowHold {
+  id: string;
+  booking_id: string;
+  customer_user_id: string;
+  worker_user_id: string;
+  amount: number;
+  currency: Currency;
+  status: EscrowHoldStatus;
+  provider_txn_id: string | null;
+  transaction_id: string | null;
+  held_at: string;
+  released_at: string | null;
+  refunded_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PayoutAccount {
+  id: string;
+  user_id: string;
+  provider: string;
+  account_status: 'stub' | 'pending' | 'verified' | 'disabled';
+  bank_name: string | null;
+  account_last4: string | null;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
+}
 
 export interface JobApplication {
   id: string;
@@ -306,6 +381,65 @@ export interface Database {
             foreignKeyName: 'job_applications_booking_id_fkey';
             columns: ['booking_id'];
             referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      wallets: {
+        Row: Wallet;
+        Insert: Omit<Wallet, 'id' | 'created_at' | 'updated_at' | 'available_balance' | 'pending_balance'> & {
+          available_balance?: number;
+          pending_balance?: number;
+        };
+        Update: Partial<Pick<Wallet, 'available_balance' | 'pending_balance'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'wallets_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      wallet_ledger_entries: {
+        Row: WalletLedgerEntry;
+        Insert: Omit<WalletLedgerEntry, 'id' | 'created_at'>;
+        Update: never;
+        Relationships: [
+          {
+            foreignKeyName: 'wallet_ledger_entries_wallet_id_fkey';
+            columns: ['wallet_id'];
+            referencedRelation: 'wallets';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      escrow_holds: {
+        Row: EscrowHold;
+        Insert: Omit<EscrowHold, 'id' | 'created_at' | 'updated_at' | 'held_at' | 'released_at' | 'refunded_at'> & {
+          held_at?: string;
+          released_at?: string | null;
+          refunded_at?: string | null;
+        };
+        Update: Partial<Pick<EscrowHold, 'status' | 'released_at' | 'refunded_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'escrow_holds_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      payout_accounts: {
+        Row: PayoutAccount;
+        Insert: Omit<PayoutAccount, 'id' | 'created_at' | 'updated_at'>;
+        Update: Partial<Omit<PayoutAccount, 'id' | 'user_id' | 'created_at'>>;
+        Relationships: [
+          {
+            foreignKeyName: 'payout_accounts_user_id_fkey';
+            columns: ['user_id'];
+            referencedRelation: 'profiles';
             referencedColumns: ['id'];
           }
         ];
@@ -647,6 +781,8 @@ export interface Booking {
   worker_user_id: string;
   customer_user_id: string;
   status: BookingStatus;
+  /** M4: escrow / payment surface */
+  payment_status?: BookingPaymentStatus;
   customer_message: string | null;
   worker_message: string | null;
   scheduled_at: string | null;

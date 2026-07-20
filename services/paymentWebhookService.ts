@@ -480,7 +480,6 @@ export async function handleBookingPayment(
     // We just update the transaction status
     
     if (status === 'success') {
-      // Update transaction status to success
       const { error: updateError } = await (supabase
         .from('transactions') as any)
         .update({ status: 'success' })
@@ -495,8 +494,18 @@ export async function handleBookingPayment(
           error: handleDatabaseError(updateError),
         };
       }
+
+      // M4: create escrow hold (prefer Edge webhook service-role path in production)
+      try {
+        const { fundBookingEscrow } = await import('./walletService');
+        const fundResult = await fundBookingEscrow(bookingId, reference);
+        if (fundResult.error) {
+          console.warn('fundBookingEscrow after booking payment:', fundResult.error.message);
+        }
+      } catch (fundErr) {
+        console.warn('fundBookingEscrow import/call failed', fundErr);
+      }
     } else if (status === 'failed') {
-      // Update transaction status to failed
       const { error: updateError } = await (supabase
         .from('transactions') as any)
         .update({ status: 'failed' })
@@ -511,6 +520,10 @@ export async function handleBookingPayment(
           error: handleDatabaseError(updateError),
         };
       }
+
+      await (supabase.from('bookings') as any)
+        .update({ payment_status: 'failed' })
+        .eq('id', bookingId);
     }
 
     return { data: null, error: null };

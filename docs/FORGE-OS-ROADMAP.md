@@ -3,7 +3,7 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); **M3 Worker OS business loop done in code** (apply SQL `017_job_applications.sql`); M4–M6 not started  
+**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); **M3 Worker OS business loop done in code** (apply SQL `017_job_applications.sql`); **M4 wallet + escrow foundations done in code** (apply SQL `018_wallet_escrow_foundations.sql` + redeploy `paystack-webhook`); M5–M6 not started  
 
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
@@ -107,9 +107,9 @@ Authenticated users open `/messages`; conversations link parties around jobs/boo
 |------|---------|
 | Worker subscription (Basic/Premium) | Paystack checkout + `transactions` / `subscriptions`; activation **must** be webhook-proven (Phase 0 C4) |
 | Worker onboarding fee | **Skipped for beta**; UI kept for later |
-| Booking / job payment | **No escrow**. Money movement for work is off-platform or informal; `TransactionType` includes `'booking'` but escrow UX is marketing-only |
-| Wallet / payouts / invoices | **Not built** |
-| Refunds | Type exists on transactions; product flow incomplete |
+| Booking / job payment | **M4 foundations live in code:** Paystack booking charge → `escrow_holds` + worker `pending_balance` → release on COMPLETED / refund hold on CANCELLED before start. Apply SQL 018 + redeploy webhook. |
+| Wallet / payouts / invoices | **Wallet + ledger built**; bank payouts stubbed; invoices deferred |
+| Refunds | Platform hold cleared via `refund_escrow_hold`; Paystack card refund still manual/future |
 
 ### Roles & permissions (target clarity)
 
@@ -132,11 +132,12 @@ Valid transitions are already encoded client-side; OS work should **preserve** t
 ### Payment lifecycle (target honesty)
 
 ```
-Today:     Intent → Paystack (subscription) → webhook → subscriptions.tier + worker_profiles.tier
-Missing:   Booking quote → fund escrow → release on COMPLETED / refund on CANCELLED → wallet ledger → payout
+Subscriptions: Intent → Paystack → webhook → subscriptions.tier + worker_profiles.tier
+Booking (M4):  Paystack charge → fund_booking_escrow (hold + pending) → release on COMPLETED / refund hold on CANCELLED (before start) → wallet ledger
+Still missing: Bank payouts / Paystack Transfer; automated card refunds; invoices
 ```
 
-Do not claim “escrow live” in product copy until M4 ships with ledger tables and webhook-driven state.
+Marketing copy updated honestly: hold-on-booking + release-on-complete; withdrawals “coming soon.”
 
 ---
 
@@ -389,13 +390,18 @@ Labels: **High** | **Medium** | **Future**
 
 > **Apply SQL:** run migration `017_job_applications.sql` in Supabase SQL Editor (after 016).
 
-#### M4 — Payments: escrow & wallet foundations — **High** (session 5)
+#### M4 — Payments: escrow & wallet foundations — **High** (session 5) — **DONE (code)**
 
-- [ ] Additive wallet + ledger + escrow tables — **High**
-- [ ] Paystack escrow fund/release via Edge/webhook only — **High**
-- [ ] Booking payment_status surfacing in both OS — **High**
-- [ ] Invoices MVP — **Medium**
+- [x] Additive wallet + ledger + escrow tables — **High** (`018_wallet_escrow_foundations.sql`: `wallets`, `wallet_ledger_entries`, `escrow_holds`, stub `payout_accounts`, `bookings.payment_status`)
+- [x] Paystack escrow fund/release via Edge/webhook + SECURITY DEFINER RPCs — **High** (`fund_booking_escrow` on webhook / post-booking; `release_escrow_hold` on COMPLETED trigger; `refund_escrow_hold` on CANCELLED before start; Paystack card refund remains manual/future)
+- [x] Booking `payment_status` surfacing in both OS — **High** (Bookings badge; Customer `/payments`; Worker `/wallet`)
+- [ ] Invoices MVP — **Medium** (deferred; ledger + holds cover money trail for now)
 - [ ] Re-enable onboarding fee only if product requires — **Future**
+- [x] Honest marketing copy — **High** (Home / meta no longer claim generic “safe escrow” without the hold/release path)
+
+> **Apply SQL:** run migration `018_wallet_escrow_foundations.sql` in Supabase SQL Editor (after 017).  
+> **Redeploy Edge Function:** `supabase functions deploy paystack-webhook --no-verify-jwt`  
+> **Note:** Bank withdrawals / Paystack Transfer API are intentionally stubbed (“Withdrawals coming soon”).
 
 #### M5 — AI matching & assistants — **Medium** (session 6)
 

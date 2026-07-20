@@ -220,6 +220,12 @@ const CustomerDashboard: React.FC = () => {
                 Bookings
               </Link>
               <Link
+                to="/payments"
+                className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
+              >
+                Payments
+              </Link>
+              <Link
                 to="/notifications"
                 className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
               >

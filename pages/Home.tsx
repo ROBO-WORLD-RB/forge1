@@ -140,8 +140,8 @@ const Home: React.FC = () => {
                 Pros
               </h1>
               <p className="text-lg md:text-xl text-gray-300 mb-8 max-w-2xl mx-auto leading-relaxed">
-                Verified electricians, plumbers, caterers, and more. Safe escrow payments, quality
-                work, and instant booking.
+                Verified electricians, plumbers, caterers, and more. Pay on booking with funds held
+                until the job is done — plus quality work and fast booking.
               </p>
             </div>
 
@@ -247,9 +247,10 @@ const Home: React.FC = () => {
                 <div className="w-12 h-12 rounded-xl bg-forge-orange/10 flex items-center justify-center mb-4">
                   <Award className="w-6 h-6 text-forge-orange" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-2">Quality Guarantee</h3>
+                <h3 className="text-xl font-bold text-gray-900 mb-2">Payment hold on booking</h3>
                 <p className="text-gray-600 leading-relaxed">
-                  Funds are held in escrow until the job is completed to your satisfaction.
+                  When you pay for a booking, FORGE holds the amount and releases it to the worker
+                  after the job is marked completed. Bank payouts for workers are coming soon.
                 </p>
               </div>
               <div className="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">

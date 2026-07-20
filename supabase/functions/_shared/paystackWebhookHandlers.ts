@@ -29,7 +29,7 @@ export async function handlePaystackWebhook(
           return await handleSubscriptionPayment(supabase, data.reference, 'success');
         }
         if (paymentType === 'booking') {
-          return await handleBookingPayment(supabase, data.reference, 'success');
+          return await handleBookingPayment(supabase, data.reference, 'success', data);
         }
         if (paymentType === 'onboarding_fee') {
           return await handleOnboardingPayment(supabase, data.reference, 'success');
@@ -57,7 +57,7 @@ export async function handlePaystackWebhook(
           return await handleSubscriptionPayment(supabase, data.reference, 'failed');
         }
         if (paymentType === 'booking') {
-          return await handleBookingPayment(supabase, data.reference, 'failed');
+          return await handleBookingPayment(supabase, data.reference, 'failed', data);
         }
 
         return { ok: true };
@@ -239,6 +239,7 @@ export async function handleBookingPayment(
   supabase: SupabaseClient,
   reference: string,
   status: PaymentStatus,
+  eventData?: PaystackWebhookEvent['data'],
 ): Promise<HandlerResult> {
   const { data: txn, error: txnError } = await supabase
     .from('transactions')
@@ -251,22 +252,85 @@ export async function handleBookingPayment(
     return { ok: false, error: txnError.message };
   }
 
-  const metadata = txn?.metadata as Record<string, unknown> | null | undefined;
-  const bookingId = metadata?.booking_id;
+  const metadata = (txn?.metadata ?? eventData?.metadata ?? {}) as Record<string, unknown>;
+  const bookingId =
+    (typeof metadata.booking_id === 'string' && metadata.booking_id) ||
+    (typeof eventData?.metadata?.booking_id === 'string' && eventData.metadata.booking_id) ||
+    null;
 
-  if (!bookingId) {
-    console.warn(`No booking found for reference: ${reference}`);
+  const txnStatus = status === 'success' ? 'success' : 'failed';
+
+  if (txn) {
+    const { error: updateError } = await supabase
+      .from('transactions')
+      .update({ status: txnStatus })
+      .eq('provider_txn_id', reference);
+
+    if (updateError) {
+      return { ok: false, error: updateError.message };
+    }
+  } else if (status === 'success' && eventData?.metadata?.user_id) {
+    // Webhook arrived before client logged the transaction — create authoritative row
+    const amount = typeof eventData.amount === 'number' ? eventData.amount / 100 : 0;
+    const currency = ((eventData.currency as Currency) || 'NGN') as Currency;
+    await logTransaction(
+      supabase,
+      eventData.metadata.user_id,
+      'booking',
+      amount,
+      currency,
+      'paystack',
+      'success',
+      {
+        ...metadata,
+        booking_id: bookingId,
+        source: 'paystack_webhook',
+      },
+      reference,
+    );
+  }
+
+  if (status === 'failed' && bookingId) {
+    await supabase
+      .from('bookings')
+      .update({ payment_status: 'failed' })
+      .eq('id', bookingId);
     return { ok: true };
   }
 
-  const txnStatus = status === 'success' ? 'success' : 'failed';
-  const { error: updateError } = await supabase
-    .from('transactions')
-    .update({ status: txnStatus })
-    .eq('provider_txn_id', reference);
+  if (status !== 'success') {
+    return { ok: true };
+  }
 
-  if (updateError) {
-    return { ok: false, error: updateError.message };
+  if (!bookingId) {
+    console.warn(
+      `Booking payment success for ${reference} but no booking_id yet — client will fund escrow after createDirectBooking`,
+    );
+    return { ok: true };
+  }
+
+  // Service-role RPC: create escrow hold + pending ledger (idempotent)
+  const amount =
+    typeof txn?.amount === 'number'
+      ? txn.amount
+      : typeof eventData?.amount === 'number'
+      ? eventData.amount / 100
+      : null;
+  const currency =
+    (txn?.currency as Currency | undefined) ||
+    ((eventData?.currency as Currency) || null);
+
+  const { error: fundError } = await supabase.rpc('fund_booking_escrow', {
+    p_booking_id: bookingId,
+    p_provider_txn_id: reference,
+    p_amount: amount,
+    p_currency: currency,
+  });
+
+  if (fundError) {
+    console.error('fund_booking_escrow failed:', fundError.message);
+    // Do not fail the whole webhook — txn is already success; client/retry can fund
+    return { ok: true };
   }
 
   return { ok: true };

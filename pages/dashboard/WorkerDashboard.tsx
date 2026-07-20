@@ -533,15 +533,18 @@ const WorkerDashboard: React.FC = () => {
                       : `${completionPct}% completion rate`}
                   </span>
                 </div>
-                <div className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500">
+                <Link
+                  to="/wallet"
+                  className="bg-white p-5 rounded-xl shadow-sm border-l-4 border-blue-500 hover:shadow-md transition-shadow block"
+                >
                   <div className="text-gray-500 text-sm mb-1">Earnings estimate</div>
                   <div className="text-2xl font-bold text-gray-900">
                     {earningsCurrency} {earningsEstimate.toLocaleString()}
                   </div>
-                  <span className="text-xs text-gray-400 mt-2 block">
-                    From paid booking txns — wallet in M4
+                  <span className="text-xs text-forge-orange font-medium mt-2 inline-flex items-center gap-0.5">
+                    Open wallet <ChevronRight className="w-3.5 h-3.5" />
                   </span>
-                </div>
+                </Link>
               </div>
 
               <div className="grid md:grid-cols-3 gap-4 mb-8">
