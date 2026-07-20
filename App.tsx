@@ -4,7 +4,8 @@ import { AnimatePresence } from 'framer-motion';
 import { HelmetProvider } from 'react-helmet-async';
 import PageTransition from './components/PageTransition';
 import { useAuth } from './context/AuthContext';
-import { TopNav, BottomNav, isNavRouteActive } from './components/Navigation';
+import { TopNav, BottomNav, isNavRouteActive, getOsSidebarLinks, resolveOsRole } from './components/Navigation';
+import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
 import UpdatePrompt from './components/UpdatePrompt';
@@ -224,6 +225,8 @@ const AppContent: React.FC = () => {
   const { user, isAuthenticated, logout } = useAuth();
   const { needRefresh, isUpdating, updateApp, dismissUpdate } = usePWA();
   const isWorker = user?.role === 'worker';
+  const osRole = resolveOsRole(user?.role, isAuthenticated);
+  const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
   
   const location = useLocation();
   
@@ -252,30 +255,7 @@ const AppContent: React.FC = () => {
     return () => window.clearTimeout(timer);
   }, [isAuthenticated, isWorker]);
 
-  const sidebarLinks: { to: string; label: string }[] = [
-    { to: '/', label: 'Home' },
-    ...(!isAuthenticated || !isWorker
-      ? [{ to: '/search', label: 'Find Workers' }]
-      : []),
-    {
-      to: '/jobs',
-      label: isWorker ? 'Browse Projects' : 'Projects',
-    },
-    ...(isAuthenticated
-      ? [
-          { to: '/dashboard', label: 'Dashboard' },
-          { to: '/messages', label: 'Messages' },
-          { to: '/bookings', label: 'My Bookings' },
-          ...(isWorker
-            ? [
-                { to: '/subscription', label: 'Subscription' },
-                { to: '/profile/edit', label: 'Edit Profile' },
-              ]
-            : [{ to: '/jobs?create=1', label: 'Post a Project' }]),
-          { to: '/my-profile', label: 'My Profile' },
-        ]
-      : []),
-  ];
+  const sidebarLinks = getOsSidebarLinks(osRole, unreadNotifications);
 
   return (
     <div className="min-h-dynamic bg-gray-50 font-sans text-gray-900 flex flex-col">
@@ -457,26 +437,37 @@ const AppContent: React.FC = () => {
           onClick={() => setIsSidebarOpen(false)}
         >
           <div className="bg-white w-64 h-full p-6 pt-safe shadow-xl overflow-y-auto" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center gap-2 mb-6 mt-2">
+            <div className="flex items-center gap-2 mb-2 mt-2">
               <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain" />
               <h2 className="text-xl font-bold text-forge-navy">FORGE</h2>
             </div>
+            {osRole !== 'guest' && (
+              <p className="text-xs font-semibold uppercase tracking-wider text-forge-muted mb-5">
+                {osRole === 'worker' ? 'Worker OS' : 'Customer OS'}
+              </p>
+            )}
+            {osRole === 'guest' && <div className="mb-5" />}
             <div className="space-y-1">
-                {sidebarLinks.map(({ to, label }) => {
+                {sidebarLinks.map(({ to, label, badge }) => {
                   const active = isNavRouteActive(location.pathname, to.split('?')[0]);
                   return (
                     <Link
                       key={`${to}-${label}`}
                       to={to}
                       aria-current={active ? 'page' : undefined}
-                      className={`block py-2.5 px-3 rounded-lg font-medium transition-colors ${
+                      className={`flex items-center justify-between gap-2 py-2.5 px-3 rounded-lg font-medium transition-colors ${
                         active
                           ? 'bg-forge-orange/10 text-forge-orange'
                           : 'text-gray-700 hover:bg-gray-50'
                       }`}
                       onClick={() => setIsSidebarOpen(false)}
                     >
-                      {label}
+                      <span>{label}</span>
+                      {badge != null && badge > 0 && (
+                        <span className="bg-red-500 text-white text-[10px] font-bold min-w-[1.25rem] h-5 px-1.5 rounded-full flex items-center justify-center">
+                          {badge > 99 ? '99+' : badge}
+                        </span>
+                      )}
                     </Link>
                   );
                 })}

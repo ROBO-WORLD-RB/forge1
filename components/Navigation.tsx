@@ -1,5 +1,15 @@
-import React, { useState, useMemo } from 'react';
-import { Home, Search, MessageSquare, User, Briefcase, Menu, LayoutDashboard, Bell, Crown, Calendar } from 'lucide-react';
+import React, { useMemo } from 'react';
+import {
+  Home,
+  Search,
+  MessageSquare,
+  User,
+  Briefcase,
+  Menu,
+  LayoutDashboard,
+  Crown,
+  Calendar,
+} from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount';
@@ -7,6 +17,16 @@ import { useUnreadNotificationCount } from '../hooks/useUnreadNotificationCount'
 interface NavProps {
   onToggleSidebar?: () => void;
 }
+
+export type OsRole = 'customer' | 'worker' | 'guest';
+
+export type OsNavLink = {
+  to: string;
+  label: string;
+  badge?: number;
+  /** Shown in mobile sidebar; omitted from TopNav when true */
+  sidebarOnly?: boolean;
+};
 
 /** Returns true when `pathname` matches a nav route (exact or prefix for nested paths). */
 export function isNavRouteActive(pathname: string, route: string): boolean {
@@ -23,6 +43,81 @@ export function isNavRouteActive(pathname: string, route: string): boolean {
   return pathname === route || pathname.startsWith(`${route}/`);
 }
 
+export function resolveOsRole(role?: string | null, isAuthenticated?: boolean): OsRole {
+  if (!isAuthenticated) return 'guest';
+  if (role === 'worker') return 'worker';
+  return 'customer';
+}
+
+/** Full IA for mobile sidebar + desktop secondary links. */
+export function getOsSidebarLinks(os: OsRole, unreadNotifications = 0): OsNavLink[] {
+  if (os === 'guest') {
+    return [
+      { to: '/', label: 'Home' },
+      { to: '/search', label: 'Find Workers' },
+      { to: '/jobs', label: 'Projects' },
+    ];
+  }
+
+  if (os === 'worker') {
+    return [
+      { to: '/dashboard', label: 'Worker Hub' },
+      { to: '/jobs', label: 'Job Feed' },
+      { to: '/bookings', label: 'Bookings' },
+      { to: '/messages', label: 'Messages' },
+      { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+      { to: '/profile/edit', label: 'Portfolio / Profile' },
+      { to: '/subscription', label: 'Subscription / Upgrade' },
+      { to: '/my-profile', label: 'Account' },
+      { to: '/settings/privacy', label: 'Settings', sidebarOnly: true },
+    ];
+  }
+
+  // Customer OS
+  return [
+    { to: '/dashboard', label: 'Customer Hub' },
+    { to: '/search', label: 'Find Workers' },
+    { to: '/jobs', label: 'Projects' },
+    { to: '/jobs?create=1', label: 'Post a Project', sidebarOnly: true },
+    { to: '/bookings', label: 'Bookings' },
+    { to: '/messages', label: 'Messages' },
+    { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+    { to: '/my-profile', label: 'Profile' },
+    { to: '/settings/privacy', label: 'Settings', sidebarOnly: true },
+  ];
+}
+
+/** Primary TopNav links (desktop). Secondary items live in sidebar / hub. */
+export function getOsTopNavLinks(os: OsRole, unreadNotifications = 0): OsNavLink[] {
+  if (os === 'guest') {
+    return [
+      { to: '/', label: 'Home' },
+      { to: '/search', label: 'Find Workers' },
+      { to: '/jobs', label: 'Projects' },
+    ];
+  }
+
+  if (os === 'worker') {
+    return [
+      { to: '/dashboard', label: 'Worker Hub' },
+      { to: '/jobs', label: 'Job Feed' },
+      { to: '/bookings', label: 'Bookings' },
+      { to: '/messages', label: 'Messages' },
+      { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+      { to: '/profile/edit', label: 'Profile' },
+    ];
+  }
+
+  return [
+    { to: '/dashboard', label: 'Customer Hub' },
+    { to: '/search', label: 'Find Workers' },
+    { to: '/jobs', label: 'Projects' },
+    { to: '/bookings', label: 'Bookings' },
+    { to: '/messages', label: 'Messages' },
+    { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+  ];
+}
+
 function navLinkClass(pathname: string, route: string, base = ''): string {
   const active = isNavRouteActive(pathname, route);
   return [
@@ -37,7 +132,7 @@ function navLinkClass(pathname: string, route: string, base = ''): string {
 
 function bottomNavClass(pathname: string, route: string): string {
   const active = isNavRouteActive(pathname, route);
-  return `flex flex-col items-center justify-center gap-0.5 min-w-16 py-1 transition-colors ${
+  return `flex flex-col items-center justify-center gap-0.5 min-w-0 flex-1 max-w-[4.5rem] py-1 transition-colors ${
     active ? 'text-forge-orange' : 'text-gray-400 hover:text-gray-600'
   }`;
 }
@@ -53,43 +148,18 @@ function UnreadBadge({ count, className = '' }: { count: number; className?: str
   );
 }
 
-type DesktopLink = { to: string; label: string; badge?: number };
-
 export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
   const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
   const { pathname } = location;
-  const isWorker = user?.role === 'worker';
-  const isCustomer = !isWorker; // guests + customers share discover CTAs
+  const os = resolveOsRole(user?.role, isAuthenticated);
+  const isWorker = os === 'worker';
 
-  const desktopLinks: DesktopLink[] = useMemo(() => {
-    const links: DesktopLink[] = [{ to: '/', label: 'Home' }];
-
-    // Customers discover workers; workers browse customer projects (not other workers)
-    if (!isAuthenticated || isCustomer) {
-      links.push({ to: '/search', label: 'Find Workers' });
-    }
-
-    links.push({
-      to: '/jobs',
-      label: isWorker ? 'Browse Projects' : 'Projects',
-    });
-
-    if (isAuthenticated) {
-      links.push(
-        { to: '/dashboard', label: 'Dashboard' },
-        { to: '/bookings', label: 'My Bookings' },
-        { to: '/messages', label: 'Messages' },
-        { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
-      );
-      if (isWorker) {
-        links.push({ to: '/profile/edit', label: 'Profile' });
-      }
-    }
-
-    return links;
-  }, [isAuthenticated, isCustomer, isWorker, unreadNotifications]);
+  const desktopLinks = useMemo(
+    () => getOsTopNavLinks(os, unreadNotifications).filter((l) => !l.sidebarOnly),
+    [os, unreadNotifications]
+  );
 
   return (
     <nav className="sticky top-0 z-40 w-full bg-white border-b border-gray-200 shadow-sm pt-safe">
@@ -102,21 +172,27 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
           >
             <Menu className="w-6 h-6" />
           </button>
-          <Link to="/" className="flex items-center gap-2 min-w-0">
+          <Link to={isAuthenticated ? '/dashboard' : '/'} className="flex items-center gap-2 min-w-0">
             <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain shrink-0" />
             <span className="text-xl font-bold text-forge-navy tracking-tight">FORGE</span>
+            {os !== 'guest' && (
+              <span className="hidden sm:inline text-[10px] font-semibold uppercase tracking-wider text-forge-muted border border-gray-200 rounded px-1.5 py-0.5">
+                {os === 'worker' ? 'Worker' : 'Customer'}
+              </span>
+            )}
           </Link>
         </div>
 
         <div className="hidden md:flex items-center gap-1 text-sm font-medium">
           {desktopLinks.map(({ to, label, badge }) => {
-            const active = isNavRouteActive(pathname, to);
+            const routeKey = to.split('?')[0];
+            const active = isNavRouteActive(pathname, routeKey);
             return (
               <Link
                 key={`${to}-${label}`}
                 to={to}
                 aria-current={active ? 'page' : undefined}
-                className={`relative px-3 py-2 rounded-lg ${navLinkClass(pathname, to)}`}
+                className={`relative px-3 py-2 rounded-lg ${navLinkClass(pathname, routeKey)}`}
               >
                 {active && (
                   <span className="absolute inset-x-3 -bottom-[13px] h-0.5 bg-forge-orange rounded-full" aria-hidden="true" />
@@ -144,7 +220,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
               )}
               <Link
                 to="/dashboard"
-                aria-label="Open dashboard"
+                aria-label={isWorker ? 'Open Worker Hub' : 'Open Customer Hub'}
                 className={`flex items-center gap-2 text-sm font-medium rounded-lg px-1.5 py-1 ${
                   isNavRouteActive(pathname, '/dashboard')
                     ? 'text-forge-orange'
@@ -152,7 +228,9 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
                 }`}
               >
                 <span className="hidden md:block text-right">
-                  <span className="block text-xs text-gray-500">Welcome</span>
+                  <span className="block text-xs text-gray-500">
+                    {isWorker ? 'Worker Hub' : 'Customer Hub'}
+                  </span>
                   {user?.firstName || 'User'}
                 </span>
                 <div
@@ -188,108 +266,70 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
   );
 };
 
+type BottomItem = {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+};
+
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
-  const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
   const { pathname } = location;
-  const isWorker = user?.role === 'worker';
+  const os = resolveOsRole(user?.role, isAuthenticated);
+
+  // Max 5 primary tabs — secondary (notifications, settings, subscription) live in sidebar / hub
+  const items: BottomItem[] = useMemo(() => {
+    if (os === 'guest') {
+      return [
+        { to: '/', label: 'Home', icon: <Home className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/search', label: 'Find Workers', icon: <Search className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/jobs', label: 'Projects', icon: <Briefcase className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/auth/login', label: 'Sign In', icon: <User className="w-5 h-5" aria-hidden="true" /> },
+      ];
+    }
+
+    if (os === 'worker') {
+      return [
+        { to: '/dashboard', label: 'Hub', icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/jobs', label: 'Job Feed', icon: <Briefcase className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/bookings', label: 'Bookings', icon: <Calendar className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/messages', label: 'Messages', icon: <MessageSquare className="w-5 h-5" aria-hidden="true" /> },
+        { to: '/profile/edit', label: 'Profile', icon: <User className="w-5 h-5" aria-hidden="true" /> },
+      ];
+    }
+
+    return [
+      { to: '/dashboard', label: 'Hub', icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" /> },
+      { to: '/search', label: 'Find Workers', icon: <Search className="w-5 h-5" aria-hidden="true" /> },
+      { to: '/jobs', label: 'Projects', icon: <Briefcase className="w-5 h-5" aria-hidden="true" /> },
+      { to: '/bookings', label: 'Bookings', icon: <Calendar className="w-5 h-5" aria-hidden="true" /> },
+      { to: '/messages', label: 'Messages', icon: <MessageSquare className="w-5 h-5" aria-hidden="true" /> },
+    ];
+  }, [os]);
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-1.5 px-2 flex justify-around items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-area-bottom"
-      aria-label="Mobile navigation"
+      className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-1.5 px-1 flex justify-around items-center z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] safe-area-bottom"
+      aria-label={os === 'worker' ? 'Worker OS navigation' : os === 'customer' ? 'Customer OS navigation' : 'Mobile navigation'}
     >
-      <Link
-        to="/"
-        aria-current={isNavRouteActive(pathname, '/') ? 'page' : undefined}
-        className={bottomNavClass(pathname, '/')}
-      >
-        <Home className="w-5 h-5" aria-hidden="true" />
-        <span className="text-[10px] font-medium leading-tight">Home</span>
-      </Link>
-      {/* Customers find workers; workers browse projects instead */}
-      {isWorker ? (
-        <Link
-          to="/jobs"
-          aria-current={isNavRouteActive(pathname, '/jobs') ? 'page' : undefined}
-          className={bottomNavClass(pathname, '/jobs')}
-        >
-          <Briefcase className="w-5 h-5" aria-hidden="true" />
-          <span className="text-[10px] font-medium leading-tight">Projects</span>
-        </Link>
-      ) : (
-        <>
+      {items.map(({ to, label, icon }) => {
+        const routeKey = to.split('?')[0];
+        const active = isNavRouteActive(pathname, routeKey);
+        return (
           <Link
-            to="/search"
-            aria-current={isNavRouteActive(pathname, '/search') ? 'page' : undefined}
-            className={bottomNavClass(pathname, '/search')}
+            key={`${to}-${label}`}
+            to={to}
+            aria-current={active ? 'page' : undefined}
+            className={bottomNavClass(pathname, routeKey)}
           >
-            <Search className="w-5 h-5" aria-hidden="true" />
-            <span className="text-[10px] font-medium leading-tight">Workers</span>
-          </Link>
-          <Link
-            to="/jobs"
-            aria-current={isNavRouteActive(pathname, '/jobs') ? 'page' : undefined}
-            className={bottomNavClass(pathname, '/jobs')}
-          >
-            <Briefcase className="w-5 h-5" aria-hidden="true" />
-            <span className="text-[10px] font-medium leading-tight">Projects</span>
-          </Link>
-        </>
-      )}
-      {isAuthenticated ? (
-        <>
-          <Link
-            to="/bookings"
-            aria-current={isNavRouteActive(pathname, '/bookings') ? 'page' : undefined}
-            className={bottomNavClass(pathname, '/bookings')}
-          >
-            <Calendar className="w-5 h-5" aria-hidden="true" />
-            <span className="text-[10px] font-medium leading-tight">Bookings</span>
-          </Link>
-          <Link
-            to="/messages"
-            aria-current={isNavRouteActive(pathname, '/messages') ? 'page' : undefined}
-            className={bottomNavClass(pathname, '/messages')}
-          >
-            <MessageSquare className="w-5 h-5" aria-hidden="true" />
-            <span className="text-[10px] font-medium leading-tight">Chat</span>
-          </Link>
-          <Link
-            to="/notifications"
-            aria-current={isNavRouteActive(pathname, '/notifications') ? 'page' : undefined}
-            className={`${bottomNavClass(pathname, '/notifications')} min-w-14`}
-          >
-            <span className="relative">
-              <Bell className="w-5 h-5" aria-hidden="true" />
-              {unreadNotifications > 0 && (
-                <span className="absolute -top-1.5 -right-2 bg-red-500 text-white text-[9px] font-bold min-w-[14px] h-[14px] flex items-center justify-center rounded-full px-0.5 leading-none">
-                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
-                </span>
-              )}
+            {icon}
+            <span className="text-[10px] font-medium leading-tight text-center px-0.5 truncate w-full">
+              {label}
             </span>
-            <span className="text-[10px] font-medium leading-tight">Alerts</span>
           </Link>
-          <Link
-            to="/dashboard"
-            aria-current={isNavRouteActive(pathname, '/dashboard') ? 'page' : undefined}
-            className={`${bottomNavClass(pathname, '/dashboard')} min-w-14`}
-          >
-            <LayoutDashboard className="w-5 h-5" aria-hidden="true" />
-            <span className="text-[10px] font-medium leading-tight">Dash</span>
-          </Link>
-        </>
-      ) : (
-        <Link
-          to="/auth/login"
-          aria-current={isNavRouteActive(pathname, '/auth/login') ? 'page' : undefined}
-          className={bottomNavClass(pathname, '/auth/login')}
-        >
-          <User className="w-5 h-5" aria-hidden="true" />
-          <span className="text-[10px] font-medium leading-tight">Sign In</span>
-        </Link>
-      )}
+        );
+      })}
     </nav>
   );
 };

@@ -107,7 +107,7 @@ const CustomerDashboard: React.FC = () => {
   if (loading) {
     return (
       <>
-        <PageHelmet title="Customer Dashboard" path="/dashboard/customer" />
+        <PageHelmet title="Customer Hub" path="/dashboard/customer" />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-forge-orange animate-spin" />
         </div>
@@ -117,26 +117,29 @@ const CustomerDashboard: React.FC = () => {
 
   return (
     <>
-      <PageHelmet title="Customer Dashboard" path="/dashboard/customer" />
+      <PageHelmet title="Customer Hub" path="/dashboard/customer" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* OS Hub Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
+              Customer OS
+            </p>
             <h1 className="text-2xl font-bold text-forge-navy">
-              Customer Dashboard
+              Customer Hub
             </h1>
             <p className="text-gray-500 mt-1">
-              Find the right pro for your project today.
+              Hire trusted pros — post work, discover workers, and track bookings.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link 
-              to="/bookings" 
-              className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
+              to="/jobs?create=1" 
+              className="bg-forge-orange text-white px-6 py-2.5 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-forge-orange/20 font-bold"
             >
-              <Calendar className="w-5 h-5" />
-              My Bookings
+              <Plus className="w-5 h-5" />
+              Post a Project
             </Link>
             <Link 
               to="/search" 
@@ -146,11 +149,23 @@ const CustomerDashboard: React.FC = () => {
               Find Workers
             </Link>
             <Link 
-              to="/jobs?create=1" 
-              className="bg-forge-orange text-white px-6 py-2.5 rounded-xl flex items-center gap-2 hover:bg-orange-600 transition-all shadow-lg shadow-forge-orange/20 font-bold"
+              to="/bookings" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
             >
-              <Plus className="w-5 h-5" />
-              Post a Project
+              <Calendar className="w-5 h-5" />
+              Bookings
+            </Link>
+            <Link 
+              to="/notifications" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2.5 rounded-xl flex items-center gap-2 hover:bg-gray-50 transition-all font-medium"
+            >
+              <Bell className="w-5 h-5" />
+              Alerts
+              {unreadNotifications > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
             </Link>
           </div>
         </div>

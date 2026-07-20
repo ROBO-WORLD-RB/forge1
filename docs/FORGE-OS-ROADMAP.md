@@ -3,7 +3,7 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); M1–M6 not started  
+**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; M2–M6 not started  
 
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
@@ -361,12 +361,13 @@ Labels: **High** | **Medium** | **Future**
 
 > **Apply SQL:** run migrations `012`–`015` in Supabase SQL Editor. Redeploy Edge Functions `send-push-notification` and `paystack-webhook`.
 
-#### M1 — Dual OS shell & navigation — **High** (session 2)
+#### M1 — Dual OS shell & navigation — **High** (session 2) — **DONE (shell)**
 
-- [ ] Role-specific BottomNav / IA without removing working routes — **High**
-- [ ] Evolve dashboards into OS hubs (layout + entry points only) — **High**
-- [ ] Design tokens: fix cyan/theme-color; standardize Button/Input usage — **Medium**
-- [ ] Shared Modal/Card primitives for real interactions — **Medium**
+- [x] Role-specific BottomNav / IA without removing working routes — **High**
+- [x] Evolve dashboards into OS hubs (layout + entry points only) — **High**
+- [x] Design tokens: `forge-cyan` + theme-color aligned to forge-orange — **Medium**
+- [x] Shared Modal/Card primitives added (`components/Modal.tsx`, `components/Card.tsx`); gradual adopt — **Medium**
+- [ ] Broad Button/Input standardization across all pages — **Medium** (deferred; primitives exist)
 
 #### M2 — Customer OS hiring loop — **High** (session 3)
 

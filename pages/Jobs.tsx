@@ -307,18 +307,18 @@ const Jobs: React.FC = () => {
 
   return (
     <>
-      <PageHelmet title={isWorker ? 'Browse Projects' : 'Projects'} path="/jobs" />
+      <PageHelmet title={isWorker ? 'Job Feed' : 'Projects'} path="/jobs" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-forge-navy">
-              {isWorker ? 'Browse Projects' : 'Projects'}
+              {isWorker ? 'Job Feed' : 'Projects'}
             </h1>
             <p className="text-gray-500 mt-1">
               {isWorker
-                ? 'Find open customer projects and apply'
+                ? 'Browse open customer projects and apply'
                 : 'Post a project or browse what others need done'}
             </p>
           </div>
@@ -351,7 +351,7 @@ const Jobs: React.FC = () => {
                 : 'text-gray-500 hover:text-gray-700'
             }`}
           >
-            {isWorker ? 'Open Projects' : 'Browse Projects'}
+            {isWorker ? 'Open Jobs' : 'Browse Projects'}
           </button>
           {canPostProject && (
             <button

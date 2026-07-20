@@ -12,6 +12,7 @@ export default {
       colors: {
         forge: {
           orange: '#FF7A00',
+          cyan: '#0891B2',
           green: '#00A651',
           navy: '#1A1A1A',
           bg: '#F8F9FA',

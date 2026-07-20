@@ -242,7 +242,7 @@ const WorkerDashboard: React.FC = () => {
   if (loading) {
     return (
       <>
-        <PageHelmet title="Worker Dashboard" path="/dashboard/worker" />
+        <PageHelmet title="Worker Hub" path="/dashboard/worker" />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-forge-orange animate-spin" />
         </div>
@@ -252,45 +252,62 @@ const WorkerDashboard: React.FC = () => {
 
   return (
     <>
-      <PageHelmet title="Worker Dashboard" path="/dashboard/worker" />
+      <PageHelmet title="Worker Hub" path="/dashboard/worker" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-safe md:pt-0">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
+        {/* OS Hub Header */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
+            <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
+              Worker OS
+            </p>
             <h1 className="text-2xl font-bold text-forge-navy">
-              Worker Dashboard
+              Worker Hub
             </h1>
             <p className="text-gray-500 mt-1">
-              Welcome back, {user?.firstName || 'Pro'}! Manage your bookings and earnings.
+              Welcome back, {user?.firstName || 'Pro'} — browse jobs, manage bookings, and grow your profile.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link 
-              to="/bookings" 
-              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
-            >
-              <Calendar className="w-4 h-4" />
-              My Bookings
-            </Link>
             <Link 
               to="/jobs" 
               className="bg-forge-orange text-white px-4 py-2 rounded-lg font-medium hover:bg-orange-600 transition-colors flex items-center gap-2"
             >
               <Briefcase className="w-4 h-4" />
-              Browse Projects
+              Browse Jobs
             </Link>
             <Link 
               to="/profile/edit" 
-              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
             >
-              Grow your reach
+              <Star className="w-4 h-4" />
+              Grow profile
             </Link>
             <Link 
-              to={`/pro/${user?.username?.replace(/^@/, '') || user?.id}`} 
-              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors"
+              to="/bookings" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
             >
-              View Public Page
+              <Calendar className="w-4 h-4" />
+              Bookings
+            </Link>
+            <Link 
+              to="/subscription" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <Zap className="w-4 h-4" />
+              Upgrade
+            </Link>
+            <Link 
+              to="/notifications" 
+              className="bg-white text-forge-navy border border-gray-200 px-4 py-2 rounded-lg font-medium hover:bg-gray-50 transition-colors flex items-center gap-2"
+            >
+              <Bell className="w-4 h-4" />
+              Alerts
+              {unreadNotifications > 0 && (
+                <span className="bg-red-500 text-white text-[10px] font-bold min-w-[1.25rem] h-5 px-1 rounded-full flex items-center justify-center">
+                  {unreadNotifications > 9 ? '9+' : unreadNotifications}
+                </span>
+              )}
             </Link>
           </div>
         </div>
