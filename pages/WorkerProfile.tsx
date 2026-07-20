@@ -1,8 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { resolvePublicProfile, getPortfolioItems, getEndorsements } from '../services/workerService';
+import {
+  resolvePublicProfile,
+  getPortfolioItems,
+  getEndorsements,
+  calculateCompletionRate,
+} from '../services/workerService';
 import { getReviewsForWorker } from '../services/reviewService';
 import { isFavorite, toggleFavorite } from '../services/favoriteService';
+import { getBookingsByWorker } from '../services/bookingService';
 import { supabase } from '../services/supabase';
 import Button from '../components/Button';
 import BookingModal from '../components/BookingModal';
@@ -58,6 +64,8 @@ const WorkerProfilePage: React.FC = () => {
   const [usernameSlug, setUsernameSlug] = useState<string>('');
   const [favorited, setFavorited] = useState(false);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+  const [completionPct, setCompletionPct] = useState<number | null>(null);
+  const [acceptingWork, setAcceptingWork] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -93,12 +101,31 @@ const WorkerProfilePage: React.FC = () => {
 
         const mapped = mapToAppWorkerProfile(data.profile);
         setUsernameSlug(data.profile.profiles?.username || '');
+        setAcceptingWork(data.profile.accepting_work !== false);
 
-        const [portfoliosRes, endorsementsRes, reviewsRes] = await Promise.all([
+        const isOwnProfile = user?.id === data.profile.user_id;
+        const [portfoliosRes, endorsementsRes, reviewsRes, bookingsRes] = await Promise.all([
           getPortfolioItems(data.profile.user_id),
           getEndorsements(data.profile.user_id),
           getReviewsForWorker(data.profile.id),
+          isOwnProfile ? getBookingsByWorker(data.profile.user_id) : Promise.resolve({ data: null, error: null }),
         ]);
+
+        if (isOwnProfile && bookingsRes.data) {
+          const accepted = bookingsRes.data.filter((b) =>
+            ['ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REVIEWED'].includes(b.status)
+          );
+          const completed = bookingsRes.data.filter((b) =>
+            ['COMPLETED', 'REVIEWED'].includes(b.status)
+          );
+          if (accepted.length > 0) {
+            setCompletionPct(Math.round(calculateCompletionRate(completed.length, accepted.length) * 100));
+          } else {
+            setCompletionPct(null);
+          }
+        } else {
+          setCompletionPct(null);
+        }
 
         if (portfoliosRes.data) {
           setPortfolios(portfoliosRes.data);
@@ -567,9 +594,21 @@ const WorkerProfilePage: React.FC = () => {
                       <span className="text-gray-600">Plan</span>
                       <span className="font-medium text-gray-900 capitalize">{worker.tier}</span>
                     </li>
+                    <li className="flex items-start justify-between gap-2">
+                      <span className="text-gray-600">Availability</span>
+                      <span className="font-medium text-gray-900">
+                        {acceptingWork ? 'Accepting work' : 'Paused'}
+                      </span>
+                    </li>
+                    {completionPct !== null && (
+                      <li className="flex items-start justify-between gap-2">
+                        <span className="text-gray-600">Completion rate</span>
+                        <span className="font-medium text-gray-900">{completionPct}%</span>
+                      </li>
+                    )}
                   </ul>
                   <p className="text-xs text-gray-400 mt-4">
-                    Only real DB signals — no placeholder hours or fake completion rates.
+                    Only real DB signals — no placeholder hours or fake rates.
                   </p>
                 </div>
 

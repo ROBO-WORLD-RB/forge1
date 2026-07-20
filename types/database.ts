@@ -47,6 +47,8 @@ export interface WorkerProfile {
   tier: WorkerTier;
   verified: boolean;
   experience_years: number | null;
+  /** Worker OS: open for new work (M3) */
+  accepting_work?: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -76,6 +78,38 @@ export interface FavoriteInsert {
 
 export interface FavoriteWithWorker extends Favorite {
   worker?: WorkerProfile | null;
+}
+
+/** Worker OS: application to a customer job (M3) */
+export type JobApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'withdrawn';
+
+export interface JobApplication {
+  id: string;
+  job_id: string;
+  worker_user_id: string;
+  booking_id: string | null;
+  message: string | null;
+  status: JobApplicationStatus;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobApplicationInsert {
+  job_id: string;
+  worker_user_id: string;
+  booking_id?: string | null;
+  message?: string | null;
+  status?: JobApplicationStatus;
+}
+
+export interface JobApplicationUpdate {
+  booking_id?: string | null;
+  message?: string | null;
+  status?: JobApplicationStatus;
+}
+
+export interface JobApplicationWithJob extends JobApplication {
+  job?: Job | null;
 }
 
 export interface ServiceCategory {
@@ -129,6 +163,7 @@ export interface WorkerProfileInsert {
   currency?: Currency | null;
   skills?: string[];
   experience_years?: number | null;
+  accepting_work?: boolean;
 }
 
 export interface ReviewInsert {
@@ -186,6 +221,7 @@ export interface WorkerProfileUpdate {
   tier?: WorkerTier;
   verified?: boolean;
   experience_years?: number | null;
+  accepting_work?: boolean;
 }
 
 // Supabase Database type definition
@@ -245,6 +281,31 @@ export interface Database {
             foreignKeyName: 'favorites_worker_user_id_fkey';
             columns: ['worker_user_id'];
             referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          }
+        ];
+      };
+      job_applications: {
+        Row: JobApplication;
+        Insert: JobApplicationInsert;
+        Update: JobApplicationUpdate;
+        Relationships: [
+          {
+            foreignKeyName: 'job_applications_job_id_fkey';
+            columns: ['job_id'];
+            referencedRelation: 'jobs';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_applications_worker_user_id_fkey';
+            columns: ['worker_user_id'];
+            referencedRelation: 'profiles';
+            referencedColumns: ['id'];
+          },
+          {
+            foreignKeyName: 'job_applications_booking_id_fkey';
+            columns: ['booking_id'];
+            referencedRelation: 'bookings';
             referencedColumns: ['id'];
           }
         ];

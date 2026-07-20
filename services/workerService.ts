@@ -34,6 +34,7 @@ export interface WorkerProfileInput {
   experienceYears?: number | null;
   locationLat?: number | null;
   locationLng?: number | null;
+  acceptingWork?: boolean;
 }
 
 /**
@@ -117,6 +118,7 @@ export interface WorkerService {
   getProfileByUsername(username: string): Promise<WorkerServiceResult<DBWorkerWithProfile>>;
   getPortfolioItems(workerId: string): Promise<WorkerServiceResult<WorkerPortfolio[]>>;
   createPortfolioItem(workerId: string, item: { title: string; description?: string; media_urls?: string[] }): Promise<WorkerServiceResult<WorkerPortfolio>>;
+  updatePortfolioItem(itemId: string, updates: { title?: string; description?: string | null; media_urls?: string[] }): Promise<WorkerServiceResult<WorkerPortfolio>>;
   deletePortfolioItem(itemId: string): Promise<WorkerServiceResult<boolean>>;
   getEndorsements(workerId: string): Promise<WorkerServiceResult<WorkerEndorsement[]>>;
   createEndorsement(referrerId: string, refereeId: string, text?: string): Promise<WorkerServiceResult<WorkerEndorsement>>;
@@ -222,7 +224,8 @@ export async function updateProfile(
     if (updates.experienceYears !== undefined) updateData.experience_years = updates.experienceYears;
     if (updates.locationLat !== undefined) updateData.location_lat = updates.locationLat;
     if (updates.locationLng !== undefined) updateData.location_lng = updates.locationLng;
-    
+    if (updates.acceptingWork !== undefined) updateData.accepting_work = updates.acceptingWork;
+
     if (updates.hourlyRate !== undefined) {
       updateData.hourly_rate_min = updates.hourlyRate.min;
       updateData.hourly_rate_max = updates.hourlyRate.max;
@@ -892,6 +895,38 @@ export async function createPortfolioItem(
 }
 
 /**
+ * Update a portfolio item (title / description / media)
+ */
+export async function updatePortfolioItem(
+  itemId: string,
+  updates: { title?: string; description?: string | null; media_urls?: string[] }
+): Promise<WorkerServiceResult<WorkerPortfolio>> {
+  const patch: Record<string, unknown> = {};
+  if (updates.title !== undefined) patch.title = updates.title;
+  if (updates.description !== undefined) patch.description = updates.description;
+  if (updates.media_urls !== undefined) patch.media_urls = updates.media_urls;
+
+  const { data, error } = await supabase
+    .from('worker_portfolios')
+    .update(patch)
+    .eq('id', itemId)
+    .select()
+    .single();
+
+  if (error) {
+    return {
+      data: null,
+      error: handleDatabaseError(error),
+    };
+  }
+
+  return {
+    data: data as WorkerPortfolio,
+    error: null,
+  };
+}
+
+/**
  * Delete a portfolio item
  */
 export async function deletePortfolioItem(
@@ -984,6 +1019,7 @@ export const workerService: WorkerService = {
   getProfileByUsername,
   getPortfolioItems,
   createPortfolioItem,
+  updatePortfolioItem,
   deletePortfolioItem,
   getEndorsements,
   createEndorsement,

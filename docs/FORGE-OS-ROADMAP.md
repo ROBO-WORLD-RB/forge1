@@ -3,7 +3,7 @@
 **Project:** FORGE (skilled-worker marketplace — Ghana & Nigeria)  
 **Repo:** https://github.com/ROBO-WORLD-RB/forge1  
 **Stack today:** React 19 + Vite 6 SPA · Supabase BaaS · Edge Functions · Render static + PWA  
-**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); M3–M6 not started  
+**Document status:** Phase 0 / M0 security hardening implemented in code (apply SQL 012–015 + redeploy Edge Functions); **M1 Dual OS shell & navigation done in code**; **M2 Customer OS hiring loop done in code** (apply SQL `016_favorites.sql`); **M3 Worker OS business loop done in code** (apply SQL `017_job_applications.sql`); M4–M6 not started  
 
 **Audience:** Founder + engineering sessions that implement one milestone at a time
 
@@ -378,12 +378,16 @@ Labels: **High** | **Medium** | **Future**
 
 > **Apply SQL:** run migration `016_favorites.sql` in Supabase SQL Editor (after 015).
 
-#### M3 — Worker OS business loop — **High** (session 4)
+#### M3 — Worker OS business loop — **High** (session 4) — **DONE (code)**
 
-- [ ] `job_applications` first-class + JobDetail/WorkerDashboard UX — **High**
-- [ ] KYC status UX (post–secure admin) — **High**
-- [ ] Portfolio/profile completeness checklist — **Medium**
-- [ ] Subscription state honesty in Worker OS — **High**
+- [x] `job_applications` first-class + JobDetail/WorkerDashboard UX — **High** (`017_job_applications.sql`, `jobApplicationService`, apply dual-writes booking for FSM)
+- [x] KYC status UX (post–secure admin) — **High** (status + CTA on Worker Hub)
+- [x] Portfolio/profile completeness checklist — **Medium** (hub checklist; portfolio edit/delete; ProfileEdit pricing & `accepting_work`)
+- [x] Subscription state honesty in Worker OS — **High** (tier / expiring / free + webhook note on Upgrade banner)
+- [x] Job Feed polish: recommended jobs heuristic (skills/category/country), clearer apply + message poster — **High**
+- [x] Business overview metrics: pending requests, active jobs, completed, completion rate, earnings estimate (honest zeros) — **High**
+
+> **Apply SQL:** run migration `017_job_applications.sql` in Supabase SQL Editor (after 016).
 
 #### M4 — Payments: escrow & wallet foundations — **High** (session 5)
 

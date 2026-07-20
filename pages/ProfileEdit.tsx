@@ -44,6 +44,7 @@ const ProfileEdit: React.FC = () => {
     rateMin: '',
     rateMax: '',
     experienceYears: 1,
+    acceptingWork: true,
   });
 
   const [avatarPreview, setAvatarPreview] = useState<string | null>(formData.avatarUrl || null);
@@ -67,6 +68,7 @@ const ProfileEdit: React.FC = () => {
           rateMin: data.hourly_rate_min?.toString() || '',
           rateMax: data.hourly_rate_max?.toString() || '',
           experienceYears: data.experience_years ?? 1,
+          acceptingWork: data.accepting_work !== false,
         });
         if (data.location_lat != null && data.location_lng != null) {
           setLocationCoords({ lat: data.location_lat, lng: data.location_lng });
@@ -161,6 +163,7 @@ const ProfileEdit: React.FC = () => {
           bio: formData.bio,
           locationLat: locationCoords?.lat ?? null,
           locationLng: locationCoords?.lng ?? null,
+          acceptingWork: workerData.acceptingWork,
         });
       }
 
@@ -323,75 +326,101 @@ const ProfileEdit: React.FC = () => {
 
           {/* Worker-specific fields */}
           {user.role === UserRole.WORKER && (
-            <div className="bg-white rounded-xl shadow-sm p-6">
-              <h2 className="font-bold text-gray-900 mb-4">Professional Details</h2>
-              <div className="space-y-4">
-                <Input
-                  label="Primary Role"
-                  value={workerData.role}
-                  onChange={(e) => setWorkerData(prev => ({ ...prev, role: e.target.value }))}
-                  placeholder="e.g. Electrician"
-                  icon={<Briefcase className="w-4 h-4" />}
-                />
+            <>
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="font-bold text-gray-900 mb-4">Professional Details</h2>
+                <div className="space-y-4">
+                  <Input
+                    label="Primary Role"
+                    value={workerData.role}
+                    onChange={(e) => setWorkerData(prev => ({ ...prev, role: e.target.value }))}
+                    placeholder="e.g. Electrician"
+                    icon={<Briefcase className="w-4 h-4" />}
+                  />
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Skills</label>
-                  <div className="flex flex-wrap gap-2">
-                    {CATEGORIES.map(cat => (
-                      <button
-                        key={cat.id}
-                        type="button"
-                        onClick={() => {
-                          const current = workerData.skills;
-                          const updated = current.includes(cat.title)
-                            ? current.filter(s => s !== cat.title)
-                            : [...current, cat.title];
-                          setWorkerData(prev => ({ ...prev, skills: updated }));
-                        }}
-                        className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
-                          workerData.skills.includes(cat.title)
-                            ? 'bg-forge-navy text-white border-forge-navy'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
-                        }`}
-                      >
-                        {cat.title}
-                      </button>
-                    ))}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Skills</label>
+                    <div className="flex flex-wrap gap-2">
+                      {CATEGORIES.map(cat => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => {
+                            const current = workerData.skills;
+                            const updated = current.includes(cat.title)
+                              ? current.filter(s => s !== cat.title)
+                              : [...current, cat.title];
+                            setWorkerData(prev => ({ ...prev, skills: updated }));
+                          }}
+                          className={`px-3 py-1.5 rounded-lg text-sm border transition-all ${
+                            workerData.skills.includes(cat.title)
+                              ? 'bg-forge-navy text-white border-forge-navy'
+                              : 'bg-white text-gray-600 border-gray-200 hover:border-gray-300'
+                          }`}
+                        >
+                          {cat.title}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Years of Experience: {workerData.experienceYears}
+                    </label>
+                    <input
+                      type="range"
+                      min="0"
+                      max="30"
+                      value={workerData.experienceYears}
+                      onChange={(e) => setWorkerData(prev => ({ ...prev, experienceYears: parseInt(e.target.value) }))}
+                      className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-forge-orange"
+                    />
                   </div>
                 </div>
+              </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    label={`Min Rate (${user.country === 'GH' ? 'GHS' : 'NGN'})`}
-                    type="number"
-                    value={workerData.rateMin}
-                    onChange={(e) => setWorkerData(prev => ({ ...prev, rateMin: e.target.value }))}
-                    placeholder="0"
-                  />
-                  <Input
-                    label={`Max Rate (${user.country === 'GH' ? 'GHS' : 'NGN'})`}
-                    type="number"
-                    value={workerData.rateMax}
-                    onChange={(e) => setWorkerData(prev => ({ ...prev, rateMax: e.target.value }))}
-                    placeholder="0"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                    Years of Experience: {workerData.experienceYears}
+              <div className="bg-white rounded-xl shadow-sm p-6">
+                <h2 className="font-bold text-gray-900 mb-1">Pricing & availability</h2>
+                <p className="text-sm text-gray-500 mb-4">
+                  Clear rates help customers book you. Toggle availability when you are busy.
+                </p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      label={`Min rate / hr (${user.country === 'GH' ? 'GHS' : 'NGN'})`}
+                      type="number"
+                      value={workerData.rateMin}
+                      onChange={(e) => setWorkerData(prev => ({ ...prev, rateMin: e.target.value }))}
+                      placeholder="0"
+                    />
+                    <Input
+                      label={`Max rate / hr (${user.country === 'GH' ? 'GHS' : 'NGN'})`}
+                      type="number"
+                      value={workerData.rateMax}
+                      onChange={(e) => setWorkerData(prev => ({ ...prev, rateMax: e.target.value }))}
+                      placeholder="0"
+                    />
+                  </div>
+                  <label className="flex items-center justify-between gap-3 p-4 rounded-xl border border-gray-200 cursor-pointer">
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">Accepting new work</p>
+                      <p className="text-xs text-gray-500 mt-0.5">
+                        Turn off when you are fully booked
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={workerData.acceptingWork}
+                      onChange={(e) =>
+                        setWorkerData((prev) => ({ ...prev, acceptingWork: e.target.checked }))
+                      }
+                      className="w-5 h-5 accent-forge-orange"
+                    />
                   </label>
-                  <input
-                    type="range"
-                    min="0"
-                    max="30"
-                    value={workerData.experienceYears}
-                    onChange={(e) => setWorkerData(prev => ({ ...prev, experienceYears: parseInt(e.target.value) }))}
-                    className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-forge-orange"
-                  />
                 </div>
               </div>
-            </div>
+            </>
           )}
 
           {/* Submit Button */}

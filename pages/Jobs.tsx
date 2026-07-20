@@ -2,11 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { searchJobs, getJobsByPoster, createJob, deleteJob } from '../services/jobService';
+import { getProfileByUserId } from '../services/workerService';
+import { rankJobsForWorker } from '../services/jobApplicationService';
 import type { Job, Country, Currency } from '../types/database';
 import { CATEGORIES } from '../constants';
 import { 
   Briefcase, MapPin, DollarSign, Calendar, Plus, Search, 
-  Loader2, Trash2, ChevronRight, X, Video, Upload, AlertCircle, RefreshCw
+  Loader2, Trash2, ChevronRight, X, Video, Upload, AlertCircle, RefreshCw, Sparkles
 } from 'lucide-react';
 import { uploadPublicFile } from '../utils/storageUpload';
 import PageHelmet from '../components/PageHelmet';
@@ -42,6 +44,9 @@ const Jobs: React.FC = () => {
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccess, setCreateSuccess] = useState<string | null>(null);
   const [deletingJobId, setDeletingJobId] = useState<string | null>(null);
+  const [recommendedJobs, setRecommendedJobs] = useState<
+    Array<Job & { matchScore: number; matchReason: string }>
+  >([]);
   
   // Media upload state
   const [mediaFiles, setMediaFiles] = useState<File[]>([]);
@@ -59,10 +64,24 @@ const Jobs: React.FC = () => {
     if (result.error) {
       setFetchError(result.error.message || 'Failed to load projects. Please try again.');
       setJobs([]);
+      setRecommendedJobs([]);
     } else if (result.data) {
       setJobs(result.data);
+      if (isWorker && user?.id) {
+        const wp = await getProfileByUserId(user.id);
+        const ranked = rankJobsForWorker(result.data, {
+          skills: wp.data?.skills || user.specialties || [],
+          role: wp.data?.role || user.specialties?.[0] || '',
+          country: user.country,
+          location: wp.data?.location || user.location || '',
+        }).slice(0, 5);
+        setRecommendedJobs(ranked);
+      } else {
+        setRecommendedJobs([]);
+      }
     } else {
       setJobs([]);
+      setRecommendedJobs([]);
     }
     setLoading(false);
   };
@@ -407,6 +426,32 @@ const Jobs: React.FC = () => {
             </>
           )}
         </div>
+
+        {isWorker && activeTab === 'browse' && recommendedJobs.length > 0 && !loading && !fetchError && (
+          <div className="mb-6 bg-white rounded-xl border border-orange-100 shadow-sm overflow-hidden">
+            <div className="px-4 py-3 border-b border-orange-50 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-forge-orange" />
+              <h2 className="font-semibold text-forge-navy text-sm">Recommended for your skills</h2>
+            </div>
+            <div className="divide-y divide-gray-50">
+              {recommendedJobs.map((job) => (
+                <Link
+                  key={`rec-${job.id}`}
+                  to={`/jobs/${job.id}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-orange-50/40 transition-colors"
+                >
+                  <div className="min-w-0">
+                    <p className="font-medium text-gray-900 text-sm truncate">{job.title}</p>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      {job.category} · {job.location} · {job.matchReason}
+                    </p>
+                  </div>
+                  <span className="text-xs font-medium text-forge-orange shrink-0">Apply</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
 
         {deleteError && (
           <div className="mb-4 bg-red-50 text-red-600 p-3 rounded-xl text-sm flex items-center justify-between gap-3">

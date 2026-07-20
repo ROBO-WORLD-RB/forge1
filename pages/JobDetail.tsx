@@ -2,8 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { getJob, deleteJob, updateJobStatus } from '../services/jobService';
-import { createBooking, getBookingsByJob } from '../services/bookingService';
-import type { Job, Booking } from '../types/database';
+import { getBookingsByJob } from '../services/bookingService';
+import {
+  applyToJob,
+  getApplicationForJob,
+  getApplicationsByJob,
+} from '../services/jobApplicationService';
+import type { Job, Booking, JobApplication } from '../types/database';
 import { CATEGORIES } from '../constants';
 import { 
   ArrowLeft, Briefcase, MapPin, DollarSign, Calendar, 
@@ -29,7 +34,9 @@ const JobDetail: React.FC = () => {
   const [applying, setApplying] = useState(false);
   const [applyError, setApplyError] = useState<string | null>(null);
   const [existingBooking, setExistingBooking] = useState<Booking | null>(null);
+  const [existingApplication, setExistingApplication] = useState<JobApplication | null>(null);
   const [jobBookings, setJobBookings] = useState<Booking[]>([]);
+  const [jobApplications, setJobApplications] = useState<JobApplication[]>([]);
   const [bookingsLoading, setBookingsLoading] = useState(false);
 
   useEffect(() => {
@@ -40,8 +47,9 @@ const JobDetail: React.FC = () => {
     if (!id || !job) return;
     if (user?.id === job.poster_user_id) {
       fetchJobBookings();
+      fetchJobApplications();
     } else if (user?.role === 'worker' && user.id) {
-      checkWorkerBooking();
+      checkWorkerApplication();
     }
   }, [id, job?.id, job?.poster_user_id, user?.id, user?.role]);
 
@@ -96,8 +104,20 @@ const JobDetail: React.FC = () => {
     setBookingsLoading(false);
   };
 
-  const checkWorkerBooking = async () => {
+  const fetchJobApplications = async () => {
+    if (!id) return;
+    const result = await getApplicationsByJob(id, 'pending');
+    if (result.data) {
+      setJobApplications(result.data);
+    }
+  };
+
+  const checkWorkerApplication = async () => {
     if (!id || !user?.id) return;
+    const appResult = await getApplicationForJob(id, user.id);
+    if (appResult.data) {
+      setExistingApplication(appResult.data);
+    }
     const result = await getBookingsByJob(id);
     if (result.data) {
       const mine = result.data.find(b => b.worker_user_id === user.id);
@@ -109,14 +129,17 @@ const JobDetail: React.FC = () => {
     if (!job || !user?.id) return;
     setApplying(true);
     setApplyError(null);
-    const result = await createBooking(job.id, user.id, applyMessage || undefined);
+    const result = await applyToJob(job.id, user.id, applyMessage || undefined);
     if (result.error) {
       setApplyError(result.error.message);
     } else if (result.data) {
-      setExistingBooking(result.data);
+      setExistingApplication(result.data.application);
+      if (result.data.booking) setExistingBooking(result.data.booking);
     }
     setApplying(false);
   };
+
+  const hasApplied = !!existingApplication || !!existingBooking;
 
   const isOwner = user?.id === job?.poster_user_id;
   const isWorker = user?.role === 'worker';
@@ -172,6 +195,27 @@ const JobDetail: React.FC = () => {
       default: return status;
     }
   };
+
+  const getApplicationStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending': return 'Awaiting review';
+      case 'accepted': return 'Accepted';
+      case 'rejected': return 'Not selected';
+      case 'withdrawn': return 'Withdrawn';
+      default: return status;
+    }
+  };
+
+  const pendingApplications =
+    jobApplications.length > 0
+      ? jobApplications
+      : jobBookings.map((b) => ({
+          id: b.id,
+          worker_user_id: b.worker_user_id,
+          message: b.customer_message,
+          status: 'pending' as const,
+          booking_id: b.id,
+        }));
 
   if (loading) {
     return (
@@ -369,29 +413,31 @@ const JobDetail: React.FC = () => {
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Loading applications...
                   </div>
-                ) : jobBookings.length > 0 ? (
+                ) : pendingApplications.length > 0 ? (
                   <div className="mt-4">
                     <h4 className="font-medium text-gray-900 mb-2">
-                      Pending Applications ({jobBookings.length})
+                      Pending Applications ({pendingApplications.length})
                     </h4>
                     <div className="space-y-3">
-                      {jobBookings.map(booking => (
-                        <div key={booking.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                      {pendingApplications.map((app) => (
+                        <div key={app.id} className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                           <div className="flex items-center justify-between mb-1">
                             <Link
-                              to={`/profile/${booking.worker_user_id}`}
+                              to={`/profile/${app.worker_user_id}`}
                               className="font-medium text-forge-orange hover:underline"
                             >
                               View worker profile
                             </Link>
                             <span className="text-xs px-2 py-0.5 rounded-full bg-yellow-100 text-yellow-800">
-                              {getBookingStatusLabel(booking.status)}
+                              {app.status === 'pending'
+                                ? 'Awaiting review'
+                                : getApplicationStatusLabel(app.status)}
                             </span>
                           </div>
-                          {booking.customer_message && (
+                          {app.message && (
                             <p className="text-sm text-gray-600 mt-2 flex items-start gap-2">
                               <MessageSquare className="w-4 h-4 flex-shrink-0 mt-0.5" />
-                              {booking.customer_message}
+                              {app.message}
                             </p>
                           )}
                           <Link
@@ -447,13 +493,20 @@ const JobDetail: React.FC = () => {
             {/* Worker apply flow */}
             {!isOwner && isWorker && user && job.status === 'open' && (
               <div className="border-t border-gray-100 pt-6 mt-6">
-                {existingBooking ? (
+                {hasApplied ? (
                   <div className="p-4 bg-green-50 rounded-xl flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
                     <div className="flex-1">
                       <p className="font-medium text-green-800">Application submitted</p>
                       <p className="text-sm text-green-700 mt-1">
-                        Status: {getBookingStatusLabel(existingBooking.status)}. The job poster will review your request.
+                        Status:{' '}
+                        {existingBooking
+                          ? getBookingStatusLabel(existingBooking.status)
+                          : getApplicationStatusLabel(existingApplication?.status || 'pending')}
+                        . The job poster will review your request.
+                      </p>
+                      <p className="text-xs text-green-600 mt-1">
+                        Tip: send a short message so the customer can reply quickly.
                       </p>
                       <div className="flex flex-wrap items-center gap-3 mt-3">
                         <button
@@ -467,12 +520,18 @@ const JobDetail: React.FC = () => {
                         <Link to="/bookings" className="text-sm text-forge-orange hover:underline">
                           View in My Bookings →
                         </Link>
+                        <Link to="/dashboard/worker" className="text-sm text-gray-500 hover:underline">
+                          Worker Hub
+                        </Link>
                       </div>
                     </div>
                   </div>
                 ) : (
                   <>
-                    <h3 className="font-medium text-gray-900 mb-3">Apply for this Job</h3>
+                    <h3 className="font-medium text-gray-900 mb-1">Apply for this job</h3>
+                    <p className="text-sm text-gray-500 mb-3">
+                      Introduce yourself, then message the poster if you have questions.
+                    </p>
                     <textarea
                       value={applyMessage}
                       onChange={(e) => setApplyMessage(e.target.value)}
@@ -497,7 +556,7 @@ const JobDetail: React.FC = () => {
                         ) : (
                           <>
                             <Send className="w-5 h-5" />
-                            Apply / Request Job
+                            Submit application
                           </>
                         )}
                       </button>
