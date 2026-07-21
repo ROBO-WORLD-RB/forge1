@@ -524,7 +524,7 @@ const JobDetail: React.FC = () => {
                           View in My Bookings →
                         </Link>
                         <Link to="/dashboard/worker" className="inline-flex items-center min-h-[44px] text-sm text-gray-500 hover:underline">
-                          Worker Hub
+                          Dashboard
                         </Link>
                       </div>
                     </div>

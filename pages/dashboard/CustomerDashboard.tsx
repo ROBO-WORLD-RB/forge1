@@ -205,7 +205,7 @@ const CustomerDashboard: React.FC = () => {
   if (loading) {
     return (
       <>
-        <PageHelmet title="Customer Hub" path="/dashboard/customer" />
+        <PageHelmet title="My dashboard" path="/dashboard/customer" />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
           <Loader2 className="w-8 h-8 text-forge-orange animate-spin" />
         </div>
@@ -215,15 +215,15 @@ const CustomerDashboard: React.FC = () => {
 
   return (
     <>
-      <PageHelmet title="Customer Hub" path="/dashboard/customer" />
+      <PageHelmet title="My dashboard" path="/dashboard/customer" />
       <div className="min-h-dynamic bg-gray-50 px-4 pb-nav pt-4 md:pt-6 overflow-x-hidden">
         <div className="max-w-6xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-3 mb-6 md:mb-8">
             <div className="min-w-0">
               <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
-                Customer OS
+                Customer
               </p>
-              <h1 className="text-2xl font-bold text-forge-navy">Customer Hub</h1>
+              <h1 className="text-2xl font-bold text-forge-navy">My dashboard</h1>
               <p className="text-gray-500 mt-1 text-sm md:text-base">
                 Discover → Trust → Hire → Manage — your hiring pipeline in one place.
               </p>

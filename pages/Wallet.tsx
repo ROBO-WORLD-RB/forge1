@@ -68,12 +68,12 @@ const WalletPage: React.FC = () => {
             to="/dashboard/worker"
             className="inline-flex items-center gap-1 text-sm text-forge-orange font-medium hover:underline mb-4"
           >
-            <ArrowLeft className="w-4 h-4" /> Worker Hub
+            <ArrowLeft className="w-4 h-4" /> Dashboard
           </Link>
 
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
-              Worker OS
+              Worker
             </p>
             <h1 className="text-2xl font-bold text-forge-navy flex items-center gap-2">
               <WalletIcon className="w-7 h-7 text-forge-orange" />

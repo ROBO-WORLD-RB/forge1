@@ -475,7 +475,7 @@ const AppContent: React.FC = () => {
             </div>
             {osRole !== 'guest' && (
               <p className="text-xs font-semibold uppercase tracking-wider text-forge-muted mb-4">
-                {osRole === 'worker' ? 'Worker OS' : 'Customer OS'}
+                Menu
               </p>
             )}
             {osRole === 'guest' && <div className="mb-4" />}

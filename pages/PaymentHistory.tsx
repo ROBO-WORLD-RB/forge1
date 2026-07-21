@@ -54,12 +54,12 @@ const PaymentHistory: React.FC = () => {
             to="/dashboard/customer"
             className="inline-flex items-center gap-1 text-sm text-forge-orange font-medium hover:underline mb-4 min-h-[44px]"
           >
-            <ArrowLeft className="w-4 h-4" /> Customer Hub
+            <ArrowLeft className="w-4 h-4" /> My dashboard
           </Link>
 
           <div className="mb-6">
             <p className="text-xs font-semibold uppercase tracking-wider text-forge-orange mb-1">
-              Customer OS
+              Customer
             </p>
             <h1 className="text-2xl font-bold text-forge-navy">Payment History</h1>
             <p className="text-gray-500 mt-1 text-sm">

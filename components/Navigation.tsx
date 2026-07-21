@@ -29,6 +29,12 @@ export type OsNavLink = {
   sidebarOnly?: boolean;
 };
 
+type BottomItem = {
+  to: string;
+  label: string;
+  icon: React.ReactNode;
+};
+
 /** Returns true when `pathname` matches a nav route (exact or prefix for nested paths). */
 export function isNavRouteActive(pathname: string, route: string): boolean {
   if (route === '/') return pathname === '/';
@@ -50,75 +56,105 @@ export function resolveOsRole(role?: string | null, isAuthenticated?: boolean): 
   return 'customer';
 }
 
-/** Full IA for mobile sidebar + desktop secondary links. */
-export function getOsSidebarLinks(os: OsRole, unreadNotifications = 0): OsNavLink[] {
+/** Pathname keys used by BottomNav — must never appear in the hamburger sidebar. */
+export function getOsBottomNavRoutes(os: OsRole): string[] {
+  if (os === 'guest') return ['/', '/search'];
+  if (os === 'worker') return ['/jobs', '/bookings', '/messages', '/dashboard/worker'];
+  return ['/', '/search', '/bookings', '/messages'];
+}
+
+/** Primary mobile bottom tabs only (3–4). Secondary destinations live in the hamburger. */
+export function getOsBottomNavItems(os: OsRole): Omit<BottomItem, 'icon'>[] {
   if (os === 'guest') {
     return [
       { to: '/', label: 'Home' },
-      { to: '/search', label: 'Find Workers' },
-      { to: '/jobs', label: 'Projects' },
+      { to: '/search', label: 'Find pros' },
     ];
   }
 
   if (os === 'worker') {
     return [
-      { to: '/dashboard', label: 'Worker Hub' },
-      { to: '/jobs', label: 'Job Feed' },
+      { to: '/jobs', label: 'Jobs' },
       { to: '/bookings', label: 'Bookings' },
-      { to: '/wallet', label: 'Wallet / Earnings' },
-      { to: '/messages', label: 'Messages' },
-      { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
-      { to: '/profile/edit', label: 'Portfolio / Profile' },
-      { to: '/subscription', label: 'Subscription / Upgrade' },
-      { to: '/my-profile', label: 'Account' },
-      { to: '/settings/privacy', label: 'Settings', sidebarOnly: true },
+      { to: '/messages', label: 'Chat' },
+      { to: '/dashboard/worker', label: 'Dashboard' },
     ];
   }
 
-  // Customer OS
   return [
-    { to: '/dashboard', label: 'Customer Hub' },
-    { to: '/search', label: 'Find Workers' },
-    { to: '/jobs', label: 'Projects' },
-    { to: '/jobs?create=1', label: 'Post a Project', sidebarOnly: true },
-    { to: '/bookings', label: 'Bookings' },
-    { to: '/payments', label: 'Payment History', sidebarOnly: true },
-    { to: '/messages', label: 'Messages' },
-    { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
-    { to: '/dashboard/customer', label: 'Saved workers', sidebarOnly: true },
-    { to: '/my-profile', label: 'Profile' },
-    { to: '/settings/privacy', label: 'Settings', sidebarOnly: true },
+    { to: '/', label: 'Home' },
+    { to: '/search', label: 'Find pros' },
+    { to: '/bookings', label: 'My jobs' },
+    { to: '/messages', label: 'Chat' },
   ];
 }
 
-/** Primary TopNav links (desktop). Secondary items live in sidebar / hub. */
+function pathKey(to: string): string {
+  return to.split('?')[0];
+}
+
+/** Mobile sidebar + secondary links. Never overlaps BottomNav destinations. */
+export function getOsSidebarLinks(os: OsRole, unreadNotifications = 0): OsNavLink[] {
+  const bottomRoutes = new Set(getOsBottomNavRoutes(os));
+
+  let links: OsNavLink[];
+
+  if (os === 'guest') {
+    links = [
+      { to: '/jobs', label: 'Projects' },
+    ];
+  } else if (os === 'worker') {
+    links = [
+      { to: '/profile/edit', label: 'Portfolio' },
+      { to: '/subscription', label: 'Upgrade' },
+      { to: '/wallet', label: 'Payments' },
+      { to: '/notifications', label: 'Alerts', badge: unreadNotifications },
+      { to: '/my-profile', label: 'Account' },
+      { to: '/settings/privacy', label: 'Settings' },
+    ];
+  } else {
+    // Customer — dashboard, projects, payments, alerts, profile, settings
+    links = [
+      { to: '/dashboard', label: 'My dashboard' },
+      { to: '/jobs', label: 'Projects' },
+      { to: '/payments', label: 'Payments' },
+      { to: '/notifications', label: 'Alerts', badge: unreadNotifications },
+      { to: '/my-profile', label: 'Profile' },
+      { to: '/settings/privacy', label: 'Settings' },
+    ];
+  }
+
+  return links.filter((l) => !bottomRoutes.has(pathKey(l.to)));
+}
+
+/** Primary TopNav links (desktop). Richer than mobile bottom bar. */
 export function getOsTopNavLinks(os: OsRole, unreadNotifications = 0): OsNavLink[] {
   if (os === 'guest') {
     return [
       { to: '/', label: 'Home' },
-      { to: '/search', label: 'Find Workers' },
+      { to: '/search', label: 'Find pros' },
       { to: '/jobs', label: 'Projects' },
     ];
   }
 
   if (os === 'worker') {
     return [
-      { to: '/dashboard', label: 'Worker Hub' },
-      { to: '/jobs', label: 'Job Feed' },
+      { to: '/dashboard/worker', label: 'Dashboard' },
+      { to: '/jobs', label: 'Jobs' },
       { to: '/bookings', label: 'Bookings' },
-      { to: '/messages', label: 'Messages' },
-      { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
-      { to: '/profile/edit', label: 'Profile' },
+      { to: '/messages', label: 'Chat' },
+      { to: '/notifications', label: 'Alerts', badge: unreadNotifications },
+      { to: '/profile/edit', label: 'Portfolio' },
     ];
   }
 
   return [
-    { to: '/dashboard', label: 'Customer Hub' },
-    { to: '/search', label: 'Find Workers' },
+    { to: '/dashboard', label: 'My dashboard' },
+    { to: '/search', label: 'Find pros' },
     { to: '/jobs', label: 'Projects' },
-    { to: '/bookings', label: 'Bookings' },
-    { to: '/messages', label: 'Messages' },
-    { to: '/notifications', label: 'Notifications', badge: unreadNotifications },
+    { to: '/bookings', label: 'My jobs' },
+    { to: '/messages', label: 'Chat' },
+    { to: '/notifications', label: 'Alerts', badge: unreadNotifications },
   ];
 }
 
@@ -150,6 +186,19 @@ function UnreadBadge({ count, className = '' }: { count: number; className?: str
       {count > 99 ? '99+' : count}
     </span>
   );
+}
+
+function bottomIcon(to: string, os: OsRole): React.ReactNode {
+  const cls = 'w-5 h-5';
+  if (to === '/') return <Home className={cls} aria-hidden="true" />;
+  if (to === '/search') return <Search className={cls} aria-hidden="true" />;
+  if (to === '/jobs') return <Briefcase className={cls} aria-hidden="true" />;
+  if (to === '/bookings') return <Calendar className={cls} aria-hidden="true" />;
+  if (to === '/messages') return <MessageSquare className={cls} aria-hidden="true" />;
+  if (to.startsWith('/dashboard')) return <LayoutDashboard className={cls} aria-hidden="true" />;
+  if (to === '/auth/login') return <User className={cls} aria-hidden="true" />;
+  if (os === 'worker') return <Briefcase className={cls} aria-hidden="true" />;
+  return <Home className={cls} aria-hidden="true" />;
 }
 
 export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
@@ -225,7 +274,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
               )}
               <Link
                 to="/dashboard"
-                aria-label={isWorker ? 'Open Worker Hub' : 'Open Customer Hub'}
+                aria-label={isWorker ? 'Open dashboard' : 'Open my dashboard'}
                 className={`flex items-center gap-2 text-sm font-medium rounded-lg min-h-[44px] px-1.5 py-1 ${
                   isNavRouteActive(pathname, '/dashboard')
                     ? 'text-forge-orange'
@@ -234,7 +283,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
               >
                 <span className="hidden md:block text-right">
                   <span className="block text-xs text-gray-500">
-                    {isWorker ? 'Worker Hub' : 'Customer Hub'}
+                    {isWorker ? 'Dashboard' : 'My dashboard'}
                   </span>
                   {user?.firstName || 'User'}
                 </span>
@@ -262,7 +311,7 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
             <div className="flex items-center gap-2">
               <Link
                 to="/auth/login"
-                className={`hidden md:block text-sm font-medium px-3 py-2 rounded-lg ${navLinkClass(pathname, '/auth/login')}`}
+                className={`text-sm font-medium px-3 py-2 rounded-lg min-h-[44px] inline-flex items-center ${navLinkClass(pathname, '/auth/login')}`}
               >
                 Sign In
               </Link>
@@ -280,52 +329,23 @@ export const TopNav: React.FC<NavProps> = ({ onToggleSidebar }) => {
   );
 };
 
-type BottomItem = {
-  to: string;
-  label: string;
-  icon: React.ReactNode;
-};
-
 export const BottomNav: React.FC = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   const { pathname } = location;
   const os = resolveOsRole(user?.role, isAuthenticated);
 
-  // Max 5 primary tabs — secondary (notifications, settings, subscription) live in sidebar / hub
   const items: BottomItem[] = useMemo(() => {
-    if (os === 'guest') {
-      return [
-        { to: '/', label: 'Home', icon: <Home className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/search', label: 'Find Workers', icon: <Search className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/jobs', label: 'Projects', icon: <Briefcase className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/auth/login', label: 'Sign In', icon: <User className="w-5 h-5" aria-hidden="true" /> },
-      ];
-    }
-
-    if (os === 'worker') {
-      return [
-        { to: '/dashboard', label: 'Hub', icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/jobs', label: 'Job Feed', icon: <Briefcase className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/bookings', label: 'Bookings', icon: <Calendar className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/messages', label: 'Messages', icon: <MessageSquare className="w-5 h-5" aria-hidden="true" /> },
-        { to: '/profile/edit', label: 'Profile', icon: <User className="w-5 h-5" aria-hidden="true" /> },
-      ];
-    }
-
-    return [
-      { to: '/dashboard', label: 'Hub', icon: <LayoutDashboard className="w-5 h-5" aria-hidden="true" /> },
-      { to: '/search', label: 'Find Workers', icon: <Search className="w-5 h-5" aria-hidden="true" /> },
-      { to: '/jobs', label: 'Projects', icon: <Briefcase className="w-5 h-5" aria-hidden="true" /> },
-      { to: '/bookings', label: 'Bookings', icon: <Calendar className="w-5 h-5" aria-hidden="true" /> },
-      { to: '/messages', label: 'Messages', icon: <MessageSquare className="w-5 h-5" aria-hidden="true" /> },
-    ];
+    return getOsBottomNavItems(os).map((item) => ({
+      ...item,
+      icon: bottomIcon(item.to, os),
+    }));
   }, [os]);
 
   return (
     <nav
       className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 pb-safe pt-1 px-0.5 flex justify-around items-stretch z-40 shadow-[0_-2px_10px_rgba(0,0,0,0.05)]"
-      aria-label={os === 'worker' ? 'Worker OS navigation' : os === 'customer' ? 'Customer OS navigation' : 'Mobile navigation'}
+      aria-label={os === 'worker' ? 'Worker navigation' : os === 'customer' ? 'Customer navigation' : 'Mobile navigation'}
     >
       {items.map(({ to, label, icon }) => {
         const routeKey = to.split('?')[0];
