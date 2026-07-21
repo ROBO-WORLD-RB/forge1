@@ -1,4 +1,5 @@
 import { logger } from './logger';
+import { clearUpdateOverlay, reloadWithUpdateOverlay } from './updateOverlay';
 
 const BUILD_ID_META = 'forge-build-id';
 const VERSION_RELOAD_KEY = 'forge:version-reload';
@@ -34,20 +35,36 @@ export async function fetchRemoteVersion(): Promise<VersionManifest | null> {
   }
 }
 
-/** Reload once per session to avoid infinite update loops. */
-export function reloadForUpdate(reason: string): boolean {
+function hasReloadedThisSession(): boolean {
   try {
-    if (sessionStorage.getItem(VERSION_RELOAD_KEY)) {
-      logger.info('Skipping duplicate update reload', { reason }, 'AppUpdate');
-      return false;
-    }
+    return !!sessionStorage.getItem(VERSION_RELOAD_KEY);
+  } catch {
+    return false;
+  }
+}
+
+function markReloaded(reason: string): void {
+  try {
     sessionStorage.setItem(VERSION_RELOAD_KEY, reason);
   } catch {
     /* sessionStorage unavailable */
   }
+}
 
-  logger.info('Reloading for app update', { reason }, 'AppUpdate');
-  window.location.reload();
+/** Mark an impending SW-driven reload so version checks do not double-reload. */
+export function markPendingUpdateReload(reason: string): void {
+  if (hasReloadedThisSession()) return;
+  markReloaded(reason);
+}
+
+/** Reload once per session to avoid infinite update loops. */
+export function reloadForUpdate(reason: string): boolean {
+  if (hasReloadedThisSession()) {
+    logger.info('Skipping duplicate update reload', { reason }, 'AppUpdate');
+    return false;
+  }
+
+  void reloadWithUpdateOverlay(reason, hasReloadedThisSession, markReloaded);
   return true;
 }
 
@@ -90,6 +107,7 @@ export async function triggerServiceWorkerUpdateCheck(): Promise<void> {
 
 export function initAppUpdateListeners(): () => void {
   clearUpdateReloadFlag();
+  clearUpdateOverlay();
 
   const handleVisibility = () => {
     if (document.visibilityState !== 'visible') return;

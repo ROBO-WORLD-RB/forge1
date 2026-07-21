@@ -10,6 +10,7 @@ import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
 import UpdatePrompt from './components/UpdatePrompt';
+import UpdatingOverlay from './components/UpdatingOverlay';
 import { usePageTracking } from './hooks/useAnalytics';
 import { usePWA } from './hooks/usePWA';
 import { InstallPrompt } from './components/InstallPrompt';
@@ -263,12 +264,7 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-dynamic bg-gray-50 font-sans text-gray-900 flex flex-col overflow-x-hidden">
       <OfflineIndicator />
-      {isUpdating && (
-        <div className="fixed left-0 right-0 bg-forge-navy text-white py-2 px-4 flex items-center justify-center gap-2 z-[60] shadow-md top-[calc(4rem+env(safe-area-inset-top,0px))]">
-          <div className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
-          <span className="text-sm font-medium">Updating FORGE…</span>
-        </div>
-      )}
+      {isUpdating && <UpdatingOverlay />}
       {needRefresh && !isUpdating && (
         <UpdatePrompt onUpdate={updateApp} onDismiss={dismissUpdate} />
       )}

@@ -1,6 +1,7 @@
 import { registerSW } from 'virtual:pwa-register';
 import { logger } from '../utils/logger';
-import { watchServiceWorkerUpdates } from '../utils/appUpdate';
+import { markPendingUpdateReload, watchServiceWorkerUpdates } from '../utils/appUpdate';
+import { showUpdateOverlay, UPDATE_OVERLAY_DELAY_MS } from '../utils/updateOverlay';
 
 export interface ServiceWorkerConfig {
   onNeedRefresh?: () => void;
@@ -55,9 +56,15 @@ export function registerServiceWorker(config: ServiceWorkerConfig = {}): void {
  * Triggers a service worker update check and reload
  */
 export async function updateServiceWorker(reloadPage = true): Promise<void> {
-  if (updateSW) {
-    await updateSW(reloadPage);
+  if (!updateSW) return;
+
+  if (reloadPage) {
+    markPendingUpdateReload('sw-update');
+    showUpdateOverlay();
+    await new Promise((resolve) => setTimeout(resolve, UPDATE_OVERLAY_DELAY_MS));
   }
+
+  await updateSW(reloadPage);
 }
 
 /**
