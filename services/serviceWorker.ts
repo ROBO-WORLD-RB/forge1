@@ -8,7 +8,7 @@ export interface ServiceWorkerConfig {
   onOfflineReady?: () => void;
   onRegistered?: (registration: ServiceWorkerRegistration | undefined) => void;
   onRegisterError?: (error: Error) => void;
-  /** When true, activate waiting SW and reload without user action. */
+  /** When true, activate waiting SW and reload without user action (default: false). */
   autoReload?: boolean;
   onUpdating?: () => void;
 }
@@ -24,7 +24,7 @@ export function registerServiceWorker(config: ServiceWorkerConfig = {}): void {
     onOfflineReady,
     onRegistered,
     onRegisterError,
-    autoReload = true,
+    autoReload = false,
     onUpdating,
   } = config;
 

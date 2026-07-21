@@ -57,7 +57,7 @@ export function markPendingUpdateReload(reason: string): void {
   markReloaded(reason);
 }
 
-/** Reload once per session to avoid infinite update loops. */
+/** Manual reload only — used when the user chooses to update. */
 export function reloadForUpdate(reason: string): boolean {
   if (hasReloadedThisSession()) {
     logger.info('Skipping duplicate update reload', { reason }, 'AppUpdate');
@@ -92,7 +92,7 @@ export async function checkForAppUpdate(options?: { force?: boolean }): Promise<
   }
 
   logger.info('New build detected', { local, remote: remote.buildId }, 'AppUpdate');
-  return reloadForUpdate('version-mismatch');
+  return true;
 }
 
 export async function triggerServiceWorkerUpdateCheck(): Promise<void> {
@@ -105,19 +105,24 @@ export async function triggerServiceWorkerUpdateCheck(): Promise<void> {
   }
 }
 
-export function initAppUpdateListeners(): () => void {
+export function initAppUpdateListeners(onUpdateAvailable?: () => void): () => void {
   clearUpdateReloadFlag();
   clearUpdateOverlay();
 
+  const notifyIfUpdated = async (options?: { force?: boolean }) => {
+    const hasUpdate = await checkForAppUpdate(options);
+    if (hasUpdate) onUpdateAvailable?.();
+  };
+
   const handleVisibility = () => {
     if (document.visibilityState !== 'visible') return;
-    void checkForAppUpdate();
+    void notifyIfUpdated();
     void triggerServiceWorkerUpdateCheck();
   };
 
   document.addEventListener('visibilitychange', handleVisibility);
 
-  void checkForAppUpdate({ force: true });
+  void notifyIfUpdated({ force: true });
   void triggerServiceWorkerUpdateCheck();
 
   return () => {
@@ -125,7 +130,7 @@ export function initAppUpdateListeners(): () => void {
   };
 }
 
-/** Reload when a waiting service worker takes control after a deploy. */
+/** Notify when a waiting service worker takes control after a deploy (no auto-reload). */
 export function watchServiceWorkerUpdates(
   registration: ServiceWorkerRegistration | undefined,
   onUpdating?: () => void
@@ -149,6 +154,5 @@ export function watchServiceWorkerUpdates(
     if (!pendingUpdate) return;
     pendingUpdate = false;
     onUpdating?.();
-    reloadForUpdate('controllerchange');
   });
 }
