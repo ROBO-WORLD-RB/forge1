@@ -275,7 +275,7 @@ const AppContent: React.FC = () => {
         Skip to content
       </a>
       {/* Main Layout */}
-      <main id="main-content" className="flex-1">
+      <main id="main-content" className="flex-1 w-full">
         <AnimatePresence mode="wait">
           <Suspense fallback={<PageLoader />}>
           <Routes location={location} key={location.pathname}>

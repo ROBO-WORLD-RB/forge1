@@ -82,10 +82,12 @@
 
 @layer base {
   html {
-    height: -webkit-fill-available;
+    /* iOS Safari viewport fix only — fixed html height breaks Android document scroll */
+    @supports (-webkit-touch-callout: none) {
+      height: -webkit-fill-available;
+    }
     -webkit-tap-highlight-color: transparent;
     -webkit-text-size-adjust: 100%;
-    overflow-x: hidden;
   }
 
   body {
@@ -93,9 +95,15 @@
     min-height: -webkit-fill-available;
     @apply bg-forge-bg text-forge-navy antialiased;
     overscroll-behavior-y: none;
-    overflow-x: hidden;
+    /* Body is the main scroll container; avoid overflow-x on html/body (Android Chrome) */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100%;
   }
 
   * {
