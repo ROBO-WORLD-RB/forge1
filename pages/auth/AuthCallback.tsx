@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react';
 import { UserRole } from '../../types';
 import PageHelmet from '../../components/PageHelmet';
 import { getSafeRedirectPathFromString, resolvePostAuthPath } from '../../utils/authRedirect';
-import { getOAuthCallbackUrl, parseOAuthCallbackError } from '../../utils/oauth';
+import { getOAuthCallbackUrl, parseOAuthCallbackError, clearOAuthSignupIntent } from '../../utils/oauth';
 import { isSupabaseConfigured } from '../../services/supabase';
 import { withTimeout } from '../../utils/promiseTimeout';
 
@@ -59,7 +59,7 @@ const AuthCallback: React.FC = () => {
 
         const user = session.user;
 
-        const { success, error: profileError } = await withTimeout(
+        const { success, error: profileError, resolvedRole } = await withTimeout(
           completeOAuthSignup(user.id, user.email || '', user.user_metadata),
           8000,
           'completeOAuthSignup'
@@ -78,9 +78,17 @@ const AuthCallback: React.FC = () => {
         }
         if (settled || cancelled) return;
 
-        // Proceed with session metadata if profiles table is slow/missing —
-        // blocking forever left users on an orange spinner after Google login.
-        const role = (profile?.role || user.user_metadata?.role || 'customer') as UserRole;
+        // Prefer resolved signup intent when DB trigger defaulted new OAuth users to customer
+        const role = (
+          resolvedRole ||
+          profile?.role ||
+          user.user_metadata?.role ||
+          'customer'
+        ) as UserRole;
+
+        const profileCompleted =
+          profile?.profile_completed ??
+          (role === UserRole.CUSTOMER);
 
         const appUser = {
           id: user.id,
@@ -89,9 +97,10 @@ const AuthCallback: React.FC = () => {
           role,
           firstName: profile?.first_name || user.user_metadata?.first_name || undefined,
           lastName: profile?.last_name || user.user_metadata?.last_name || undefined,
-          profileCompleted: profile?.profile_completed ?? false,
+          profileCompleted,
           avatarUrl: profile?.avatar_url || user.user_metadata?.avatar_url || user.user_metadata?.picture || undefined,
-          workerStatus: profile?.worker_status || 'pending',
+          workerStatus: profile?.worker_status || (role === UserRole.WORKER ? 'pending' : 'active'),
+          country: profile?.country || user.user_metadata?.country || undefined,
         };
 
         settled = true;
@@ -101,8 +110,7 @@ const AuthCallback: React.FC = () => {
 
         const fromPath = localStorage.getItem('oauth_redirect_from');
         localStorage.removeItem('oauth_redirect_from');
-        localStorage.removeItem('oauth_pending_role');
-        localStorage.removeItem('oauth_pending_country');
+        clearOAuthSignupIntent();
 
         const safeFrom = getSafeRedirectPathFromString(
           fromPath,

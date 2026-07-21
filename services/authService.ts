@@ -8,7 +8,15 @@ import { supabase, isSupabaseConfigured } from './supabase';
 import type { User as SupabaseUser, Session, AuthChangeEvent, Subscription } from '@supabase/supabase-js';
 import type { Profile, UserRole } from '../types/database';
 import { startTransaction, captureError } from './monitoringService';
-import { getOAuthCallbackUrl, mapOAuthError } from '../utils/oauth';
+import {
+  clearOAuthSignupIntent,
+  getOAuthCallbackUrl,
+  mapOAuthError,
+  persistOAuthSignupIntent,
+  readOAuthPendingCountry,
+  readOAuthPendingRole,
+  type OAuthPendingRole,
+} from '../utils/oauth';
 import { withTimeout, withTimeoutFallback } from '../utils/promiseTimeout';
 
 /** Wall-clock budgets so auth UI never spins forever on a hung Supabase call. */
@@ -587,10 +595,14 @@ export async function completeWorkerOnboardingProfile(userId: string): Promise<P
 }
 
 /**
- * Sign in with Google OAuth
- * Redirects to Google for authentication
+ * Sign in with Google OAuth.
+ * Pass `role` + `country` on the signup path so AuthCallback can assign worker vs customer.
+ * Omit `role` on login — existing users keep their profile role (never downgraded).
  */
-export async function signInWithGoogle(role: UserRole, country: 'GH' | 'NG'): Promise<{ error: AuthError | null }> {
+export async function signInWithGoogle(
+  role?: UserRole | null,
+  country: 'GH' | 'NG' = 'GH'
+): Promise<{ error: AuthError | null }> {
   const transaction = startTransaction('auth.signInWithGoogle', 'auth');
 
   if (!isSupabaseConfigured()) {
@@ -604,11 +616,19 @@ export async function signInWithGoogle(role: UserRole, country: 'GH' | 'NG'): Pr
   }
 
   try {
+    const signupRoleIntent =
+      role === 'worker' || role === 'customer' ? (role as OAuthPendingRole) : null;
+
     // Persist before redirect — navigation may occur before signInWithOAuth resolves
-    localStorage.setItem('oauth_pending_role', role);
-    localStorage.setItem('oauth_pending_country', country);
+    if (signupRoleIntent) {
+      persistOAuthSignupIntent(signupRoleIntent, country);
+    }
 
     const redirectTo = getOAuthCallbackUrl();
+    const oauthData =
+      signupRoleIntent != null
+        ? { role: signupRoleIntent, country }
+        : undefined;
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
@@ -618,12 +638,12 @@ export async function signInWithGoogle(role: UserRole, country: 'GH' | 'NG'): Pr
           access_type: 'offline',
           prompt: 'consent',
         },
+        ...(oauthData ? { data: oauthData } : {}),
       },
     });
 
     if (error) {
-      localStorage.removeItem('oauth_pending_role');
-      localStorage.removeItem('oauth_pending_country');
+      if (signupRoleIntent) clearOAuthSignupIntent();
       captureError(new Error(error.message), { tags: { operation: 'signInWithGoogle' } });
       return {
         error: {
@@ -655,32 +675,57 @@ export interface GoogleUserMetadata {
  * Complete OAuth signup by creating profile after Google redirect
  * Extracts Google account info including profile picture
  */
+function isRecentOAuthProfile(createdAt?: string | null): boolean {
+  if (!createdAt) return true;
+  const created = new Date(createdAt).getTime();
+  if (Number.isNaN(created)) return true;
+  return Date.now() - created < 24 * 60 * 60 * 1000;
+}
+
+function resolveOAuthRole(
+  profileRole: string | undefined,
+  intendedRole: 'worker' | 'customer' | null,
+  profileCreatedAt?: string | null
+): 'worker' | 'customer' {
+  if (profileRole === 'worker') return 'worker';
+  if (
+    intendedRole === 'worker' &&
+    profileRole === 'customer' &&
+    isRecentOAuthProfile(profileCreatedAt)
+  ) {
+    return 'worker';
+  }
+  if (profileRole === 'customer') return 'customer';
+  return intendedRole ?? 'customer';
+}
+
+async function assignOAuthRole(role: 'worker' | 'customer'): Promise<void> {
+  const { error: roleError } = await (supabase as any).rpc('assign_initial_role', { p_role: role });
+  if (roleError) {
+    // Non-fatal for returning users — role is already committed on the profile
+    console.warn('assign_initial_role:', roleError.message);
+  }
+}
+
 export async function completeOAuthSignup(
   userId: string,
   email: string,
   userMetadata?: GoogleUserMetadata
-): Promise<{ success: boolean; error?: string; isNewUser?: boolean }> {
+): Promise<{
+  success: boolean;
+  error?: string;
+  isNewUser?: boolean;
+  resolvedRole?: 'worker' | 'customer';
+}> {
   try {
-    // Get stored role and country from localStorage
-    const role = signupRole(
-      (localStorage.getItem('oauth_pending_role') as UserRole) || 'customer'
-    );
-    const country = (localStorage.getItem('oauth_pending_country') as 'GH' | 'NG') || 'GH';
-    
-    // Clear stored values
-    localStorage.removeItem('oauth_pending_role');
-    localStorage.removeItem('oauth_pending_country');
-
-    const { error: roleError } = await (supabase as any).rpc('assign_initial_role', { p_role: role });
-    if (roleError) {
-      // Non-fatal for returning users — role is already committed on the profile
-      console.warn('assign_initial_role:', roleError.message);
-    }
+    const pendingRole = readOAuthPendingRole();
+    const country = readOAuthPendingCountry();
+    const intendedRole = pendingRole ? signupRole(pendingRole) : null;
 
     // Extract Google profile data
     const fullName = userMetadata?.full_name || userMetadata?.name || '';
     const avatarUrl = userMetadata?.avatar_url || userMetadata?.picture || null;
-    
+
     // Parse name
     const nameParts = fullName.split(' ');
     const firstName = nameParts[0] || '';
@@ -689,25 +734,61 @@ export async function completeOAuthSignup(
     // Generate username from Google name or email
     const username = firstName && lastName
       ? `@${firstName.toLowerCase()}${lastName.toLowerCase()}`.replace(/[^a-z0-9@]/g, '')
-      : email 
+      : email
         ? `@${email.split('@')[0].replace(/[^a-z0-9]/g, '')}`
         : `@user${Date.now().toString(36)}`;
 
-    // Check if profile already exists
-    const existingProfile = await getUserProfile(userId);
-    if (existingProfile) {
-      // Update existing profile with Google data if missing
+    let existingProfile = await getUserProfile(userId);
+
+    // Existing workers must never be downgraded via OAuth login/signup intent
+    if (existingProfile?.role === 'worker') {
       if (!existingProfile.avatar_url && avatarUrl) {
         await updateUserProfile(userId, { avatar_url: avatarUrl });
       }
       if (!existingProfile.first_name && firstName) {
-        await updateUserProfile(userId, { 
+        await updateUserProfile(userId, {
           first_name: firstName,
           last_name: lastName || existingProfile.last_name,
         });
       }
-      return { success: true, isNewUser: false };
+      clearOAuthSignupIntent();
+      return { success: true, isNewUser: false, resolvedRole: 'worker' };
     }
+
+    // Signup path only: honor worker/customer choice (handle_new_user defaults to customer)
+    if (intendedRole === 'worker') {
+      await assignOAuthRole('worker');
+      existingProfile = await getUserProfile(userId);
+      if (existingProfile?.role !== 'worker') {
+        await assignOAuthRole('worker');
+        existingProfile = await getUserProfile(userId);
+      }
+    }
+
+    if (existingProfile) {
+      if (!existingProfile.avatar_url && avatarUrl) {
+        await updateUserProfile(userId, { avatar_url: avatarUrl });
+      }
+      if (!existingProfile.first_name && firstName) {
+        await updateUserProfile(userId, {
+          first_name: firstName,
+          last_name: lastName || existingProfile.last_name,
+        });
+      }
+      if (!existingProfile.country && country) {
+        await updateUserProfile(userId, { country });
+      }
+
+      clearOAuthSignupIntent();
+      const resolvedRole = resolveOAuthRole(
+        existingProfile.role,
+        intendedRole,
+        existingProfile.created_at
+      );
+      return { success: true, isNewUser: false, resolvedRole };
+    }
+
+    const role = intendedRole ?? 'customer';
 
     // Insert with role/worker_status so RLS INSERT policy passes (trigger normally created the row)
     const { error: profileError } = await (supabase.from('profiles') as any).insert({
@@ -729,7 +810,8 @@ export async function completeOAuthSignup(
       return { success: false, error: profileError.message };
     }
 
-    return { success: true, isNewUser: true };
+    clearOAuthSignupIntent();
+    return { success: true, isNewUser: true, resolvedRole: role };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

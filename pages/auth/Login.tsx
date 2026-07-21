@@ -66,8 +66,8 @@ const Login: React.FC = () => {
         localStorage.removeItem('oauth_redirect_from');
       }
 
-      // For login, we use 'customer' as default role - existing users will have their role from profile
-      const { error: googleError } = await signInWithGoogle('customer' as UserRole, 'GH');
+      // Login: do not persist a signup role — existing users keep their profile role
+      const { error: googleError } = await signInWithGoogle();
       if (googleError) {
         setError(googleError.message);
       }
