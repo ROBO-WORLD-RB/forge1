@@ -14,24 +14,20 @@ interface Props {
 interface State {
   hasError: boolean;
   error: Error | null;
+  isChunkError: boolean;
 }
 
 class ErrorBoundary extends Component<Props, State> {
   constructor(props: Props) {
     super(props);
-    this.state = { hasError: false, error: null };
+    this.state = { hasError: false, error: null, isChunkError: false };
   }
 
   static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error };
+    return { hasError: true, error, isChunkError: recoverFromChunkLoadError(error) };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    // Stale SW / post-deploy chunk mismatch — reload once before showing UI.
-    if (recoverFromChunkLoadError(error)) {
-      return;
-    }
-
     logger.error('React Error Boundary caught error', {
       error: error.message,
       stack: error.stack,
@@ -48,7 +44,7 @@ class ErrorBoundary extends Component<Props, State> {
   }
 
   handleReset = () => {
-    this.setState({ hasError: false, error: null });
+    this.setState({ hasError: false, error: null, isChunkError: false });
   };
 
   handleReload = () => {
@@ -69,7 +65,9 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
             <h1 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h1>
             <p className="text-gray-600 mb-6">
-              We're sorry, but something unexpected happened. Please try again.
+              {this.state.isChunkError
+                ? 'A new version of FORGE may be available. Reload the page or use Update Now if prompted.'
+                : "We're sorry, but something unexpected happened. Please try again."}
             </p>
             {import.meta.env.DEV && this.state.error && (
               <pre className="bg-gray-100 p-3 rounded-lg text-left text-xs text-red-600 mb-6 overflow-auto max-h-32">

@@ -13,54 +13,23 @@ function isChunkLoadError(error: unknown): boolean {
   );
 }
 
-/**
- * React.lazy wrapper that recovers from stale service-worker / CDN chunks
- * after a redeploy by reloading the page once.
- */
+/** React.lazy wrapper — chunk load errors surface to ErrorBoundary (no auto-reload). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function lazyWithRetry<T extends ComponentType<any>>(
   factory: () => Promise<{ default: T }>
 ): LazyExoticComponent<T> {
   return lazy(async () => {
+    const mod = await factory();
     try {
-      const mod = await factory();
-      try {
-        sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-      } catch {
-        /* ignore */
-      }
-      return mod;
-    } catch (error) {
-      if (isChunkLoadError(error)) {
-        try {
-          const alreadyReloaded = sessionStorage.getItem(CHUNK_RELOAD_KEY);
-          if (!alreadyReloaded) {
-            sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
-            window.location.reload();
-            // Keep Suspense pending until the reload completes.
-            return new Promise(() => {});
-          }
-          sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-        } catch {
-          /* sessionStorage unavailable — fall through and rethrow */
-        }
-      }
-      throw error;
+      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
+    } catch {
+      /* ignore */
     }
+    return mod;
   }) as LazyExoticComponent<T>;
 }
 
+/** Detect chunk load errors without triggering an automatic reload. */
 export function recoverFromChunkLoadError(error: unknown): boolean {
-  if (!isChunkLoadError(error)) return false;
-  try {
-    if (sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
-      sessionStorage.removeItem(CHUNK_RELOAD_KEY);
-      return false;
-    }
-    sessionStorage.setItem(CHUNK_RELOAD_KEY, '1');
-    window.location.reload();
-    return true;
-  } catch {
-    return false;
-  }
+  return isChunkLoadError(error);
 }

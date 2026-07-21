@@ -144,9 +144,9 @@ export default defineConfig(({ mode }) => {
           },
         }),
         VitePWA({
-          // autoUpdate activates the new SW immediately so a bad navigateFallback
-          // cannot leave clients stuck on a cached offline.html page.
-          registerType: 'autoUpdate',
+          // prompt: never auto-reload; user chooses via Updating FORGE overlay.
+          registerType: 'prompt',
+          injectRegister: null,
           includeAssets: ['icons/*.svg', 'icons/*.png', 'manifest.json', 'offline.html', '_headers'],
           manifest: {
             name: 'FORGE - Blue-Collar Marketplace',
@@ -181,8 +181,9 @@ export default defineConfig(({ mode }) => {
             // Drop old precache entries after redeploy so clients don't keep
             // requesting hashed chunks that no longer exist (ChunkLoadError).
             cleanupOutdatedCaches: true,
+            // Wait for user "Update Now" before activating a new SW.
             clientsClaim: true,
-            skipWaiting: true,
+            skipWaiting: false,
             // SPA shell — never use offline.html here. That made every soft
             // navigation (OAuth /auth/callback, /dashboard, etc.) show
             // "You're Offline" while the user was actually online.
