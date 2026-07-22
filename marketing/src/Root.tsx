@@ -1,12 +1,12 @@
 import "./index.css";
 import { BrandIntroComposition } from "./BrandIntro";
-import { ForgeSparkComposition } from "./compositions/ForgeSpark";
+import { ForgeIntroComposition } from "./compositions/ForgeIntro";
 import { HelloForgeComposition } from "./HelloForge";
 
 export const RemotionRoot: React.FC = () => {
   return (
     <>
-      <ForgeSparkComposition />
+      <ForgeIntroComposition />
       <HelloForgeComposition />
       <BrandIntroComposition />
     </>

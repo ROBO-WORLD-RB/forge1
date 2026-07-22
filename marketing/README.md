@@ -30,7 +30,7 @@ npm run dev
 ```
 
 Opens Remotion Studio so you can scrub compositions and tweak Interactive props.  
-Select **`ForgeSpark`** in the composition list for the cinematic marketing intro.
+Select **`ForgeIntro`** in the composition list for the cinematic marketing intro.
 
 ## Render a video
 
@@ -40,10 +40,10 @@ Render the default composition (`HelloForge`) to `out/`:
 npm run render
 ```
 
-Render the cinematic intro (`ForgeSpark`, 28s):
+Render the cinematic intro (`ForgeIntro`, 60s):
 
 ```bash
-npm run render:spark
+npm run render:intro
 ```
 
 Or render any composition by id:
@@ -51,13 +51,13 @@ Or render any composition by id:
 ```bash
 npx remotion render HelloForge out/hello-forge.mp4
 npx remotion render BrandIntro out/brand-intro.mp4
-npx remotion render ForgeSpark out/forge-spark.mp4
+npx remotion render ForgeIntro out/forge-intro.mp4
 ```
 
 Quick still (sanity-check a frame at 1s):
 
 ```bash
-npx remotion still ForgeSpark --scale=0.25 --frame=30
+npx remotion still ForgeIntro --scale=0.25 --frame=30
 ```
 
 Bundle for deployment / CI:
@@ -72,11 +72,11 @@ npm run build
 | ------------ | ------ | ----------------------------------------------------------------------- |
 | `HelloForge` | 3s     | Minimal branded mark + accent bar                                       |
 | `BrandIntro` | 5s     | Wordmark + tagline (short intro)                                        |
-| `ForgeSpark` | 28s    | Trailer cold-open: ember → need → skill → match → strike → brand lockup |
+| `ForgeIntro` | 60s    | Questions that need an answer → silence → FORGE brand reveal            |
 
-### ForgeSpark creative
+### ForgeIntro creative
 
-Dark industrial cold open. A single ember wakes curiosity, then kinetic type asks *Looking for hands?* Need and skill face each other across the frame; an orange spark draws the match between them. A forge-strike bursts sparks and hammers the **FORGE** letters into place, landing on: **Where work meets hands.**
+A short film of unanswered questions — pipe bursts, rains, trust, skilled hands looking for work — held in soft crossfades and kinetic type. A quiet beat names the need (“You need an answer.”), then **FORGE** arrives as the answer: **Where work meets hands.** No fireworks, no spark bursts.
 
 Brand colors live in `src/brand.ts` (navy `#1A1A1A`, orange `#FF7A00` — aligned with the main app).
 
@@ -97,9 +97,9 @@ marketing/
     ├── BrandIntro.tsx
     ├── index.css
     └── compositions/
-        └── ForgeSpark/
+        └── ForgeIntro/
             ├── index.tsx         # Composition registration
-            ├── ForgeSpark.tsx    # Timeline / Sequences
+            ├── ForgeIntro.tsx    # TransitionSeries timeline
             ├── timing.ts
             ├── fonts.ts
             ├── components/
@@ -110,5 +110,6 @@ marketing/
 
 - Output files go to `marketing/out/` (ignored by git).
 - `@remotion/player` is installed for optional in-app previews later; Studio does not require it.
-- `@remotion/google-fonts` powers Bebas Neue + Outfit in `ForgeSpark`.
+- `@remotion/google-fonts` powers Bebas Neue + Outfit in `ForgeIntro`.
+- `@remotion/transitions` powers soft fades and slides between beats.
 - Remotion is free for teams of up to 3 — see [license terms](https://www.remotion.dev/docs/license) for company use.

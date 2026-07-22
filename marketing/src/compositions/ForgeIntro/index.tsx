@@ -1,16 +1,16 @@
 import { Composition } from "remotion";
 import { VIDEO } from "../../brand";
-import { ForgeSpark } from "./ForgeSpark";
+import { ForgeIntro } from "./ForgeIntro";
 import { DURATION_FRAMES } from "./timing";
 
-export { ForgeSpark } from "./ForgeSpark";
+export { ForgeIntro } from "./ForgeIntro";
 export { DURATION_FRAMES, DURATION_SECONDS } from "./timing";
 
-export const ForgeSparkComposition: React.FC = () => {
+export const ForgeIntroComposition: React.FC = () => {
   return (
     <Composition
-      id="ForgeSpark"
-      component={ForgeSpark}
+      id="ForgeIntro"
+      component={ForgeIntro}
       durationInFrames={DURATION_FRAMES}
       fps={VIDEO.fps}
       width={VIDEO.width}

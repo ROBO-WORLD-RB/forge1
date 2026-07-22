@@ -10,6 +10,7 @@
     "@remotion/google-fonts": "4.0.496",
     "@remotion/player": "4.0.496",
     "@remotion/tailwind-v4": "4.0.496",
+    "@remotion/transitions": "4.0.496",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "remotion": "4.0.496",
@@ -28,7 +29,7 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "render": "remotion render HelloForge out/hello-forge.mp4",
-    "render:spark": "remotion render ForgeSpark out/forge-spark.mp4",
+    "render:intro": "remotion render ForgeIntro out/forge-intro.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   },

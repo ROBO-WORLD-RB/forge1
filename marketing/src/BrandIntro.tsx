@@ -72,7 +72,7 @@ export const BrandIntro: React.FC = () => {
         fontFamily: "system-ui, sans-serif",
       }}
     >
-      <Sequence name="Wordmark" from={0} durationInFrames={DURATION_FRAMES}>
+      <Sequence name="Wordmark" durationInFrames={DURATION_FRAMES}>
         <AbsoluteFill
           style={{ justifyContent: "center", alignItems: "center" }}
         >

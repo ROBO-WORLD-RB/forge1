@@ -5,7 +5,7 @@
 export const forge = {
   navy: "#1A1A1A",
   orange: "#FF7A00",
-  /** Hot metal / spark highlights for cinematic intros */
+  /** Warm metal highlights for soft atmospheric glows */
   ember: "#FFB347",
   spark: "#FFE0A3",
   cyan: "#0891B2",

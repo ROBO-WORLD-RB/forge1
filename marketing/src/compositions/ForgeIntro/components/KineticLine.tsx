@@ -1,11 +1,11 @@
 import { Easing, Interactive, interpolate, useCurrentFrame } from "remotion";
-import { bodyFont, displayFont } from "../fonts";
 import { forge } from "../../../brand";
+import { bodyFont, displayFont } from "../fonts";
 
 type KineticLineProps = {
   text: string;
   name: string;
-  /** Stagger per character in frames */
+  /** Stagger per word in frames */
   stagger?: number;
   enterFrom?: number;
   fontSize?: number;
@@ -13,22 +13,27 @@ type KineticLineProps = {
   letterSpacing?: string;
   variant?: "display" | "body";
   align?: "left" | "center" | "right";
+  maxWidth?: number;
+  /** Soft rise distance in px */
+  rise?: number;
 };
 
-/** Character-staggered kinetic type — trailer energy without emoji spam. */
+/** Word-staggered kinetic type — elegant, not chaotic. */
 export const KineticLine: React.FC<KineticLineProps> = ({
   text,
   name,
-  stagger = 2,
-  enterFrom = 0,
-  fontSize = 96,
+  stagger = 5,
+  enterFrom = 8,
+  fontSize = 72,
   color = forge.white,
-  letterSpacing = "0.04em",
+  letterSpacing = "0.02em",
   variant = "display",
   align = "center",
+  maxWidth = 1500,
+  rise = 28,
 }) => {
   const frame = useCurrentFrame();
-  const chars = text.split("");
+  const words = text.split(" ");
 
   return (
     <Interactive.Div
@@ -43,44 +48,41 @@ export const KineticLine: React.FC<KineticLineProps> = ({
             : align === "right"
               ? "flex-end"
               : "center",
+        columnGap: "0.28em",
+        rowGap: "0.12em",
         fontFamily: variant === "display" ? displayFont : bodyFont,
         fontSize,
+        fontWeight: variant === "body" ? 500 : undefined,
         color,
         letterSpacing,
-        lineHeight: 1.05,
-        maxWidth: 1600,
+        lineHeight: 1.12,
+        maxWidth,
+        textAlign: align,
       }}
     >
-      {chars.map((char, i) => {
+      {words.map((word, i) => {
         const start = enterFrom + i * stagger;
-        const opacity = interpolate(frame, [start, start + 10], [0, 1], {
+        const opacity = interpolate(frame, [start, start + 16], [0, 1], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
           easing: Easing.bezier(0.16, 1, 0.3, 1),
         });
-        const y = interpolate(frame, [start, start + 12], [48, 0], {
+        const y = interpolate(frame, [start, start + 18], [rise, 0], {
           extrapolateLeft: "clamp",
           extrapolateRight: "clamp",
-          easing: Easing.bezier(0.34, 1.56, 0.64, 1),
-        });
-        const blur = interpolate(frame, [start, start + 10], [8, 0], {
-          extrapolateLeft: "clamp",
-          extrapolateRight: "clamp",
+          easing: Easing.bezier(0.22, 1, 0.36, 1),
         });
 
         return (
           <span
-            key={`${char}-${i}`}
+            key={`${word}-${i}`}
             style={{
               display: "inline-block",
               opacity,
               translate: `0px ${y}px`,
-              filter: `blur(${blur}px)`,
-              whiteSpace: char === " " ? "pre" : undefined,
-              minWidth: char === " " ? "0.28em" : undefined,
             }}
           >
-            {char === " " ? "\u00A0" : char}
+            {word}
           </span>
         );
       })}
