@@ -39,10 +39,7 @@ export const ForgeIntro: React.FC = () => {
           />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={fadeSoft}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={fadeSoft} />
 
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q2}>
           <Question
@@ -72,10 +69,7 @@ export const ForgeIntro: React.FC = () => {
           />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={fadeSoft}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={fadeSoft} />
 
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q4}>
           <Question
@@ -104,34 +98,24 @@ export const ForgeIntro: React.FC = () => {
           />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={fadeHold}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={fadeHold} />
 
         <TransitionSeries.Sequence durationInFrames={sceneDurations.need}>
           <NeedAnswer />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={fadeBrand}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={fadeBrand} />
 
         <TransitionSeries.Sequence durationInFrames={sceneDurations.brand}>
           <BrandReveal />
         </TransitionSeries.Sequence>
 
-        <TransitionSeries.Transition
-          presentation={fade()}
-          timing={fadeEnd}
-        />
+        <TransitionSeries.Transition presentation={fade()} timing={fadeEnd} />
 
         <TransitionSeries.Sequence durationInFrames={sceneDurations.end}>
           <EndCard />
         </TransitionSeries.Sequence>
       </TransitionSeries>
-
       {/* After TransitionSeries so opaque scene plates cannot bury the lockup. */}
       <CompanyLockup />
     </AbsoluteFill>

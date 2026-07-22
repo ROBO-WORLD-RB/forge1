@@ -82,7 +82,7 @@ Brand colors live in `src/brand.ts` (navy `#1A1A1A`, orange `#FF7A00` — aligne
 
 ### ForgeIntro narration audio
 
-AI Studio voiceover lives at **`public/audio/forge-intro-narration-full.wav`** (~50s). It is wired in `ForgeIntro.tsx` via `<Audio>` from `@remotion/media`, starting at frame 0. The composition runs 66s so the end card can hold in silence after the VO finishes. Scrub to frames **1234**, **1488**, and **1786** in Studio to spot-check sync with on-screen lines.
+Narration lives at **`public/audio/forge-intro-narration-full.wav`** (~238s). It is wired in `ForgeIntro.tsx` via `<Audio>` from `@remotion/media`, starting at frame 0 with no offset. The composition runs 66s, so only the first ~66s of the track plays; scrub in Studio to spot-check sync with on-screen lines.
 
 ## Folder structure
 
@@ -94,7 +94,7 @@ marketing/
 ├── README.md
 ├── public/
 │   └── audio/
-│       └── forge-intro-narration-full.wav   # AI Studio narration
+│       └── forge-intro-narration-full.wav   # ForgeIntro narration (~238s)
 ├── out/                          # Rendered videos (gitignored)
 └── src/
     ├── index.ts
