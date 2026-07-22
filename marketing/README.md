@@ -72,13 +72,17 @@ npm run build
 | ------------ | ------ | ----------------------------------------------------------------------- |
 | `HelloForge` | 3s     | Minimal branded mark + accent bar                                       |
 | `BrandIntro` | 5s     | Wordmark + tagline (short intro)                                        |
-| `ForgeIntro` | 60s    | Questions that need an answer → silence → FORGE brand reveal            |
+| `ForgeIntro` | 66s    | Questions that need an answer → silence → FORGE brand reveal + narration |
 
 ### ForgeIntro creative
 
 A short film of unanswered questions — pipe bursts, rains, trust, skilled hands looking for work — held in soft crossfades and kinetic type. A quiet beat names the need (“You need an answer.”), then **FORGE** arrives as the answer: **Where work meets hands.** No fireworks, no spark bursts.
 
 Brand colors live in `src/brand.ts` (navy `#1A1A1A`, orange `#FF7A00` — aligned with the main app).
+
+### ForgeIntro narration audio
+
+AI Studio voiceover lives at **`public/audio/forge-intro-narration-full.wav`** (~50s). It is wired in `ForgeIntro.tsx` via `<Audio>` from `@remotion/media`, starting at frame 0. The composition runs 66s so the end card can hold in silence after the VO finishes. Scrub to frames **1234**, **1488**, and **1786** in Studio to spot-check sync with on-screen lines.
 
 ## Folder structure
 
@@ -88,6 +92,9 @@ marketing/
 ├── remotion.config.ts
 ├── tsconfig.json
 ├── README.md
+├── public/
+│   └── audio/
+│       └── forge-intro-narration-full.wav   # AI Studio narration
 ├── out/                          # Rendered videos (gitignored)
 └── src/
     ├── index.ts

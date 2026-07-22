@@ -1,4 +1,5 @@
-import { AbsoluteFill } from "remotion";
+import { Audio } from "@remotion/media";
+import { AbsoluteFill, staticFile } from "remotion";
 import { TransitionSeries } from "@remotion/transitions";
 import { fade } from "@remotion/transitions/fade";
 import { slide } from "@remotion/transitions/slide";
@@ -8,6 +9,7 @@ import {
   fadeEnd,
   fadeHold,
   fadeSoft,
+  NARRATION_AUDIO,
   sceneDurations,
 } from "./timing";
 import { CompanyLockup } from "./components/CompanyLockup";
@@ -23,6 +25,7 @@ import { Question } from "./scenes/Question";
 export const ForgeIntro: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: forge.navy }}>
+      <Audio src={staticFile(NARRATION_AUDIO)} />
       <TransitionSeries>
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q1}>
           <Question

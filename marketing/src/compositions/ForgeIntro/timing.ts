@@ -6,6 +6,9 @@ export const FPS = VIDEO.fps;
 export const DURATION_SECONDS = 66;
 export const DURATION_FRAMES = DURATION_SECONDS * FPS; // 1980
 
+/** AI Studio full narration (~50.1s). Plays from frame 0; end card holds in silence after VO ends. */
+export const NARRATION_AUDIO = "audio/forge-intro-narration-full.wav" as const;
+
 /**
  * Scene lengths (before transition overlap).
  *
