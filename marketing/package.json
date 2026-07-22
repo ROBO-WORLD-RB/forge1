@@ -7,6 +7,7 @@
   "private": true,
   "dependencies": {
     "@remotion/cli": "4.0.496",
+    "@remotion/google-fonts": "4.0.496",
     "@remotion/player": "4.0.496",
     "@remotion/tailwind-v4": "4.0.496",
     "react": "19.2.3",
@@ -27,6 +28,7 @@
     "dev": "remotion studio",
     "build": "remotion bundle",
     "render": "remotion render HelloForge out/hello-forge.mp4",
+    "render:spark": "remotion render ForgeSpark out/forge-spark.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   },
