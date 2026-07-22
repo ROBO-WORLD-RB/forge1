@@ -12,6 +12,7 @@ type KineticLineProps = {
   color?: string;
   letterSpacing?: string;
   variant?: "display" | "body";
+  /** Kept for API stability; always rendered center. */
   align?: "left" | "center" | "right";
   maxWidth?: number;
   /** Soft rise distance in px */
@@ -28,7 +29,6 @@ export const KineticLine: React.FC<KineticLineProps> = ({
   color = forge.white,
   letterSpacing = "0.02em",
   variant = "display",
-  align = "center",
   maxWidth = 1500,
   rise = 28,
 }) => {
@@ -42,12 +42,8 @@ export const KineticLine: React.FC<KineticLineProps> = ({
         display: "flex",
         flexDirection: "row",
         flexWrap: "wrap",
-        justifyContent:
-          align === "left"
-            ? "flex-start"
-            : align === "right"
-              ? "flex-end"
-              : "center",
+        justifyContent: "center",
+        alignItems: "center",
         columnGap: "0.28em",
         rowGap: "0.12em",
         fontFamily: variant === "display" ? displayFont : bodyFont,
@@ -57,7 +53,8 @@ export const KineticLine: React.FC<KineticLineProps> = ({
         letterSpacing,
         lineHeight: 1.12,
         maxWidth,
-        textAlign: align,
+        textAlign: "center",
+        translate: "0px -34.6px",
       }}
     >
       {words.map((word, i) => {

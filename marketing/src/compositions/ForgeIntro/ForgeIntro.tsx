@@ -9,6 +9,7 @@ import {
   fadeSoft,
   sceneDurations,
 } from "./timing";
+import { CompanyLockup } from "./components/CompanyLockup";
 import { BrandReveal } from "./scenes/BrandReveal";
 import { NeedAnswer } from "./scenes/NeedAnswer";
 import { Question } from "./scenes/Question";
@@ -20,6 +21,7 @@ import { Question } from "./scenes/Question";
 export const ForgeIntro: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: forge.navy }}>
+      <CompanyLockup />
       <TransitionSeries>
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q1}>
           <Question
@@ -41,8 +43,8 @@ export const ForgeIntro: React.FC = () => {
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q2}>
           <Question
             line="Who rebuilds what the rains undo?"
-            layout="left"
-            glowX={28}
+            layout="center"
+            glowX={50}
             glowY={60}
             intensity={0.1}
             fontSize={80}
@@ -74,8 +76,8 @@ export const ForgeIntro: React.FC = () => {
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q4}>
           <Question
             line="And who is still looking for work worth doing?"
-            layout="right"
-            glowX={72}
+            layout="center"
+            glowX={50}
             glowY={68}
             intensity={0.11}
             fontSize={70}

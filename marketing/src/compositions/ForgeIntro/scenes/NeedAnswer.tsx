@@ -107,6 +107,7 @@ export const NeedAnswer: React.FC = () => {
             color: forge.muted,
             letterSpacing: "0.18em",
             textTransform: "uppercase",
+            textAlign: "center",
             opacity: interpolate(frame, [lineIn + 40, lineIn + 70], [0, 1], {
               extrapolateLeft: "clamp",
               extrapolateRight: "clamp",

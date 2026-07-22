@@ -11,7 +11,7 @@ import { FilmGrain } from "../components/FilmGrain";
 import { KineticLine } from "../components/KineticLine";
 import { bodyFont } from "../fonts";
 
-export type QuestionLayout = "center" | "left" | "right" | "low";
+export type QuestionLayout = "center" | "low";
 
 type QuestionProps = {
   line: string;
@@ -35,17 +35,6 @@ export const Question: React.FC<QuestionProps> = ({
   fontSize = 78,
 }) => {
   const frame = useCurrentFrame();
-
-  const align =
-    layout === "left" ? "left" : layout === "right" ? "right" : "center";
-
-  const padX = layout === "left" ? 140 : layout === "right" ? 140 : 120;
-  const justify =
-    layout === "low"
-      ? "flex-end"
-      : layout === "left" || layout === "right"
-        ? "center"
-        : "center";
 
   const markOpacity = interpolate(frame, [4, 22], [0, 1], {
     extrapolateLeft: "clamp",
@@ -88,15 +77,10 @@ export const Question: React.FC<QuestionProps> = ({
         style={{
           display: "flex",
           flexDirection: "column",
-          justifyContent: justify,
-          alignItems:
-            align === "left"
-              ? "flex-start"
-              : align === "right"
-                ? "flex-end"
-                : "center",
-          paddingLeft: padX,
-          paddingRight: padX,
+          justifyContent: layout === "low" ? "flex-end" : "center",
+          alignItems: "center",
+          paddingLeft: 120,
+          paddingRight: 120,
           paddingBottom: layout === "low" ? 160 : 0,
           gap: 28,
         }}
@@ -109,19 +93,14 @@ export const Question: React.FC<QuestionProps> = ({
             backgroundColor: forge.orange,
             borderRadius: 2,
             opacity: markOpacity,
-            alignSelf:
-              align === "left"
-                ? "flex-start"
-                : align === "right"
-                  ? "flex-end"
-                  : "center",
+            alignSelf: "center",
           }}
         />
 
         <KineticLine
           name="Question"
           text={line}
-          align={align}
+          align="center"
           fontSize={fontSize}
           stagger={5}
           enterFrom={10}
@@ -140,7 +119,7 @@ export const Question: React.FC<QuestionProps> = ({
               opacity: whisperOpacity,
               translate: `0px ${whisperY}px`,
               maxWidth: 900,
-              textAlign: align,
+              textAlign: "center",
             }}
           >
             {whisper}

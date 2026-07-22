@@ -86,6 +86,7 @@ export const BrandReveal: React.FC = () => {
             color: forge.orange,
             letterSpacing: "0.28em",
             textTransform: "uppercase",
+            textAlign: "center",
             opacity: answerOpacity,
             marginBottom: 8,
           }}
@@ -101,6 +102,7 @@ export const BrandReveal: React.FC = () => {
             color: forge.white,
             letterSpacing: `${wordTrack}em`,
             lineHeight: 1,
+            textAlign: "center",
             opacity: wordOpacity,
             translate: `0px ${wordY}px`,
             paddingLeft: `${wordTrack}em`,
@@ -127,6 +129,7 @@ export const BrandReveal: React.FC = () => {
             fontWeight: 600,
             color: forge.white,
             letterSpacing: "0.04em",
+            textAlign: "center",
             opacity: punchOpacity,
             translate: `0px ${punchY}px`,
             marginTop: 10,
@@ -144,11 +147,12 @@ export const BrandReveal: React.FC = () => {
             color: forge.muted,
             letterSpacing: "0.22em",
             textTransform: "uppercase",
+            textAlign: "center",
             opacity: marketOpacity,
             marginTop: 18,
           }}
         >
-          Ghana · Nigeria
+          Ghana · Nigeria · Togo
         </Interactive.Div>
       </AbsoluteFill>
 
