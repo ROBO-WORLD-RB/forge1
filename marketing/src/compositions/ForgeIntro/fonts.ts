@@ -13,3 +13,7 @@ const outfit = loadOutfit("normal", {
 
 export const displayFont = bebas.fontFamily;
 export const bodyFont = outfit.fontFamily;
+
+/** Ensure both faces are ready before measuring or rendering frames. */
+export const waitForFonts = () =>
+  Promise.all([bebas.waitUntilDone(), outfit.waitUntilDone()]);

@@ -54,7 +54,6 @@ export const KineticLine: React.FC<KineticLineProps> = ({
         lineHeight: 1.12,
         maxWidth,
         textAlign: "center",
-        translate: "0px -34.6px",
       }}
     >
       {words.map((word, i) => {

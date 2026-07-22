@@ -1,6 +1,7 @@
 import { Composition } from "remotion";
 import { VIDEO } from "../../brand";
 import { ForgeIntro } from "./ForgeIntro";
+import { waitForFonts } from "./fonts";
 import { DURATION_FRAMES } from "./timing";
 
 export { ForgeIntro } from "./ForgeIntro";
@@ -15,6 +16,10 @@ export const ForgeIntroComposition: React.FC = () => {
       fps={VIDEO.fps}
       width={VIDEO.width}
       height={VIDEO.height}
+      calculateMetadata={async () => {
+        await waitForFonts();
+        return {};
+      }}
     />
   );
 };

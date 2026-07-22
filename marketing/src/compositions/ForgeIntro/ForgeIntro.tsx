@@ -5,23 +5,24 @@ import { slide } from "@remotion/transitions/slide";
 import { forge } from "../../brand";
 import {
   fadeBrand,
+  fadeEnd,
   fadeHold,
   fadeSoft,
   sceneDurations,
 } from "./timing";
 import { CompanyLockup } from "./components/CompanyLockup";
 import { BrandReveal } from "./scenes/BrandReveal";
+import { EndCard } from "./scenes/EndCard";
 import { NeedAnswer } from "./scenes/NeedAnswer";
 import { Question } from "./scenes/Question";
 
 /**
- * ForgeIntro — 60s poem of questions that need an answer.
+ * ForgeIntro — questions that need an answer, then FORGE, then a quiet close.
  * Curiosity first, brand last. No fireworks. Soft transitions only.
  */
 export const ForgeIntro: React.FC = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: forge.navy }}>
-      <CompanyLockup />
       <TransitionSeries>
         <TransitionSeries.Sequence durationInFrames={sceneDurations.q1}>
           <Question
@@ -117,7 +118,19 @@ export const ForgeIntro: React.FC = () => {
         <TransitionSeries.Sequence durationInFrames={sceneDurations.brand}>
           <BrandReveal />
         </TransitionSeries.Sequence>
+
+        <TransitionSeries.Transition
+          presentation={fade()}
+          timing={fadeEnd}
+        />
+
+        <TransitionSeries.Sequence durationInFrames={sceneDurations.end}>
+          <EndCard />
+        </TransitionSeries.Sequence>
       </TransitionSeries>
+
+      {/* After TransitionSeries so opaque scene plates cannot bury the lockup. */}
+      <CompanyLockup />
     </AbsoluteFill>
   );
 };
