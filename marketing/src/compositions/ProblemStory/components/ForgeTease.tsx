@@ -5,68 +5,62 @@ import {
   interpolate,
   useCurrentFrame,
 } from "remotion";
-import { forge } from "../../../brand";
 import { Atmosphere } from "../../../shared/Atmosphere";
 import { FilmGrain } from "../../../shared/FilmGrain";
 import { bodyFont, displayFont } from "../../../shared/fonts";
+import { forge } from "../../../brand";
 
-/** Final beat: FORGE arrives as the answer — elegant, not explosive. */
-export const BrandReveal: React.FC = () => {
+/** End beat: FORGE wordmark + tagline — light tease, not full brand reveal. */
+export const ForgeTease: React.FC = () => {
   const frame = useCurrentFrame();
 
-  const answerOpacity = interpolate(frame, [8, 32], [0, 1], {
+  const wordOpacity = interpolate(frame, [12, 40], [0, 1], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.16, 1, 0.3, 1),
+  });
+  const wordY = interpolate(frame, [12, 44], [28, 0], {
+    extrapolateLeft: "clamp",
+    extrapolateRight: "clamp",
+    easing: Easing.bezier(0.22, 1, 0.36, 1),
+  });
+  const wordTrack = interpolate(frame, [12, 48], [0.24, 0.16], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.45, 0, 0.55, 1),
   });
 
-  const wordOpacity = interpolate(frame, [28, 58], [0, 1], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.16, 1, 0.3, 1),
-  });
-  const wordY = interpolate(frame, [28, 62], [32, 0], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.22, 1, 0.36, 1),
-  });
-  const wordTrack = interpolate(frame, [28, 66], [0.28, 0.18], {
-    extrapolateLeft: "clamp",
-    extrapolateRight: "clamp",
-    easing: Easing.bezier(0.45, 0, 0.55, 1),
-  });
-
-  const barWidth = interpolate(frame, [52, 88], [0, 168], {
+  const barWidth = interpolate(frame, [36, 68], [0, 140], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.16, 1, 0.3, 1),
   });
 
-  const punchOpacity = interpolate(frame, [78, 110], [0, 1], {
+  const tagOpacity = interpolate(frame, [52, 82], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.16, 1, 0.3, 1),
   });
-  const punchY = interpolate(frame, [78, 110], [16, 0], {
+  const tagY = interpolate(frame, [52, 82], [14, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.22, 1, 0.36, 1),
   });
 
-  const marketOpacity = interpolate(frame, [140, 175], [0, 1], {
+  const marketOpacity = interpolate(frame, [90, 120], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
 
-  const glowRise = interpolate(frame, [0, 80], [0.06, 0.16], {
+  const glowRise = interpolate(frame, [0, 60], [0.08, 0.14], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
     easing: Easing.bezier(0.45, 0, 0.55, 1),
   });
 
   return (
-    <AbsoluteFill>
-      <Atmosphere glowX={50} glowY={58} intensity={glowRise} />
+    <AbsoluteFill style={{ backgroundColor: forge.navy }}>
+      <Atmosphere glowX={50} glowY={55} intensity={glowRise} />
 
       <AbsoluteFill
         style={{
@@ -74,31 +68,16 @@ export const BrandReveal: React.FC = () => {
           flexDirection: "column",
           justifyContent: "center",
           alignItems: "center",
-          gap: 26,
+          gap: 24,
+          paddingLeft: 80,
+          paddingRight: 80,
         }}
       >
         <Interactive.Div
-          name="Answer label"
-          style={{
-            fontFamily: bodyFont,
-            fontSize: 22,
-            fontWeight: 600,
-            color: forge.orange,
-            letterSpacing: "0.28em",
-            textTransform: "uppercase",
-            textAlign: "center",
-            opacity: answerOpacity,
-            marginBottom: 8,
-          }}
-        >
-          The answer is
-        </Interactive.Div>
-
-        <Interactive.Div
-          name="FORGE lockup"
+          name="FORGE wordmark"
           style={{
             fontFamily: displayFont,
-            fontSize: 168,
+            fontSize: 112,
             color: forge.white,
             letterSpacing: `${wordTrack}em`,
             lineHeight: 1,
@@ -112,44 +91,44 @@ export const BrandReveal: React.FC = () => {
         </Interactive.Div>
 
         <Interactive.Div
-          name="Lockup accent"
+          name="Tease accent"
           style={{
             width: barWidth,
-            height: 5,
+            height: 4,
             backgroundColor: forge.orange,
-            borderRadius: 3,
+            borderRadius: 2,
           }}
         />
 
         <Interactive.Div
-          name="Punchline"
+          name="Tease tagline"
           style={{
             fontFamily: bodyFont,
-            fontSize: 42,
+            fontSize: 38,
             fontWeight: 600,
             color: forge.white,
             letterSpacing: "0.04em",
             textAlign: "center",
-            opacity: punchOpacity,
-            translate: `0px ${punchY}px`,
-            marginTop: 10,
+            opacity: tagOpacity,
+            translate: `0px ${tagY}px`,
+            marginTop: 8,
           }}
         >
           Where work meets hands.
         </Interactive.Div>
 
         <Interactive.Div
-          name="Market tag"
+          name="Markets"
           style={{
             fontFamily: bodyFont,
-            fontSize: 24,
+            fontSize: 22,
             fontWeight: 500,
             color: forge.muted,
             letterSpacing: "0.22em",
             textTransform: "uppercase",
             textAlign: "center",
             opacity: marketOpacity,
-            marginTop: 18,
+            marginTop: 16,
           }}
         >
           Ghana · Nigeria · Togo

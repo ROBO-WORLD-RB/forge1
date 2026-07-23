@@ -6,9 +6,9 @@ import {
   useCurrentFrame,
 } from "remotion";
 import { forge } from "../../../brand";
-import { Atmosphere } from "../components/Atmosphere";
-import { FilmGrain } from "../components/FilmGrain";
-import { bodyFont } from "../fonts";
+import { Atmosphere } from "../../../shared/Atmosphere";
+import { FilmGrain } from "../../../shared/FilmGrain";
+import { bodyFont } from "../../../shared/fonts";
 
 /**
  * Closing plate — quiet credit after FORGE lands.

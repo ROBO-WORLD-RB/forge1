@@ -12,7 +12,7 @@ import {
   NARRATION_AUDIO,
   sceneDurations,
 } from "./timing";
-import { CompanyLockup } from "./components/CompanyLockup";
+import { CompanyLockup } from "../../shared/CompanyLockup";
 import { BrandReveal } from "./scenes/BrandReveal";
 import { EndCard } from "./scenes/EndCard";
 import { NeedAnswer } from "./scenes/NeedAnswer";

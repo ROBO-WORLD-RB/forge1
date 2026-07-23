@@ -6,10 +6,10 @@ import {
   useCurrentFrame,
 } from "remotion";
 import { forge } from "../../../brand";
-import { Atmosphere } from "../components/Atmosphere";
-import { FilmGrain } from "../components/FilmGrain";
-import { KineticLine } from "../components/KineticLine";
-import { bodyFont } from "../fonts";
+import { Atmosphere } from "../../../shared/Atmosphere";
+import { FilmGrain } from "../../../shared/FilmGrain";
+import { KineticLine } from "../../../shared/KineticLine";
+import { bodyFont } from "../../../shared/fonts";
 
 export type QuestionLayout = "center" | "low";
 

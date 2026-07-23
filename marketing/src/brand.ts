@@ -20,3 +20,9 @@ export const VIDEO = {
   height: 1080,
   fps: 30,
 } as const;
+
+export const VIDEO_VERTICAL = {
+  width: 1080,
+  height: 1920,
+  fps: 30,
+} as const;

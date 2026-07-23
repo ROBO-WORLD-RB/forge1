@@ -31,6 +31,7 @@
     "build": "remotion bundle",
     "render": "remotion render HelloForge out/hello-forge.mp4",
     "render:intro": "remotion render ForgeIntro out/forge-intro.mp4",
+    "render:problem": "remotion render ProblemStory out/problem-story.mp4",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   },

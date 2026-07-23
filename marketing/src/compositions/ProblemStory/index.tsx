@@ -1,21 +1,21 @@
 import { Composition } from "remotion";
-import { VIDEO } from "../../brand";
-import { ForgeIntro } from "./ForgeIntro";
+import { VIDEO_VERTICAL } from "../../brand";
 import { waitForFonts } from "../../shared/fonts";
+import { ProblemStory } from "./ProblemStory";
 import { DURATION_FRAMES } from "./timing";
 
-export { ForgeIntro } from "./ForgeIntro";
+export { ProblemStory } from "./ProblemStory";
 export { DURATION_FRAMES, DURATION_SECONDS } from "./timing";
 
-export const ForgeIntroComposition: React.FC = () => {
+export const ProblemStoryComposition: React.FC = () => {
   return (
     <Composition
-      id="ForgeIntro"
-      component={ForgeIntro}
+      id="ProblemStory"
+      component={ProblemStory}
       durationInFrames={DURATION_FRAMES}
-      fps={VIDEO.fps}
-      width={VIDEO.width}
-      height={VIDEO.height}
+      fps={VIDEO_VERTICAL.fps}
+      width={VIDEO_VERTICAL.width}
+      height={VIDEO_VERTICAL.height}
       calculateMetadata={async () => {
         await waitForFonts();
         return {};

@@ -6,7 +6,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from "remotion";
-import { bodyFont } from "../fonts";
+import { bodyFont } from "./fonts";
 
 /**
  * Persistent top-center parent brand —

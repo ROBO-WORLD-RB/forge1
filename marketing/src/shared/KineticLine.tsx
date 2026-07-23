@@ -1,6 +1,6 @@
 import { Easing, Interactive, interpolate, useCurrentFrame } from "remotion";
-import { forge } from "../../../brand";
-import { bodyFont, displayFont } from "../fonts";
+import { forge } from "../brand";
+import { bodyFont, displayFont } from "./fonts";
 
 type KineticLineProps = {
   text: string;

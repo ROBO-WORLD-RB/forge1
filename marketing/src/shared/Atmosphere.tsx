@@ -1,5 +1,5 @@
 import { AbsoluteFill, Easing, interpolate, useCurrentFrame } from "remotion";
-import { forge } from "../../../brand";
+import { forge } from "../brand";
 
 type AtmosphereProps = {
   /** Horizontal focus of the warm glow, 0–100 */
