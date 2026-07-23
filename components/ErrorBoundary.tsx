@@ -66,7 +66,7 @@ class ErrorBoundary extends Component<Props, State> {
             <h1 className="text-xl font-bold text-gray-900 mb-2">Something went wrong</h1>
             <p className="text-gray-600 mb-6">
               {this.state.isChunkError
-                ? 'A new version of FORGE may be available. Reload the page or use Update Now if prompted.'
+                ? 'A new version of FORGE may be available. Reload the page to continue.'
                 : "We're sorry, but something unexpected happened. Please try again."}
             </p>
             {import.meta.env.DEV && this.state.error && (

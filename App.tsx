@@ -9,8 +9,6 @@ import { TopNav, BottomNav, isNavRouteActive, getOsSidebarLinks, resolveOsRole }
 import { useUnreadNotificationCount } from './hooks/useUnreadNotificationCount';
 import ErrorBoundary from './components/ErrorBoundary';
 import OfflineIndicator from './components/OfflineIndicator';
-import UpdatePrompt from './components/UpdatePrompt';
-import UpdatingOverlay from './components/UpdatingOverlay';
 import { usePageTracking } from './hooks/useAnalytics';
 import { usePWA } from './hooks/usePWA';
 import { InstallPrompt } from './components/InstallPrompt';
@@ -227,7 +225,7 @@ const DashboardRedirect: React.FC = () => {
 const AppContent: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
-  const { needRefresh, isUpdating, updateApp, dismissUpdating, dismissUpdate } = usePWA();
+  usePWA();
   const isWorker = user?.role === 'worker';
   const osRole = resolveOsRole(user?.role, isAuthenticated);
   const unreadNotifications = useUnreadNotificationCount(isAuthenticated, user?.id);
@@ -264,12 +262,6 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-dynamic bg-gray-50 font-sans text-gray-900 flex flex-col overflow-x-hidden">
       <OfflineIndicator />
-      {isUpdating && (
-        <UpdatingOverlay onUpdate={updateApp} onDismiss={dismissUpdating} />
-      )}
-      {needRefresh && !isUpdating && (
-        <UpdatePrompt onUpdate={updateApp} onDismiss={dismissUpdate} />
-      )}
       <TopNav onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
       
       {/* Skip to content link */}

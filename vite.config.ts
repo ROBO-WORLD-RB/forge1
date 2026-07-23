@@ -144,7 +144,7 @@ export default defineConfig(({ mode }) => {
           },
         }),
         VitePWA({
-          // prompt: never auto-reload; user chooses via Updating FORGE overlay.
+          // prompt: never auto-reload; no in-app update UI.
           registerType: 'prompt',
           injectRegister: null,
           includeAssets: ['icons/*.svg', 'icons/*.png', 'manifest.json', 'offline.html', '_headers'],
@@ -181,7 +181,7 @@ export default defineConfig(({ mode }) => {
             // Drop old precache entries after redeploy so clients don't keep
             // requesting hashed chunks that no longer exist (ChunkLoadError).
             cleanupOutdatedCaches: true,
-            // Wait for user "Update Now" before activating a new SW.
+            // New SW waits in background; no auto-activation or update prompts.
             clientsClaim: true,
             skipWaiting: false,
             // SPA shell — never use offline.html here. That made every soft

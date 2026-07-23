@@ -1,5 +1,4 @@
 import { logger } from './logger';
-import { clearUpdateOverlay, reloadWithUpdateOverlay } from './updateOverlay';
 
 const BUILD_ID_META = 'forge-build-id';
 const VERSION_RELOAD_KEY = 'forge:version-reload';
@@ -57,17 +56,6 @@ export function markPendingUpdateReload(reason: string): void {
   markReloaded(reason);
 }
 
-/** Manual reload only — used when the user chooses to update. */
-export function reloadForUpdate(reason: string): boolean {
-  if (hasReloadedThisSession()) {
-    logger.info('Skipping duplicate update reload', { reason }, 'AppUpdate');
-    return false;
-  }
-
-  void reloadWithUpdateOverlay(reason, hasReloadedThisSession, markReloaded);
-  return true;
-}
-
 export function clearUpdateReloadFlag(): void {
   try {
     sessionStorage.removeItem(VERSION_RELOAD_KEY);
@@ -105,24 +93,19 @@ export async function triggerServiceWorkerUpdateCheck(): Promise<void> {
   }
 }
 
-export function initAppUpdateListeners(onUpdateAvailable?: () => void): () => void {
+/** Silent background checks only — no update UI or auto-reload. */
+export function initAppUpdateListeners(): () => void {
   clearUpdateReloadFlag();
-  clearUpdateOverlay();
-
-  const notifyIfUpdated = async (options?: { force?: boolean }) => {
-    const hasUpdate = await checkForAppUpdate(options);
-    if (hasUpdate) onUpdateAvailable?.();
-  };
 
   const handleVisibility = () => {
     if (document.visibilityState !== 'visible') return;
-    void notifyIfUpdated();
+    void checkForAppUpdate();
     void triggerServiceWorkerUpdateCheck();
   };
 
   document.addEventListener('visibilitychange', handleVisibility);
 
-  void notifyIfUpdated({ force: true });
+  void checkForAppUpdate({ force: true });
   void triggerServiceWorkerUpdateCheck();
 
   return () => {
