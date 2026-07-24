@@ -284,7 +284,11 @@ DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
 DROP POLICY IF EXISTS "Users can insert own profile" ON profiles;
 DROP POLICY IF EXISTS "Admins can update any profile" ON profiles;
-CREATE POLICY "Profiles are viewable by everyone" ON profiles FOR SELECT USING (true);
+-- Open SELECT removed — see migration 021_lock_down_profiles_rls.sql
+-- (own / admin / active workers / booking-chat-job-review contexts only)
+CREATE POLICY "Users can view own profile" ON profiles FOR SELECT TO authenticated USING (auth.uid() = id);
+CREATE POLICY "Public can view active worker profiles" ON profiles FOR SELECT TO anon, authenticated
+  USING (role = 'worker' AND worker_status = 'active');
 CREATE POLICY "Users can update own profile" ON profiles FOR UPDATE TO authenticated USING (auth.uid() = id) WITH CHECK (auth.uid() = id);
 CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT TO authenticated WITH CHECK (
   auth.uid() = id
