@@ -8,3 +8,7 @@ dist
 # Remotion bundle / render outputs (keep src/public assets)
 out
 build
+
+# Blender regenerable binaries (scripts rebuild these)
+*.blend
+*.blend1
