@@ -40,8 +40,7 @@ export const RedParticles = () => {
               height: p.size,
               borderRadius: "50%",
               backgroundColor: reel.red,
-              boxShadow: `0 0 ${p.size * 2}px ${reel.red}`,
-              opacity,
+              opacity: opacity * 0.55,
               transform: `translateY(${drift}px)`,
             }}
           />

@@ -61,9 +61,11 @@ export const KineticCaption = ({
           lineHeight: 1.12,
           textAlign: "center",
           color,
-          letterSpacing: variant === "display" ? "0.01em" : "-0.015em",
+          letterSpacing: variant === "display" ? "0.01em" : "-0.01em",
+          WebkitFontSmoothing: "antialiased",
+          textRendering: "geometricPrecision",
           opacity,
-          transform: `scale(${interpolate(enter, [0, 1], [0.9, 1])}) translateY(${interpolate(enter, [0, 1], [24, 0])}px)`,
+          transform: `scale(${interpolate(enter, [0, 1], [0.94, 1])}) translateY(${interpolate(enter, [0, 1], [18, 0])}px)`,
         }}
       >
         {text}

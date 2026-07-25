@@ -32,7 +32,7 @@
     "render": "remotion render HelloForge out/hello-forge.mp4",
     "render:intro": "remotion render ForgeIntro out/forge-intro.mp4",
     "render:problem": "remotion render ProblemStory out/problem-story.mp4",
-    "render:reel": "remotion render ForgeReel out/forge-reel.mp4",
+    "render:reel": "remotion render ForgeReel out/forge-reel.mp4 --image-format=png --crf=16",
     "upgrade": "remotion upgrade",
     "lint": "eslint src && tsc"
   },

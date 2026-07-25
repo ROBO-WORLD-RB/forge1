@@ -13,9 +13,9 @@ export const PhoneShell = ({ children, style }: PhoneShellProps) => (
       height: 900,
       borderRadius: 44,
       padding: 11,
-      background: "linear-gradient(160deg, #2a2a2a, #0a0a0a)",
-      border: `1px solid ${reel.glassBorder}`,
-      boxShadow: "0 28px 70px rgba(0,0,0,0.65)",
+      background: "linear-gradient(160deg, #3a3a3a, #121212)",
+      border: `1.5px solid ${reel.glassBorder}`,
+      boxShadow: "0 24px 56px rgba(0,0,0,0.55)",
       ...style,
     }}
   >
