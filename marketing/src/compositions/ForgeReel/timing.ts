@@ -9,7 +9,7 @@ export const BEAT_FRAMES = 240; // 4.0s per beat
 export const MAX_BEAT_FRAMES = BEAT_FRAMES;
 
 /** Bed / score for ForgeReel — lives in marketing/public/audio/ */
-export const REEL_AUDIO = "audio/forge reel.wav" as const;
+export const REEL_AUDIO = "audio/forge-reel.wav" as const;
 
 /** Named beats in order. Each duration must be ≤ MAX_BEAT_FRAMES. */
 export const BEATS = [
