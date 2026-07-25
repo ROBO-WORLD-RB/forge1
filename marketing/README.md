@@ -30,7 +30,7 @@ npm run dev
 ```
 
 Opens Remotion Studio so you can scrub compositions and tweak Interactive props.  
-Select **`ForgeIntro`** in the composition list for the cinematic marketing intro, or **`ProblemStory`** for the vertical TikTok/Reels problem narrative.
+Select **`ForgeReel`** for the 45s neon vertical ad, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
 
 ## Render a video
 
@@ -52,6 +52,12 @@ Render the vertical problem story (`ProblemStory`, 30s, 1080×1920):
 npm run render:problem
 ```
 
+Render the neon vertical reel (`ForgeReel`, 45s, 1080×1920 @ 60fps):
+
+```bash
+npm run render:reel
+```
+
 Or render any composition by id:
 
 ```bash
@@ -59,6 +65,7 @@ npx remotion render HelloForge out/hello-forge.mp4
 npx remotion render BrandIntro out/brand-intro.mp4
 npx remotion render ForgeIntro out/forge-intro.mp4
 npx remotion render ProblemStory out/problem-story.mp4
+npx remotion render ForgeReel out/forge-reel.mp4
 ```
 
 Quick still (sanity-check a frame at 1s):
@@ -75,12 +82,23 @@ npm run build
 
 ## Compositions
 
-| ID             | Length | Size       | Purpose                                                                 |
-| -------------- | ------ | ---------- | ----------------------------------------------------------------------- |
-| `HelloForge`   | 3s     | 1920×1080  | Minimal branded mark + accent bar                                       |
-| `BrandIntro`   | 5s     | 1920×1080  | Wordmark + tagline (short intro)                                        |
-| `ForgeIntro`   | 66s    | 1920×1080  | Questions that need an answer → silence → FORGE brand reveal + narration |
-| `ProblemStory` | 30s    | 1080×1920  | Vertical problem beats (pipe, rain, trust, hands) → FORGE tease         |
+| ID             | Length | Size              | Purpose                                                                 |
+| -------------- | ------ | ----------------- | ----------------------------------------------------------------------- |
+| `ForgeReel`    | 45s    | 1080×1920 @ 60fps | Neon vertical ad: WhatsApp friction → verified pro → FORGE CTA          |
+| `HelloForge`   | 3s     | 1920×1080         | Minimal branded mark + accent bar                                       |
+| `BrandIntro`   | 5s     | 1920×1080         | Wordmark + tagline (short intro)                                        |
+| `ForgeIntro`   | 66s    | 1920×1080         | Questions that need an answer → silence → FORGE brand reveal + narration |
+| `ProblemStory` | 30s    | 1080×1920         | Vertical problem beats (pipe, rain, trust, hands) → FORGE tease         |
+
+### ForgeReel creative
+
+A **45-second vertical** neon motion-graphics ad (under the 1-minute cap) for TikTok / Reels / Shorts:
+
+1. **Friction** — glass chat bubble (“Anyone have a reliable electrician in Accra?”) + glitch wipe; caption against WhatsApp gambling  
+2. **Digital Engine** — cyan beam → floating phone with verified worker card, stars, Paystack escrow callout  
+3. **Logo Resolve** — phone recedes; kinetic **FORGE** + tagline + cyan CTA pill (`Visit forge.app — Open Web App`)
+
+Palette: `#0D1117` / `#00F2FE` / `#FF6B00`. Springs + interpolates only — no external video assets.
 
 ### ForgeIntro creative
 

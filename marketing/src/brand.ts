@@ -26,3 +26,10 @@ export const VIDEO_VERTICAL = {
   height: 1920,
   fps: 30,
 } as const;
+
+/** Vertical shorts / Reels at 60fps (e.g. ForgeReel). */
+export const VIDEO_VERTICAL_60 = {
+  width: 1080,
+  height: 1920,
+  fps: 60,
+} as const;
