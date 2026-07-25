@@ -68,7 +68,7 @@ export const SwipeMatch = () => {
             Nearby matches
           </div>
           <div style={{ position: "relative", flex: 1 }}>
-            {/* Back card */}
+            {/* Back card — Jerry Justice */}
             <div
               style={{
                 position: "absolute",
@@ -78,9 +78,49 @@ export const SwipeMatch = () => {
                 background: "#1a1a1a",
                 border: `1px solid ${reel.glassBorder}`,
                 transform: "scale(0.96) translateY(12px)",
+                padding: 22,
               }}
-            />
-            {/* Front card */}
+            >
+              <div
+                style={{
+                  height: 160,
+                  borderRadius: 16,
+                  background: `linear-gradient(135deg, #1a3a4a, ${reel.navy})`,
+                  marginBottom: 16,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontFamily: uiFont,
+                  fontWeight: 800,
+                  fontSize: 40,
+                  color: reel.ember,
+                }}
+              >
+                JJ
+              </div>
+              <div
+                style={{
+                  fontFamily: uiFont,
+                  fontWeight: 800,
+                  fontSize: 24,
+                  color: reel.white,
+                }}
+              >
+                Jerry Justice
+              </div>
+              <div
+                style={{
+                  fontFamily: uiFont,
+                  fontWeight: 600,
+                  fontSize: 16,
+                  color: reel.ember,
+                  marginTop: 6,
+                }}
+              >
+                Master Plumber · Accra
+              </div>
+            </div>
+            {/* Front card — Kofi Mensah */}
             <div
               style={{
                 position: "absolute",
@@ -134,7 +174,7 @@ export const SwipeMatch = () => {
                   marginTop: 6,
                 }}
               >
-                Master Electrician · 2.1 km
+                Master Electrician · Accra
               </div>
               <div
                 style={{

@@ -3,10 +3,10 @@ import { AbsoluteFill, Sequence } from "remotion";
 import { BookTap } from "./beats/BookTap";
 import { ChatReply } from "./beats/ChatReply";
 import { ChatSlam } from "./beats/ChatSlam";
+import { ClosingBeat } from "./beats/ClosingBeat";
 import { CtaBeat } from "./beats/CtaBeat";
 import { EscrowLock } from "./beats/EscrowLock";
 import { GlitchCut } from "./beats/GlitchCut";
-import { LogoSlam } from "./beats/LogoSlam";
 import { MeetForge } from "./beats/MeetForge";
 import { ProfileReveal } from "./beats/ProfileReveal";
 import { SearchType } from "./beats/SearchType";
@@ -39,8 +39,8 @@ const BEAT_COMPONENTS: Record<string, ComponentType> = {
   bookTap: BookTap,
   chatReply: ChatReply,
   tradesFlash: TradesFlash,
-  logoSlam: LogoSlam,
   cta: CtaBeat,
+  closing: ClosingBeat,
 };
 
 /**
