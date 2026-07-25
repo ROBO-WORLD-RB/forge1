@@ -1,5 +1,6 @@
 import type { ComponentType } from "react";
-import { AbsoluteFill, Sequence } from "remotion";
+import { Audio } from "@remotion/media";
+import { AbsoluteFill, Sequence, staticFile } from "remotion";
 import { BookTap } from "./beats/BookTap";
 import { ChatReply } from "./beats/ChatReply";
 import { ChatSlam } from "./beats/ChatSlam";
@@ -15,7 +16,7 @@ import { SwipeMatch } from "./beats/SwipeMatch";
 import { TradesFlash } from "./beats/TradesFlash";
 import { VerifiedSnap } from "./beats/VerifiedSnap";
 import { KineticCaption } from "./components/KineticCaption";
-import { beatTimeline } from "./timing";
+import { beatTimeline, REEL_AUDIO } from "./timing";
 import { reel } from "./theme";
 
 const BEAT_COMPONENTS: Record<string, ComponentType> = {
@@ -50,6 +51,7 @@ const BEAT_COMPONENTS: Record<string, ComponentType> = {
 export const ForgeReel = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: reel.bg }}>
+      <Audio src={staticFile(REEL_AUDIO)} />
       {beatTimeline.map((beat) => {
         const Comp = BEAT_COMPONENTS[beat.id];
         if (!Comp) return null;
