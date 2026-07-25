@@ -12,7 +12,7 @@ export const MAX_BEAT_FRAMES = BEAT_FRAMES;
 export const BEATS = [
   { id: "chatSlam", duration: BEAT_FRAMES }, // WhatsApp pile-up
   { id: "captionPain", duration: BEAT_FRAMES }, // Ghosted. Overcharged. No-shows.
-  { id: "glitch", duration: BEAT_FRAMES }, // hard cut
+  { id: "glitch", duration: 48 }, // 0.8s — snappy wipe into Meet FORGE
   { id: "meetForge", duration: BEAT_FRAMES }, // Meet FORGE.
   { id: "searchType", duration: BEAT_FRAMES }, // type + search
   { id: "swipeMatch", duration: BEAT_FRAMES }, // swipe worker card

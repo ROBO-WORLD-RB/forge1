@@ -1,12 +1,13 @@
 import { AbsoluteFill, interpolate, useCurrentFrame } from "remotion";
 import { reel } from "../theme";
 
+/** Fast hard wipe — keep under 1s so Meet FORGE hits immediately. */
 export const GlitchCut = () => {
   const frame = useCurrentFrame();
-  const shake = Math.sin(frame * 2.4) * interpolate(frame, [0, 90], [16, 2], {
+  const shake = Math.sin(frame * 4.2) * interpolate(frame, [0, 24], [14, 2], {
     extrapolateRight: "clamp",
   });
-  const wipe = interpolate(frame, [40, 180], [0, 100], {
+  const wipe = interpolate(frame, [4, 40], [0, 100], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -29,7 +30,7 @@ export const GlitchCut = () => {
       <AbsoluteFill
         style={{
           background: reel.orange,
-          opacity: interpolate(frame, [140, 200], [0, 0.55], {
+          opacity: interpolate(frame, [28, 48], [0, 0.5], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }),
