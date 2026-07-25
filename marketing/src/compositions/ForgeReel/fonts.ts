@@ -1,18 +1,20 @@
-import { loadFont as loadMontserrat } from "@remotion/google-fonts/Montserrat";
+import { loadFont as loadBebas } from "@remotion/google-fonts/BebasNeue";
 import { loadFont as loadOutfit } from "@remotion/google-fonts/Outfit";
 
-const montserrat = loadMontserrat("normal", {
-  weights: ["600", "700", "800", "900"],
+/** Display — bold condensed slam for FORGE / punch lines. */
+const bebas = loadBebas("normal", {
+  weights: ["400"],
   subsets: ["latin"],
 });
 
+/** UI / captions — same body face as ForgeIntro (Outfit). */
 const outfit = loadOutfit("normal", {
-  weights: ["400", "500", "600", "700"],
+  weights: ["500", "600", "700", "800"],
   subsets: ["latin"],
 });
 
-export const displayFont = montserrat.fontFamily;
+export const displayFont = bebas.fontFamily;
 export const uiFont = outfit.fontFamily;
 
 export const waitForFonts = () =>
-  Promise.all([montserrat.waitUntilDone(), outfit.waitUntilDone()]);
+  Promise.all([bebas.waitUntilDone(), outfit.waitUntilDone()]);

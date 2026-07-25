@@ -1,38 +1,69 @@
+import type { ComponentType } from "react";
 import { AbsoluteFill, Sequence } from "remotion";
-import { DigitalEngine } from "./scenes/DigitalEngine";
-import { Friction } from "./scenes/Friction";
-import { LogoResolve } from "./scenes/LogoResolve";
+import { BookTap } from "./beats/BookTap";
+import { ChatReply } from "./beats/ChatReply";
+import { ChatSlam } from "./beats/ChatSlam";
+import { CtaBeat } from "./beats/CtaBeat";
+import { EscrowLock } from "./beats/EscrowLock";
+import { GlitchCut } from "./beats/GlitchCut";
+import { LogoSlam } from "./beats/LogoSlam";
+import { MeetForge } from "./beats/MeetForge";
+import { ProfileReveal } from "./beats/ProfileReveal";
+import { SearchType } from "./beats/SearchType";
+import { StarsPop } from "./beats/StarsPop";
+import { SwipeMatch } from "./beats/SwipeMatch";
+import { TradesFlash } from "./beats/TradesFlash";
+import { VerifiedSnap } from "./beats/VerifiedSnap";
+import { KineticCaption } from "./components/KineticCaption";
+import { beatTimeline } from "./timing";
 import { reel } from "./theme";
-import { scenes } from "./timing";
+
+const BEAT_COMPONENTS: Record<string, ComponentType> = {
+  chatSlam: ChatSlam,
+  captionPain: () => (
+    <KineticCaption
+      text="Ghosted. Overcharged. No-shows."
+      accent="white"
+      size={56}
+      variant="ui"
+    />
+  ),
+  glitch: GlitchCut,
+  meetForge: MeetForge,
+  searchType: SearchType,
+  swipeMatch: SwipeMatch,
+  profileReveal: ProfileReveal,
+  verifiedSnap: VerifiedSnap,
+  starsPop: StarsPop,
+  escrowLock: EscrowLock,
+  bookTap: BookTap,
+  chatReply: ChatReply,
+  tradesFlash: TradesFlash,
+  logoSlam: LogoSlam,
+  cta: CtaBeat,
+};
 
 /**
- * ForgeReel — 45s vertical neon ad:
- * WhatsApp friction → verified worker phone → FORGE logo / CTA.
+ * ForgeReel — kinetic vertical ad.
+ * Every beat ≤ 2s. Punchy story, interactive UI, brand type/color.
  */
-export const ForgeReel: React.FC = () => {
+export const ForgeReel = () => {
   return (
     <AbsoluteFill style={{ backgroundColor: reel.bg }}>
-      <Sequence
-        from={scenes.friction.from}
-        durationInFrames={scenes.friction.duration}
-        name="Friction"
-      >
-        <Friction />
-      </Sequence>
-      <Sequence
-        from={scenes.digital.from}
-        durationInFrames={scenes.digital.duration}
-        name="DigitalEngine"
-      >
-        <DigitalEngine />
-      </Sequence>
-      <Sequence
-        from={scenes.resolve.from}
-        durationInFrames={scenes.resolve.duration}
-        name="LogoResolve"
-      >
-        <LogoResolve />
-      </Sequence>
+      {beatTimeline.map((beat) => {
+        const Comp = BEAT_COMPONENTS[beat.id];
+        if (!Comp) return null;
+        return (
+          <Sequence
+            key={beat.id}
+            from={beat.from}
+            durationInFrames={beat.duration}
+            name={beat.id}
+          >
+            <Comp />
+          </Sequence>
+        );
+      })}
     </AbsoluteFill>
   );
 };

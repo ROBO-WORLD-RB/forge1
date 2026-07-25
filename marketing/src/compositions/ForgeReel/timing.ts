@@ -1,29 +1,48 @@
 import { VIDEO_VERTICAL_60 } from "../../brand";
 
-/** 45s @ 60fps — under the 1-minute cap. */
+/**
+ * Punchy kinetic reel — every beat ≤ 2.0s (120f @ 60fps).
+ * Story: WhatsApp chaos → FORGE search/swipe/book → confirmed → brand.
+ */
 export const FPS = VIDEO_VERTICAL_60.fps;
-export const DURATION_SECONDS = 45;
-export const DURATION_FRAMES = DURATION_SECONDS * FPS; // 2700
+export const MAX_BEAT_FRAMES = 120; // 2.0s hard cap
 
-export const scenes = {
-  friction: { from: 0, duration: 720 },
-  digital: { from: 720, duration: 1080 },
-  resolve: { from: 1800, duration: 900 },
-} as const;
+/** Named beats in order. Each duration must be ≤ MAX_BEAT_FRAMES. */
+export const BEATS = [
+  { id: "chatSlam", duration: 90 }, // 1.5s — frantic WhatsApp pile-up
+  { id: "captionPain", duration: 90 }, // 1.5s — Ghosted. Overcharged. No-shows.
+  { id: "glitch", duration: 60 }, // 1.0s — hard cut
+  { id: "meetForge", duration: 75 }, // 1.25s — Meet FORGE.
+  { id: "searchType", duration: 105 }, // 1.75s — type + search (interactive)
+  { id: "swipeMatch", duration: 105 }, // 1.75s — swipe worker card
+  { id: "profileReveal", duration: 90 }, // 1.5s — name + trade
+  { id: "verifiedSnap", duration: 75 }, // 1.25s — verified badge
+  { id: "starsPop", duration: 90 }, // 1.5s — rating pop
+  { id: "escrowLock", duration: 90 }, // 1.5s — escrow lock tap
+  { id: "bookTap", duration: 105 }, // 1.75s — Book Now tap
+  { id: "chatReply", duration: 90 }, // 1.5s — On my way
+  { id: "tradesFlash", duration: 90 }, // 1.5s — trade chips
+  { id: "logoSlam", duration: 90 }, // 1.5s — FORGE
+  { id: "cta", duration: 120 }, // 2.0s — CTA
+] as const;
 
-const sum =
-  scenes.friction.duration + scenes.digital.duration + scenes.resolve.duration;
+export type BeatId = (typeof BEATS)[number]["id"];
 
-if (sum !== DURATION_FRAMES) {
-  throw new Error(
-    `ForgeReel duration mismatch: scene sum ${sum}, expected ${DURATION_FRAMES}`,
-  );
-}
+let cursor = 0;
+export const beatTimeline = BEATS.map((b) => {
+  if (b.duration > MAX_BEAT_FRAMES) {
+    throw new Error(`Beat ${b.id} exceeds 2s cap (${b.duration}f)`);
+  }
+  const from = cursor;
+  cursor += b.duration;
+  return { ...b, from };
+});
 
-if (scenes.digital.from !== scenes.friction.from + scenes.friction.duration) {
-  throw new Error("ForgeReel: digital scene start must follow friction");
-}
+export const DURATION_FRAMES = cursor;
+export const DURATION_SECONDS = DURATION_FRAMES / FPS;
 
-if (scenes.resolve.from !== scenes.digital.from + scenes.digital.duration) {
-  throw new Error("ForgeReel: resolve scene start must follow digital");
+export function beatRange(id: BeatId): { from: number; duration: number } {
+  const b = beatTimeline.find((x) => x.id === id);
+  if (!b) throw new Error(`Unknown beat ${id}`);
+  return { from: b.from, duration: b.duration };
 }

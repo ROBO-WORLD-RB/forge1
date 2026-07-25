@@ -15,7 +15,7 @@ const PARTICLES = [
   { x: 55, y: 88, size: 4, period: 98, phase: 35 },
 ] as const;
 
-export const RedParticles: React.FC = () => {
+export const RedParticles = () => {
   const frame = useCurrentFrame();
 
   return (
