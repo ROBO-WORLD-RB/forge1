@@ -18,21 +18,21 @@ export const SwipeMatch = () => {
     fps,
     config: { damping: 13, stiffness: 140 },
   });
-  // Drag right then snap accept
-  const dragX = interpolate(frame, [20, 70, 95], [0, 140, 420], {
+  // Drag right then snap accept across the 4s beat
+  const dragX = interpolate(frame, [40, 150, 200], [0, 140, 420], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const rot = interpolate(frame, [20, 70], [0, 12], {
+  const rot = interpolate(frame, [40, 150], [0, 12], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const stamp = interpolate(frame, [45, 65], [0, 1], {
+  const stamp = interpolate(frame, [100, 140], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
   const finger = spring({
-    frame: Math.max(0, frame - 15),
+    frame: Math.max(0, frame - 30),
     fps,
     config: { damping: 16, stiffness: 160 },
   });
@@ -91,7 +91,7 @@ export const SwipeMatch = () => {
                 border: `1px solid ${reel.glassBorder}`,
                 padding: 22,
                 transform: `translateX(${dragX}px) rotate(${rot}deg) scale(${interpolate(enter, [0, 1], [0.92, 1])})`,
-                opacity: interpolate(frame, [85, 105], [1, 0], {
+                opacity: interpolate(frame, [190, 230], [1, 0], {
                   extrapolateLeft: "clamp",
                   extrapolateRight: "clamp",
                 }),
@@ -167,7 +167,7 @@ export const SwipeMatch = () => {
                 border: `3px solid ${reel.white}`,
                 background: "rgba(255,255,255,0.2)",
                 transform: `translateX(${interpolate(finger, [0, 1], [0, 110])}px)`,
-                opacity: interpolate(frame, [10, 25, 70, 85], [0, 1, 1, 0], {
+                opacity: interpolate(frame, [20, 50, 150, 185], [0, 1, 1, 0], {
                   extrapolateLeft: "clamp",
                   extrapolateRight: "clamp",
                 }),

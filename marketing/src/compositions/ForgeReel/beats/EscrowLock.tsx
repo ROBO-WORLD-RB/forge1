@@ -18,14 +18,14 @@ export const EscrowLock = () => {
     fps,
     config: { damping: 13, stiffness: 150 },
   });
-  const locked = frame >= 40;
+  const locked = frame >= 90;
   const toggle = spring({
-    frame: Math.max(0, frame - 40),
+    frame: Math.max(0, frame - 90),
     fps,
     config: { damping: 14, stiffness: 200 },
   });
   const finger = spring({
-    frame: Math.max(0, frame - 28),
+    frame: Math.max(0, frame - 60),
     fps,
     config: { damping: 16, stiffness: 180 },
   });
@@ -126,7 +126,7 @@ export const EscrowLock = () => {
                 border: `3px solid ${reel.white}`,
                 background: "rgba(255,255,255,0.2)",
                 transform: `translate(${interpolate(finger, [0, 1], [40, 0])}px, ${interpolate(finger, [0, 1], [30, 0])}px)`,
-                opacity: interpolate(frame, [20, 35, 55, 70], [0, 1, 1, 0], {
+                opacity: interpolate(frame, [45, 70, 110, 140], [0, 1, 1, 0], {
                   extrapolateLeft: "clamp",
                   extrapolateRight: "clamp",
                 }),

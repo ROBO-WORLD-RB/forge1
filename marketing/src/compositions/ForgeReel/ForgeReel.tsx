@@ -45,7 +45,7 @@ const BEAT_COMPONENTS: Record<string, ComponentType> = {
 
 /**
  * ForgeReel — kinetic vertical ad.
- * Every beat ≤ 2s. Punchy story, interactive UI, brand type/color.
+ * Every beat = 4s. Punchy story, interactive UI, brand type/color.
  */
 export const ForgeReel = () => {
   return (

@@ -11,8 +11,8 @@ import { reel } from "../theme";
 
 const MSGS = [
   { who: "Ama", text: "Anyone know a plumber?? Mine ghosted 😤", delay: 0 },
-  { who: "Kojo", text: "He took deposit and vanished…", delay: 18 },
-  { who: "Efua", text: "WhatsApp groups are useless for this", delay: 36 },
+  { who: "Kojo", text: "He took deposit and vanished…", delay: 40 },
+  { who: "Efua", text: "WhatsApp groups are useless for this", delay: 80 },
 ];
 
 /** Frantic WhatsApp pile-up — stakes in under 1.5s. */

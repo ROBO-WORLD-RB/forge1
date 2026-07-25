@@ -30,7 +30,7 @@ npm run dev
 ```
 
 Opens Remotion Studio so you can scrub compositions and tweak Interactive props.  
-Select **`ForgeReel`** for the ~23s punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
+Select **`ForgeReel`** for the 60s punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
 
 ## Render a video
 
@@ -52,7 +52,7 @@ Render the vertical problem story (`ProblemStory`, 30s, 1080×1920):
 npm run render:problem
 ```
 
-Render the punchy vertical reel (`ForgeReel`, ~23s, 1080×1920 @ 60fps, beats ≤2s):
+Render the punchy vertical reel (`ForgeReel`, 60s, 1080×1920 @ 60fps, 4s beats):
 
 ```bash
 npm run render:reel
@@ -84,7 +84,7 @@ npm run build
 
 | ID             | Length | Size              | Purpose                                                                 |
 | -------------- | ------ | ----------------- | ----------------------------------------------------------------------- |
-| `ForgeReel`    | ~23s   | 1080×1920 @ 60fps | Punchy reel (≤2s beats): chaos → search/swipe/book → FORGE CTA          |
+| `ForgeReel`    | 60s    | 1080×1920 @ 60fps | Punchy reel (4s beats): chaos → search/swipe/book → FORGE CTA           |
 | `HelloForge`   | 3s     | 1920×1080         | Minimal branded mark + accent bar                                       |
 | `BrandIntro`   | 5s     | 1920×1080         | Wordmark + tagline (short intro)                                        |
 | `ForgeIntro`   | 66s    | 1920×1080         | Questions that need an answer → silence → FORGE brand reveal + narration |
@@ -92,7 +92,7 @@ npm run build
 
 ### ForgeReel creative
 
-A **~23s vertical** kinetic ad for TikTok / Reels / Shorts — every beat ≤ **2 seconds**:
+A **60s vertical** kinetic ad for TikTok / Reels / Shorts — every beat = **4 seconds**:
 
 1. **Chaos** — stacked WhatsApp complaints → “Ghosted. Overcharged. No-shows.” → hard cut  
 2. **Product** — Meet FORGE → type a search → swipe a match → verified pro, stars, escrow toggle, Book tap → “On my way”  

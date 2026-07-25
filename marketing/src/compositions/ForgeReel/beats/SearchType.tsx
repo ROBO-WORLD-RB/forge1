@@ -22,14 +22,16 @@ export const SearchType = () => {
   });
   const typed = Math.min(
     QUERY.length,
-    Math.floor(interpolate(frame, [12, 70], [0, QUERY.length], {
-      extrapolateLeft: "clamp",
-      extrapolateRight: "clamp",
-    })),
+    Math.floor(
+      interpolate(frame, [24, 150], [0, QUERY.length], {
+        extrapolateLeft: "clamp",
+        extrapolateRight: "clamp",
+      }),
+    ),
   );
   const caretOn = Math.floor(frame / 8) % 2 === 0;
   const btn = spring({
-    frame: Math.max(0, frame - 72),
+    frame: Math.max(0, frame - 160),
     fps,
     config: { damping: 12, stiffness: 180 },
   });
@@ -64,7 +66,7 @@ export const SearchType = () => {
             <div
               style={{
                 background: reel.glass,
-                border: `1.5px solid ${frame > 70 ? reel.orange : reel.glassBorder}`,
+                border: `1.5px solid ${frame > 150 ? reel.orange : reel.glassBorder}`,
                 borderRadius: 16,
                 padding: "18px 20px",
                 fontFamily: uiFont,
@@ -75,7 +77,7 @@ export const SearchType = () => {
                 display: "flex",
                 alignItems: "center",
                 boxShadow:
-                  frame > 70 ? `0 0 0 2px rgba(255,122,0,0.25)` : "none",
+                  frame > 150 ? `0 0 0 2px rgba(255,122,0,0.25)` : "none",
               }}
             >
               {QUERY.slice(0, typed)}

@@ -35,7 +35,7 @@ export const StarsPop = () => {
           <div style={{ display: "flex", gap: 10 }}>
             {Array.from({ length: 5 }).map((_, i) => {
               const s = spring({
-                frame: Math.max(0, frame - i * 10),
+                frame: Math.max(0, frame - i * 22),
                 fps,
                 config: { damping: 10, stiffness: 240 },
               });

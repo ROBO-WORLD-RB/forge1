@@ -3,10 +3,10 @@ import { reel } from "../theme";
 
 export const GlitchCut = () => {
   const frame = useCurrentFrame();
-  const shake = Math.sin(frame * 3.1) * interpolate(frame, [0, 30], [16, 2], {
+  const shake = Math.sin(frame * 2.4) * interpolate(frame, [0, 90], [16, 2], {
     extrapolateRight: "clamp",
   });
-  const wipe = interpolate(frame, [15, 60], [0, 100], {
+  const wipe = interpolate(frame, [40, 180], [0, 100], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -29,7 +29,7 @@ export const GlitchCut = () => {
       <AbsoluteFill
         style={{
           background: reel.orange,
-          opacity: interpolate(frame, [40, 60], [0, 0.55], {
+          opacity: interpolate(frame, [140, 200], [0, 0.55], {
             extrapolateLeft: "clamp",
             extrapolateRight: "clamp",
           }),

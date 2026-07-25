@@ -52,7 +52,7 @@ export const TradesFlash = () => {
       >
         {TRADES.map((trade, i) => {
           const s = spring({
-            frame: Math.max(0, frame - i * 8),
+            frame: Math.max(0, frame - i * 18),
             fps,
             config: { damping: 12, stiffness: 190 },
           });

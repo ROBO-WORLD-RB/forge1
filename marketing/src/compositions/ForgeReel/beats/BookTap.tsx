@@ -19,19 +19,19 @@ export const BookTap = () => {
     config: { damping: 14, stiffness: 140 },
   });
   const tap = spring({
-    frame: Math.max(0, frame - 40),
+    frame: Math.max(0, frame - 90),
     fps,
     config: { damping: 16, stiffness: 210 },
   });
-  const press = interpolate(frame, [40, 50, 65], [1, 0.9, 1], {
+  const press = interpolate(frame, [90, 105, 130], [1, 0.9, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const ripple = interpolate(frame, [45, 85], [0, 1], {
+  const ripple = interpolate(frame, [100, 180], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const confirmed = frame > 70;
+  const confirmed = frame > 150;
 
   return (
     <AbsoluteFill
@@ -97,7 +97,7 @@ export const BookTap = () => {
                 border: `3px solid ${reel.white}`,
                 background: "rgba(255,255,255,0.25)",
                 transform: `translate(${interpolate(tap, [0, 1], [48, 0])}px, ${interpolate(tap, [0, 1], [48, 0])}px) scale(${interpolate(tap, [0, 1], [0.5, 1])})`,
-                opacity: interpolate(frame, [25, 40, 60, 75], [0, 1, 1, 0], {
+                opacity: interpolate(frame, [55, 90, 130, 160], [0, 1, 1, 0], {
                   extrapolateLeft: "clamp",
                   extrapolateRight: "clamp",
                 }),

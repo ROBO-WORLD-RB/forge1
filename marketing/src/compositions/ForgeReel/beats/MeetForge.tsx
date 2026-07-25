@@ -4,7 +4,7 @@ import { reel } from "../theme";
 
 export const MeetForge = () => {
   const frame = useCurrentFrame();
-  const width = interpolate(frame, [0, 16], [0, 100], {
+  const width = interpolate(frame, [0, 36], [0, 100], {
     extrapolateRight: "clamp",
   });
 

@@ -12,9 +12,9 @@ import { reel } from "../theme";
 export const ChatReply = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const typing = frame < 35;
+  const typing = frame < 90;
   const bubble = spring({
-    frame: Math.max(0, frame - 35),
+    frame: Math.max(0, frame - 90),
     fps,
     config: { damping: 12, stiffness: 170 },
   });
