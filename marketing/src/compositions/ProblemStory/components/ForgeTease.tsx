@@ -131,7 +131,7 @@ export const ForgeTease: React.FC = () => {
             marginTop: 16,
           }}
         >
-          Ghana · Nigeria · Togo
+          Ghana · Nigeria
         </Interactive.Div>
       </AbsoluteFill>
 

@@ -2,6 +2,8 @@
 
 You’re close. Your local config is wired up; the main thing left before the app actually works is **setting up your Supabase database**.
 
+**Live project — founder ops (SQL, secrets, Render):** see [`docs/FOUNDER-ACTIONS-NOW.md`](./docs/FOUNDER-ACTIONS-NOW.md).
+
 ---
 
 ## You are here
@@ -13,8 +15,8 @@ You’re close. Your local config is wired up; the main thing left before the ap
 | ✅ Done | App has been built before (`dist/` exists) |
 | ✅ Done | Code fixes are in the repo |
 | ✅ Done | **Mobile UX pass** — safe-area shell, BottomNav clearance, thumb-friendly CTAs (phone-first) |
-| 👉 **Do this next** | **Database schema** - tables, RLS, and storage (run in Supabase Dashboard) |
-| ⬜ Later | Enable Realtime on `messages`, Paystack webhook, first admin user |
+| 👉 **Do this next** | **Run `021` profiles RLS lockdown** + confirm 012–019 (see [`docs/FOUNDER-ACTIONS-NOW.md`](./docs/FOUNDER-ACTIONS-NOW.md)) |
+| ⬜ Later | Enable Realtime on `messages`, Paystack webhook, Edge secrets, first admin user |
 | ⏳ Your action | **Production auth redirects** - add https://forge-9ieq.onrender.com/auth/callback and https://forge-9ieq.onrender.com/auth/reset-password in Supabase (see below) |
 | ⬜ Optional | Supabase CLI (`supabase link`) — not required if you use the SQL Editor |
 
@@ -240,9 +242,9 @@ Highlights still ahead:
    - `https://forge-9ieq.onrender.com/auth/callback`
    - `https://forge-9ieq.onrender.com/auth/reset-password`
 
-Env vars set on Render (names only): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_OPENROUTER_API_KEY`, `VITE_GEMINI_API_KEY`.
+Env vars required on Render: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`.
 
-**AI chat (OpenRouter):** Get a key at [openrouter.ai/keys](https://openrouter.ai/keys). Uses pinned free chat models (not `openrouter/free`, which can route to safety classifiers). On Render set `VITE_AI_PROVIDER=openrouter` and `VITE_OPENROUTER_API_KEY`, then **Manual Deploy** (Vite bakes `VITE_*` at build time). Prefer the safer path: `supabase secrets set OPENROUTER_API_KEY=...` + `supabase functions deploy ai-chat` (see `supabase/functions/ai-chat/README.md`). Note: a `VITE_` key is public in the SPA bundle — restrict referrers / rotate on OpenRouter.
+**AI chat (OpenRouter):** Prefer the server path only — `supabase secrets set OPENROUTER_API_KEY=...` + `supabase functions deploy ai-chat` (see `supabase/functions/ai-chat/README.md`). **Remove** `VITE_OPENROUTER_API_KEY` / `VITE_GEMINI_API_KEY` from Render if they exist (they ship in the browser bundle).
 
 **Phone/email verification:** deferred for beta — no Twilio/AT vars required for signup/login. Turn **Confirm email OFF** in Supabase for instant post-signup sessions.
 
