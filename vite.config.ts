@@ -296,9 +296,11 @@ export default defineConfig(({ mode }) => {
           telemetry: false,
         }),
       ].filter(Boolean),
+      // Do not bake OpenRouter/Gemini secrets into the client bundle.
+      // Prefer supabase/functions/ai-chat + OPENROUTER_API_KEY secret.
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
       },
       resolve: {
         alias: {

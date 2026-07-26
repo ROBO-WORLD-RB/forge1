@@ -132,11 +132,14 @@ const JobDetail: React.FC = () => {
     setApplying(true);
     setApplyError(null);
     const result = await applyToJob(job.id, user.id, applyMessage || undefined);
-    if (result.error) {
-      setApplyError(result.error.message);
-    } else if (result.data) {
+    if (result.data) {
       setExistingApplication(result.data.application);
       if (result.data.booking) setExistingBooking(result.data.booking);
+      if (result.data.bookingSyncWarning) {
+        setApplyError(result.data.bookingSyncWarning);
+      }
+    } else if (result.error) {
+      setApplyError(result.error.message);
     }
     setApplying(false);
   };

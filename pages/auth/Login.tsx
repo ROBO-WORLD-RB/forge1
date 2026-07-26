@@ -194,6 +194,17 @@ const Login: React.FC = () => {
             <GoogleIcon />
             {googleLoading ? 'Connecting...' : 'Continue with Google'}
           </button>
+
+          <p className="text-center text-xs text-gray-500">
+            New skilled worker?{' '}
+            <Link
+              to="/auth/signup?as=worker"
+              state={{ from: location.state?.from }}
+              className="text-forge-orange font-semibold hover:underline"
+            >
+              Sign up as a worker with Google
+            </Link>
+          </p>
         </div>
 
         <div className="mt-8 text-center">

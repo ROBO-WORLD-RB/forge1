@@ -2,7 +2,7 @@
 
 **Built by Intelligent Systems · By Africa, for Africa**
 
-FORGE is a marketplace that connects people who need skilled hands with blue-collar professionals who do the work — electricians, plumbers, carpenters, builders, and more. It is built for everyday life in **Ghana, Nigeria, and Togo**: find someone you can trust, hire them, manage the job, and get paid (or pay) with more confidence than a random number from WhatsApp.
+FORGE is a marketplace that connects people who need skilled hands with blue-collar professionals who do the work — electricians, plumbers, carpenters, builders, and more. It is built for everyday life in **Ghana and Nigeria** (Togo planned): find someone you can trust, hire them, manage the job, and get paid (or pay) with more confidence than a random number from WhatsApp.
 
 Think of FORGE as two sides of one platform:
 
@@ -230,7 +230,7 @@ FORGE works as a modern web app that feels app-like on phones — important for 
 
 ### 23. Multi-country support
 
-Designed around markets like **Ghana, Nigeria, and Togo** (local context, hiring reality, regional growth).
+Designed around markets like **Ghana and Nigeria** first (local context, hiring reality), with room to expand regionally.
 
 **Benefit:** Built for African labour markets first — not a generic global template with Africa as an afterthought.
 
