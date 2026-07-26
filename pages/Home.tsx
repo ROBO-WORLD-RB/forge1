@@ -290,7 +290,7 @@ const Home: React.FC = () => {
                       <Button
                         size="lg"
                         variant="outline"
-                        className="w-full sm:w-auto border-white/30 text-white hover:bg-white hover:text-forge-navy hover:border-white"
+                        className="w-full sm:w-auto border-2 border-white/40 !bg-transparent !text-white hover:!bg-white hover:!text-forge-navy hover:border-white"
                       >
                         Complete Profile
                       </Button>
@@ -307,7 +307,7 @@ const Home: React.FC = () => {
                       <Button
                         size="lg"
                         variant="outline"
-                        className="w-full sm:w-auto border-white/30 text-white hover:bg-white hover:text-forge-navy hover:border-white"
+                        className="w-full sm:w-auto border-2 border-white/40 !bg-transparent !text-white hover:!bg-white hover:!text-forge-navy hover:border-white"
                       >
                         {isAuthenticated ? 'Find Workers' : 'Become a Worker'}
                       </Button>

@@ -446,10 +446,10 @@ const AppContent: React.FC = () => {
           onClick={() => setIsSidebarOpen(false)}
         >
           <div
-            className="bg-white w-[min(18rem,85vw)] h-full max-h-dvh p-5 pt-safe pb-safe shadow-xl overflow-y-auto touch-scroll pl-safe"
+            className="bg-white w-[min(18rem,85vw)] h-full max-h-dvh py-5 pt-safe pb-safe shadow-xl overflow-y-auto touch-scroll pl-[max(1.5rem,env(safe-area-inset-left,0px))] pr-6"
             onClick={e => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between gap-2 mb-2 mt-2">
+            <div className="flex items-center justify-between gap-3 mb-3 mt-1 px-1">
               <div className="flex items-center gap-2 min-w-0">
                 <img src="/logo.png" alt="Forge Logo" className="w-8 h-8 object-contain shrink-0" />
                 <h2 className="text-xl font-bold text-forge-navy">FORGE</h2>
@@ -464,12 +464,12 @@ const AppContent: React.FC = () => {
               </button>
             </div>
             {osRole !== 'guest' && (
-              <p className="text-xs font-semibold uppercase tracking-wider text-forge-muted mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wider text-forge-muted mb-4 px-1">
                 Menu
               </p>
             )}
             {osRole === 'guest' && <div className="mb-4" />}
-            <div className="space-y-0.5 pb-nav">
+            <div className="space-y-1 pb-nav px-1">
                 {sidebarLinks.map(({ to, label, badge }) => {
                   const active = isNavRouteActive(location.pathname, to.split('?')[0]);
                   return (
@@ -477,7 +477,7 @@ const AppContent: React.FC = () => {
                       key={`${to}-${label}`}
                       to={to}
                       aria-current={active ? 'page' : undefined}
-                      className={`flex items-center justify-between gap-2 min-h-[44px] py-2.5 px-3 rounded-lg font-medium transition-colors ${
+                      className={`flex items-center justify-between gap-2 min-h-[44px] py-2.5 px-4 rounded-lg font-medium transition-colors ${
                         active
                           ? 'bg-forge-orange/10 text-forge-orange'
                           : 'text-gray-700 hover:bg-gray-50'
@@ -497,14 +497,14 @@ const AppContent: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => { logout(); setIsSidebarOpen(false); }}
-                    className="w-full text-left min-h-[44px] py-2.5 px-3 rounded-lg text-red-500 font-medium hover:bg-red-50"
+                    className="w-full text-left min-h-[44px] py-2.5 px-4 rounded-lg text-red-500 font-medium hover:bg-red-50"
                   >
                     Sign Out
                   </button>
                 ) : (
                   <div className="border-t border-gray-100 pt-4 mt-2 space-y-0.5">
-                    <Link to="/auth/login" className={`flex items-center min-h-[44px] py-2.5 px-3 rounded-lg font-medium ${isNavRouteActive(location.pathname, '/auth/login') ? 'bg-forge-orange/10 text-forge-orange' : 'text-forge-orange hover:bg-orange-50'}`} onClick={() => setIsSidebarOpen(false)}>Sign In</Link>
-                    <Link to="/auth/signup" className="flex items-center min-h-[44px] py-2.5 px-3 rounded-lg text-gray-700 font-medium hover:bg-gray-50" onClick={() => setIsSidebarOpen(false)}>Sign Up</Link>
+                    <Link to="/auth/login" className={`flex items-center min-h-[44px] py-2.5 px-4 rounded-lg font-medium ${isNavRouteActive(location.pathname, '/auth/login') ? 'bg-forge-orange/10 text-forge-orange' : 'text-forge-orange hover:bg-orange-50'}`} onClick={() => setIsSidebarOpen(false)}>Sign In</Link>
+                    <Link to="/auth/signup" className="flex items-center min-h-[44px] py-2.5 px-4 rounded-lg text-gray-700 font-medium hover:bg-gray-50" onClick={() => setIsSidebarOpen(false)}>Sign Up</Link>
                   </div>
                 )}
             </div>
