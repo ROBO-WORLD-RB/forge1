@@ -33,8 +33,9 @@ In SQL Editor, run any of these that are **not yet applied** (safe to skip if al
 | 17 | `017_job_applications.sql` | Job applications |
 | 18 | `018_wallet_escrow_foundations.sql` | Wallet + escrow |
 | 19 | `019_analytics_disputes.sql` | Analytics + disputes |
+| 22 | `022_fix_oauth_role_assignment.sql` | **Google worker signup assigns worker role** |
 
-If you are unsure what already ran, start at **012** and continue through **019**, then confirm **021** (step 1).
+If you are unsure what already ran, start at **012** and continue through **019**, then confirm **021** (step 1) and **022** (OAuth worker role).
 
 ---
 
