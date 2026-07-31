@@ -7,10 +7,22 @@ import {
 } from "remotion";
 import { PhoneShell } from "../components/PhoneShell";
 import { uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
+import { workerInitials, type ReelWorker } from "../schema";
 import { reel } from "../theme";
 
-/** In-app chat with Jerry — header + thread, not floating in the dark. */
+/** In-app chat with booked worker — header + thread. */
 export const ChatReply = () => {
+  const { workers, bookWorker, chatLine } = useReelProps();
+  const worker: ReelWorker =
+    workers.find((w) => w.name === bookWorker) ??
+    workers[workers.length - 1] ??
+    {
+      name: bookWorker,
+      trade: "Pro",
+      city: "Accra",
+    };
+  const firstName = worker.name.split(/\s+/)[0] ?? worker.name;
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const typing = frame < 90;
@@ -43,7 +55,6 @@ export const ChatReply = () => {
             opacity: interpolate(enter, [0, 1], [0.85, 1]),
           }}
         >
-          {/* Chat header */}
           <div
             style={{
               padding: "54px 16px 14px",
@@ -70,7 +81,7 @@ export const ChatReply = () => {
                 flexShrink: 0,
               }}
             >
-              JJ
+              {workerInitials(worker)}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div
@@ -81,7 +92,7 @@ export const ChatReply = () => {
                   color: "#111111",
                 }}
               >
-                Jerry Justice
+                {worker.name}
               </div>
               <div
                 style={{
@@ -92,7 +103,7 @@ export const ChatReply = () => {
                   marginTop: 2,
                 }}
               >
-                Online · Master Plumber
+                Online · {worker.trade}
               </div>
             </div>
             <div
@@ -111,7 +122,6 @@ export const ChatReply = () => {
             </div>
           </div>
 
-          {/* Thread */}
           <div
             style={{
               flex: 1,
@@ -224,7 +234,7 @@ export const ChatReply = () => {
                     lineHeight: 1.35,
                   }}
                 >
-                  On my way — 25 mins.
+                  {chatLine}
                 </div>
                 <div
                   style={{
@@ -241,7 +251,6 @@ export const ChatReply = () => {
             )}
           </div>
 
-          {/* Composer */}
           <div
             style={{
               padding: "10px 12px 28px",
@@ -265,7 +274,7 @@ export const ChatReply = () => {
                 color: "rgba(0,0,0,0.35)",
               }}
             >
-              Message Jerry…
+              Message {firstName}…
             </div>
             <div
               style={{

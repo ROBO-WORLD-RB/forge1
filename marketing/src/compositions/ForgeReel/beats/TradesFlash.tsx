@@ -6,11 +6,11 @@ import {
   useVideoConfig,
 } from "remotion";
 import { uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
 import { reel } from "../theme";
 
-const TRADES = ["Electrician", "Plumber", "Carpenter", "Painter", "Welder"];
-
 export const TradesFlash = () => {
+  const { tradesChips } = useReelProps();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
@@ -50,7 +50,7 @@ export const TradesFlash = () => {
           maxWidth: 900,
         }}
       >
-        {TRADES.map((trade, i) => {
+        {tradesChips.map((trade, i) => {
           const s = spring({
             frame: Math.max(0, frame - i * 18),
             fps,

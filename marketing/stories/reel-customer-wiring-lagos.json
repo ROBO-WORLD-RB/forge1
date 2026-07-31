@@ -1,0 +1,31 @@
+{
+  "id": "reel-customer-wiring-lagos",
+  "type": "reel",
+  "audience": "customer",
+  "painCaption": "Don't gamble on a random number.",
+  "searchQuery": "Electrician · Lagos",
+  "workers": [
+    {
+      "name": "Chidi Okonkwo",
+      "trade": "Electrician",
+      "city": "Lagos",
+      "rating": 4.8,
+      "tags": ["Wiring", "Safety", "Meters"],
+      "initials": "CO"
+    },
+    {
+      "name": "Ada Okafor",
+      "trade": "Master Electrician",
+      "city": "Lagos",
+      "rating": 4.9,
+      "tags": ["Panels", "Solar", "Lighting"],
+      "initials": "AO"
+    }
+  ],
+  "bookWorker": "Ada Okafor",
+  "chatLine": "Bringing the tester — 30 mins.",
+  "tradesChips": ["Electrician", "Plumber", "HVAC", "Painter", "Welder"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Socket & wiring fix",
+  "escrowLabel": "NGN 28,000 locked"
+}

@@ -1,0 +1,31 @@
+{
+  "id": "reel-worker-electrician-lagos",
+  "type": "reel",
+  "audience": "worker",
+  "painCaption": "Still waiting on referrals?",
+  "searchQuery": "Electrician · Lagos",
+  "workers": [
+    {
+      "name": "Ada Okafor",
+      "trade": "Electrician",
+      "city": "Lagos",
+      "rating": 4.9,
+      "tags": ["Wiring", "Meters", "Solar"],
+      "initials": "AO"
+    },
+    {
+      "name": "Tunde Bakare",
+      "trade": "Master Electrician",
+      "city": "Lagos",
+      "rating": 4.8,
+      "tags": ["Panels", "Lighting", "Generators"],
+      "initials": "TB"
+    }
+  ],
+  "bookWorker": "Ada Okafor",
+  "chatLine": "I'm nearby — 15 mins.",
+  "tradesChips": ["Electrician", "Plumber", "Welder", "Painter", "HVAC"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Flat rewiring",
+  "escrowLabel": "NGN 45,000 locked"
+}

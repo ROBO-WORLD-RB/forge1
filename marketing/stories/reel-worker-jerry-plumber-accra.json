@@ -1,0 +1,31 @@
+{
+  "id": "reel-worker-jerry-plumber-accra",
+  "type": "reel",
+  "audience": "worker",
+  "painCaption": "Master Plumber · Accra",
+  "searchQuery": "Master Plumber · Accra",
+  "workers": [
+    {
+      "name": "Jerry Justice",
+      "trade": "Master Plumber",
+      "city": "Accra",
+      "rating": 5.0,
+      "tags": ["Pipes", "Leak Fix", "Installs"],
+      "initials": "JJ"
+    },
+    {
+      "name": "Kwame Mensah",
+      "trade": "Plumber",
+      "city": "Accra",
+      "rating": 4.8,
+      "tags": ["Bathrooms", "Water heaters"],
+      "initials": "KM"
+    }
+  ],
+  "bookWorker": "Jerry Justice",
+  "chatLine": "On my way — 25 mins.",
+  "tradesChips": ["Plumber", "Electrician", "Carpenter", "Painter", "Welder"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Burst pipe fix",
+  "escrowLabel": "GHS 180 locked"
+}

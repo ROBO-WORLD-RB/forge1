@@ -7,10 +7,22 @@ import {
 } from "remotion";
 import { PhoneShell } from "../components/PhoneShell";
 import { uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
+import { workerInitials, workerRole, type ReelWorker } from "../schema";
 import { reel } from "../theme";
 
-/** Book Jerry Justice — active profile + tap Book Now. */
+/** Book active worker — profile + tap Book Now. */
 export const BookTap = () => {
+  const { workers, bookWorker, jobLabel, escrowLabel } = useReelProps();
+  const worker: ReelWorker =
+    workers.find((w) => w.name === bookWorker) ??
+    workers[workers.length - 1] ??
+    {
+      name: bookWorker,
+      trade: "Pro",
+      city: "Accra",
+      rating: 4.9,
+    };
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const card = spring({
@@ -37,6 +49,7 @@ export const BookTap = () => {
     extrapolateRight: "clamp",
   });
   const confirmed = frame > 150;
+  const rating = worker.rating ?? 4.9;
 
   return (
     <AbsoluteFill
@@ -73,7 +86,6 @@ export const BookTap = () => {
             Confirm booking
           </div>
 
-          {/* Active profile — Jerry Justice */}
           <div
             style={{
               background: "#2A2A2E",
@@ -104,7 +116,7 @@ export const BookTap = () => {
                   flexShrink: 0,
                 }}
               >
-                JJ
+                {workerInitials(worker)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div
@@ -123,7 +135,7 @@ export const BookTap = () => {
                       color: reel.white,
                     }}
                   >
-                    Jerry Justice
+                    {worker.name}
                   </div>
                   <div
                     style={{
@@ -148,7 +160,7 @@ export const BookTap = () => {
                     marginTop: 4,
                   }}
                 >
-                  Master Plumber · Accra
+                  {workerRole(worker)}
                 </div>
                 <div
                   style={{
@@ -159,7 +171,7 @@ export const BookTap = () => {
                     marginTop: 6,
                   }}
                 >
-                  ★ 4.9 · 86 jobs · 1.4 km away
+                  ★ {rating.toFixed(1)} · nearby
                 </div>
               </div>
             </div>
@@ -196,7 +208,7 @@ export const BookTap = () => {
                     marginTop: 4,
                   }}
                 >
-                  Burst pipe fix
+                  {jobLabel}
                 </div>
               </div>
               <div style={{ textAlign: "right" }}>
@@ -221,7 +233,7 @@ export const BookTap = () => {
                     marginTop: 4,
                   }}
                 >
-                  GHS 180 locked
+                  {escrowLabel}
                 </div>
               </div>
             </div>
@@ -262,7 +274,7 @@ export const BookTap = () => {
                   : "0 8px 28px rgba(255,122,0,0.4)",
               }}
             >
-              {confirmed ? "Booked · Jerry Justice" : "Book Now"}
+              {confirmed ? `Booked · ${worker.name}` : "Book Now"}
             </div>
             <div
               style={{

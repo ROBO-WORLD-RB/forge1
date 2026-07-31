@@ -1,0 +1,31 @@
+{
+  "id": "reel-business-facility-ng",
+  "type": "reel",
+  "audience": "customer",
+  "painCaption": "Hire verified trades for your business.",
+  "searchQuery": "HVAC · Lagos",
+  "workers": [
+    {
+      "name": "Ibrahim Sule",
+      "trade": "HVAC Tech",
+      "city": "Lagos",
+      "rating": 4.9,
+      "tags": ["AC service", "Commercial", "Installs"],
+      "initials": "IS"
+    },
+    {
+      "name": "Funke Adeyemi",
+      "trade": "Facility Electrician",
+      "city": "Lagos",
+      "rating": 4.8,
+      "tags": ["Maintenance", "Panels", "Safety"],
+      "initials": "FA"
+    }
+  ],
+  "bookWorker": "Ibrahim Sule",
+  "chatLine": "Team en route — ETA 40 mins.",
+  "tradesChips": ["HVAC", "Electrician", "Plumber", "Welder", "Painter"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Office AC service",
+  "escrowLabel": "NGN 85,000 locked"
+}

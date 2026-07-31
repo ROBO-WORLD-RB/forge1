@@ -30,7 +30,9 @@ npm run dev
 ```
 
 Opens Remotion Studio so you can scrub compositions and tweak Interactive props.  
-Select **`ForgeReel`** for the punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
+Select **`ForgePitch`** for the investor narrative, **`ForgeReel`** for the punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
+
+See **[HOW-TO-RENDER.md](./HOW-TO-RENDER.md)** for story JSON, single renders, and batch export.
 
 ## Render a video
 
@@ -58,6 +60,18 @@ Render the punchy vertical reel (`ForgeReel`, 1080×1920 @ 60fps, 4s beats):
 npm run render:reel
 ```
 
+Render the investor pitch (`ForgePitch`, 1920×1080 @ 30fps) from story JSON:
+
+```bash
+npm run render:pitch
+```
+
+Batch-render every file in `stories/` → `out/{id}.mp4`:
+
+```bash
+npm run render:all
+```
+
 Or render any composition by id:
 
 ```bash
@@ -66,6 +80,7 @@ npx remotion render BrandIntro out/brand-intro.mp4
 npx remotion render ForgeIntro out/forge-intro.mp4
 npx remotion render ProblemStory out/problem-story.mp4
 npx remotion render ForgeReel out/forge-reel.mp4
+npx remotion render ForgePitch out/pitch-investor.mp4 --props=stories/pitch-investor.json
 ```
 
 Quick still (sanity-check a frame at 1s):
@@ -84,11 +99,18 @@ npm run build
 
 | ID             | Length | Size              | Purpose                                                                 |
 | -------------- | ------ | ----------------- | ----------------------------------------------------------------------- |
+| `ForgePitch`   | ~2:10  | 1920×1080 @ 30fps | Investor narrative (hook → problem → product → ask); JSON-driven props  |
 | `ForgeReel`    | 60s    | 1080×1920 @ 60fps | Punchy reel (4s beats): chaos → pros → CTA → Intelligent Systems credit |
 | `HelloForge`   | 3s     | 1920×1080         | Minimal branded mark + accent bar                                       |
 | `BrandIntro`   | 5s     | 1920×1080         | Wordmark + tagline (short intro)                                        |
 | `ForgeIntro`   | 66s    | 1920×1080         | Questions that need an answer → silence → FORGE brand reveal + narration |
 | `ProblemStory` | 30s    | 1080×1920         | Vertical problem beats (pipe, rain, trust, hands) → FORGE tease         |
+
+### Stories + batch render
+
+JSON variants live in **`stories/`** (`pitch-investor.json` + reel variants).  
+`ForgePitch` / `ForgeReel` read them via `--props=stories/….json`.  
+`npm run render:all` loops all stories into `out/{id}.mp4` (PowerShell). Details: [HOW-TO-RENDER.md](./HOW-TO-RENDER.md).
 
 ### ForgeReel creative
 
@@ -133,6 +155,10 @@ marketing/
 ├── remotion.config.ts
 ├── tsconfig.json
 ├── README.md
+├── HOW-TO-RENDER.md              # Studio, single + batch render, story JSON
+├── stories/                      # pitch + reel JSON props
+├── scripts/
+│   └── render-all.ps1            # Batch → out/{id}.mp4
 ├── public/
 │   └── audio/
 │       └── forge-intro-narration-full.wav   # ForgeIntro narration (~238s)
@@ -146,20 +172,10 @@ marketing/
     ├── BrandIntro.tsx
     ├── index.css
     └── compositions/
+        ├── ForgePitch/           # Investor pitch (1920×1080)
+        ├── ForgeReel/            # Vertical reel + Zod story props
         ├── ForgeIntro/
-        │   ├── index.tsx         # Composition registration
-        │   ├── ForgeIntro.tsx    # TransitionSeries timeline
-        │   ├── timing.ts
-        │   └── scenes/
         └── ProblemStory/
-            ├── index.tsx         # Composition registration (1080×1920)
-            ├── ProblemStory.tsx  # TransitionSeries timeline
-            ├── timing.ts
-            └── components/
-                ├── ProblemBeat.tsx
-                ├── CaptionLine.tsx
-                ├── ForgeTease.tsx
-                └── illustrations/
 ```
 
 ## Notes

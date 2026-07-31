@@ -1,0 +1,31 @@
+{
+  "id": "reel-customer-leak-accra",
+  "type": "reel",
+  "audience": "customer",
+  "painCaption": "2 a.m. The pipe bursts.",
+  "searchQuery": "Plumber · Accra",
+  "workers": [
+    {
+      "name": "Ama Darko",
+      "trade": "Plumber",
+      "city": "Accra",
+      "rating": 4.9,
+      "tags": ["Emergency", "Leak Fix", "Pipes"],
+      "initials": "AD"
+    },
+    {
+      "name": "Jerry Justice",
+      "trade": "Master Plumber",
+      "city": "Accra",
+      "rating": 5.0,
+      "tags": ["Burst pipes", "Bathrooms"],
+      "initials": "JJ"
+    }
+  ],
+  "bookWorker": "Jerry Justice",
+  "chatLine": "On my way — 20 mins.",
+  "tradesChips": ["Plumber", "Electrician", "Carpenter", "Painter", "AC Tech"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Emergency leak",
+  "escrowLabel": "GHS 200 locked"
+}

@@ -1,0 +1,27 @@
+{
+  "id": "pitch-investor",
+  "type": "pitch",
+  "hookLine1": "Skilled work runs the continent.",
+  "hookLine2": "Hiring still runs on WhatsApp.",
+  "painLines": [
+    "Ghosted. Overcharged. No-shows.",
+    "Skilled — but invisible."
+  ],
+  "loopSteps": ["Discover", "Hire", "Work", "Pay", "Review"],
+  "tagline": "Where work meets hands",
+  "markets": ["Ghana", "Nigeria"],
+  "url": "forge-9ieq.onrender.com",
+  "studio": "Intelligent Systems",
+  "askAmount": "[YOUR AMOUNT]",
+  "askUse": "[YOUR USE OF FUNDS]",
+  "contactEmail": "[YOUR EMAIL]",
+  "featureLabels": [
+    "Search",
+    "Post projects",
+    "Apply & book",
+    "Chat",
+    "Escrow & wallet",
+    "Verification"
+  ],
+  "marketChips": ["GHS", "NGN", "PWA", "Paystack", "Supabase"]
+}

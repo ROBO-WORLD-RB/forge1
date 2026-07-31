@@ -16,19 +16,26 @@ import { SwipeMatch } from "./beats/SwipeMatch";
 import { TradesFlash } from "./beats/TradesFlash";
 import { VerifiedSnap } from "./beats/VerifiedSnap";
 import { KineticCaption } from "./components/KineticCaption";
+import { ReelPropsProvider, useReelProps } from "./ReelPropsContext";
+import type { ForgeReelProps } from "./schema";
 import { beatTimeline, REEL_AUDIO } from "./timing";
 import { reel } from "./theme";
 
-const BEAT_COMPONENTS: Record<string, ComponentType> = {
-  chatSlam: ChatSlam,
-  captionPain: () => (
+const CaptionPain = () => {
+  const { painCaption } = useReelProps();
+  return (
     <KineticCaption
-      text="Ghosted. Overcharged. No-shows."
+      text={painCaption}
       accent="white"
       size={56}
       variant="ui"
     />
-  ),
+  );
+};
+
+const BEAT_COMPONENTS: Record<string, ComponentType> = {
+  chatSlam: ChatSlam,
+  captionPain: CaptionPain,
   glitch: GlitchCut,
   meetForge: MeetForge,
   searchType: SearchType,
@@ -47,25 +54,28 @@ const BEAT_COMPONENTS: Record<string, ComponentType> = {
 /**
  * ForgeReel — kinetic vertical ad.
  * Every beat = 4s. Punchy story, interactive UI, brand type/color.
+ * Copy/names driven by inputProps (stories JSON).
  */
-export const ForgeReel = () => {
+export const ForgeReel: React.FC<ForgeReelProps> = (props) => {
   return (
-    <AbsoluteFill style={{ backgroundColor: reel.bg }}>
-      <Audio src={staticFile(REEL_AUDIO)} />
-      {beatTimeline.map((beat) => {
-        const Comp = BEAT_COMPONENTS[beat.id];
-        if (!Comp) return null;
-        return (
-          <Sequence
-            key={beat.id}
-            from={beat.from}
-            durationInFrames={beat.duration}
-            name={beat.id}
-          >
-            <Comp />
-          </Sequence>
-        );
-      })}
-    </AbsoluteFill>
+    <ReelPropsProvider value={props}>
+      <AbsoluteFill style={{ backgroundColor: reel.bg }}>
+        <Audio src={staticFile(REEL_AUDIO)} />
+        {beatTimeline.map((beat) => {
+          const Comp = BEAT_COMPONENTS[beat.id];
+          if (!Comp) return null;
+          return (
+            <Sequence
+              key={beat.id}
+              from={beat.from}
+              durationInFrames={beat.duration}
+              name={beat.id}
+            >
+              <Comp />
+            </Sequence>
+          );
+        })}
+      </AbsoluteFill>
+    </ReelPropsProvider>
   );
 };

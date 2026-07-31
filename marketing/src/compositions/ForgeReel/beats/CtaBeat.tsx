@@ -6,9 +6,11 @@ import {
   useVideoConfig,
 } from "remotion";
 import { displayFont, uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
 import { reel } from "../theme";
 
 export const CtaBeat = () => {
+  const { ctaUrl } = useReelProps();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({
@@ -67,7 +69,7 @@ export const CtaBeat = () => {
           fontSize: 24,
         }}
       >
-        forge-9ieq.onrender.com
+        {ctaUrl}
       </div>
     </AbsoluteFill>
   );

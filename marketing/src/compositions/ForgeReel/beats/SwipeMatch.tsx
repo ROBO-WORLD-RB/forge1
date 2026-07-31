@@ -7,10 +7,15 @@ import {
 } from "remotion";
 import { PhoneShell } from "../components/PhoneShell";
 import { uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
+import { workerInitials, workerRole } from "../schema";
 import { reel } from "../theme";
 
 /** Swipe-right on a worker card — interactive match beat. */
 export const SwipeMatch = () => {
+  const { workers } = useReelProps();
+  const front = workers[0];
+  const back = workers[1] ?? workers[0];
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const enter = spring({
@@ -18,7 +23,6 @@ export const SwipeMatch = () => {
     fps,
     config: { damping: 13, stiffness: 140 },
   });
-  // Drag right then snap accept across the 4s beat
   const dragX = interpolate(frame, [40, 150, 200], [0, 140, 420], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
@@ -36,6 +40,8 @@ export const SwipeMatch = () => {
     fps,
     config: { damping: 16, stiffness: 160 },
   });
+
+  if (!front) return <AbsoluteFill style={{ backgroundColor: reel.bg }} />;
 
   return (
     <AbsoluteFill
@@ -68,59 +74,59 @@ export const SwipeMatch = () => {
             Nearby matches
           </div>
           <div style={{ position: "relative", flex: 1 }}>
-            {/* Back card — Jerry Justice */}
-            <div
-              style={{
-                position: "absolute",
-                inset: "0 8px auto",
-                height: 420,
-                borderRadius: 22,
-                background: "#1a1a1a",
-                border: `1px solid ${reel.glassBorder}`,
-                transform: "scale(0.96) translateY(12px)",
-                padding: 22,
-              }}
-            >
+            {back ? (
               <div
                 style={{
-                  height: 160,
-                  borderRadius: 16,
-                  background: `linear-gradient(135deg, #1a3a4a, ${reel.navy})`,
-                  marginBottom: 16,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontFamily: uiFont,
-                  fontWeight: 800,
-                  fontSize: 40,
-                  color: reel.ember,
+                  position: "absolute",
+                  inset: "0 8px auto",
+                  height: 420,
+                  borderRadius: 22,
+                  background: "#1a1a1a",
+                  border: `1px solid ${reel.glassBorder}`,
+                  transform: "scale(0.96) translateY(12px)",
+                  padding: 22,
                 }}
               >
-                JJ
+                <div
+                  style={{
+                    height: 160,
+                    borderRadius: 16,
+                    background: `linear-gradient(135deg, #1a3a4a, ${reel.navy})`,
+                    marginBottom: 16,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontFamily: uiFont,
+                    fontWeight: 800,
+                    fontSize: 40,
+                    color: reel.ember,
+                  }}
+                >
+                  {workerInitials(back)}
+                </div>
+                <div
+                  style={{
+                    fontFamily: uiFont,
+                    fontWeight: 800,
+                    fontSize: 24,
+                    color: reel.white,
+                  }}
+                >
+                  {back.name}
+                </div>
+                <div
+                  style={{
+                    fontFamily: uiFont,
+                    fontWeight: 600,
+                    fontSize: 16,
+                    color: reel.ember,
+                    marginTop: 6,
+                  }}
+                >
+                  {workerRole(back)}
+                </div>
               </div>
-              <div
-                style={{
-                  fontFamily: uiFont,
-                  fontWeight: 800,
-                  fontSize: 24,
-                  color: reel.white,
-                }}
-              >
-                Jerry Justice
-              </div>
-              <div
-                style={{
-                  fontFamily: uiFont,
-                  fontWeight: 600,
-                  fontSize: 16,
-                  color: reel.ember,
-                  marginTop: 6,
-                }}
-              >
-                Master Plumber · Accra
-              </div>
-            </div>
-            {/* Front card — Kofi Mensah */}
+            ) : null}
             <div
               style={{
                 position: "absolute",
@@ -153,7 +159,7 @@ export const SwipeMatch = () => {
                   color: reel.orange,
                 }}
               >
-                KM
+                {workerInitials(front)}
               </div>
               <div
                 style={{
@@ -163,7 +169,7 @@ export const SwipeMatch = () => {
                   color: reel.white,
                 }}
               >
-                Kofi Mensah
+                {front.name}
               </div>
               <div
                 style={{
@@ -174,7 +180,7 @@ export const SwipeMatch = () => {
                   marginTop: 6,
                 }}
               >
-                Master Electrician · Accra
+                {workerRole(front)}
               </div>
               <div
                 style={{
@@ -195,7 +201,6 @@ export const SwipeMatch = () => {
                 MATCH
               </div>
             </div>
-            {/* Finger cue */}
             <div
               style={{
                 position: "absolute",

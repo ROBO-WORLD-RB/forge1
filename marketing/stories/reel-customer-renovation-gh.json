@@ -1,0 +1,31 @@
+{
+  "id": "reel-customer-renovation-gh",
+  "type": "reel",
+  "audience": "customer",
+  "painCaption": "Post once. Get real applicants.",
+  "searchQuery": "Builder · Accra",
+  "workers": [
+    {
+      "name": "Nana Owusu",
+      "trade": "Builder",
+      "city": "Accra",
+      "rating": 4.9,
+      "tags": ["Renovation", "Masonry", "Finishes"],
+      "initials": "NO"
+    },
+    {
+      "name": "Esi Mensah",
+      "trade": "Site Lead",
+      "city": "Tema",
+      "rating": 4.8,
+      "tags": ["Project mgmt", "Carpentry", "Paint"],
+      "initials": "EM"
+    }
+  ],
+  "bookWorker": "Nana Owusu",
+  "chatLine": "Quote ready — can start Monday.",
+  "tradesChips": ["Builder", "Carpenter", "Painter", "Electrician", "Plumber"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Kitchen renovation",
+  "escrowLabel": "GHS 2,400 locked"
+}

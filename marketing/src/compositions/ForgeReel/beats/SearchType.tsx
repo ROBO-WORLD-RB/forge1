@@ -7,12 +7,12 @@ import {
 } from "remotion";
 import { PhoneShell } from "../components/PhoneShell";
 import { uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
 import { reel } from "../theme";
-
-const QUERY = "Electrician · Accra";
 
 /** Interactive typing in the FORGE search bar. */
 export const SearchType = () => {
+  const { searchQuery } = useReelProps();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
   const up = spring({
@@ -21,9 +21,9 @@ export const SearchType = () => {
     config: { damping: 14, stiffness: 120 },
   });
   const typed = Math.min(
-    QUERY.length,
+    searchQuery.length,
     Math.floor(
-      interpolate(frame, [24, 150], [0, QUERY.length], {
+      interpolate(frame, [24, 150], [0, searchQuery.length], {
         extrapolateLeft: "clamp",
         extrapolateRight: "clamp",
       }),
@@ -80,7 +80,7 @@ export const SearchType = () => {
                   frame > 150 ? `0 0 0 2px rgba(255,122,0,0.25)` : "none",
               }}
             >
-              {QUERY.slice(0, typed)}
+              {searchQuery.slice(0, typed)}
               <span
                 style={{
                   display: "inline-block",
@@ -88,7 +88,7 @@ export const SearchType = () => {
                   height: 24,
                   marginLeft: 2,
                   background: reel.orange,
-                  opacity: caretOn && typed < QUERY.length ? 1 : 0,
+                  opacity: caretOn && typed < searchQuery.length ? 1 : 0,
                 }}
               />
               {typed === 0 ? "Search a trade…" : null}

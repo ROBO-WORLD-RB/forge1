@@ -1,0 +1,31 @@
+{
+  "id": "reel-worker-carpenter-kumasi",
+  "type": "reel",
+  "audience": "worker",
+  "painCaption": "Your skills deserve a real profile.",
+  "searchQuery": "Carpenter · Kumasi",
+  "workers": [
+    {
+      "name": "Yaw Boateng",
+      "trade": "Carpenter",
+      "city": "Kumasi",
+      "rating": 4.9,
+      "tags": ["Furniture", "Doors", "Cabinets"],
+      "initials": "YB"
+    },
+    {
+      "name": "Kofi Asante",
+      "trade": "Master Carpenter",
+      "city": "Kumasi",
+      "rating": 5.0,
+      "tags": ["Roofing", "Joinery", "Fit-outs"],
+      "initials": "KA"
+    }
+  ],
+  "bookWorker": "Yaw Boateng",
+  "chatLine": "Materials ready — see you at 10.",
+  "tradesChips": ["Carpenter", "Builder", "Painter", "Welder", "Plumber"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Custom cabinet fit",
+  "escrowLabel": "GHS 420 locked"
+}

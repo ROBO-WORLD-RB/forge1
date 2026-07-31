@@ -7,28 +7,20 @@ import {
 } from "remotion";
 import { PhoneShell } from "../components/PhoneShell";
 import { uiFont } from "../fonts";
+import { useReelProps } from "../ReelPropsContext";
+import { workerInitials, workerRole } from "../schema";
 import { reel } from "../theme";
 
-const PROS = [
-  {
-    initials: "KM",
-    name: "Kofi Mensah",
-    role: "Master Electrician · Accra",
-    tags: ["Wiring", "Meters", "Solar"],
-    gradient: `linear-gradient(135deg, ${reel.orange}, ${reel.ember})`,
-  },
-  {
-    initials: "JJ",
-    name: "Jerry Justice",
-    role: "Master Plumber · Accra",
-    tags: ["Pipes", "Leak Fix", "Installs"],
-    gradient: `linear-gradient(135deg, #1a3a4a, ${reel.orange})`,
-  },
+const GRADIENTS = [
+  `linear-gradient(135deg, ${reel.orange}, ${reel.ember})`,
+  `linear-gradient(135deg, #1a3a4a, ${reel.orange})`,
 ] as const;
 
 export const ProfileReveal = () => {
+  const { workers } = useReelProps();
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+  const pros = workers.slice(0, 2);
 
   return (
     <AbsoluteFill
@@ -57,12 +49,13 @@ export const ProfileReveal = () => {
             Top pros near you
           </div>
           <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            {PROS.map((pro, i) => {
+            {pros.map((pro, i) => {
               const card = spring({
                 frame: Math.max(0, frame - i * 36),
                 fps,
                 config: { damping: 12, stiffness: 160 },
               });
+              const tags = pro.tags ?? [pro.trade, pro.city];
               return (
                 <div
                   key={pro.name}
@@ -81,7 +74,7 @@ export const ProfileReveal = () => {
                         width: 64,
                         height: 64,
                         borderRadius: "50%",
-                        background: pro.gradient,
+                        background: GRADIENTS[i % GRADIENTS.length],
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
@@ -92,7 +85,7 @@ export const ProfileReveal = () => {
                         flexShrink: 0,
                       }}
                     >
-                      {pro.initials}
+                      {workerInitials(pro)}
                     </div>
                     <div>
                       <div
@@ -114,7 +107,7 @@ export const ProfileReveal = () => {
                           marginTop: 4,
                         }}
                       >
-                        {pro.role}
+                        {workerRole(pro)}
                       </div>
                     </div>
                   </div>
@@ -126,7 +119,7 @@ export const ProfileReveal = () => {
                       flexWrap: "wrap",
                     }}
                   >
-                    {pro.tags.map((tag, ti) => {
+                    {tags.map((tag, ti) => {
                       const t = spring({
                         frame: Math.max(0, frame - 28 - i * 36 - ti * 8),
                         fps,

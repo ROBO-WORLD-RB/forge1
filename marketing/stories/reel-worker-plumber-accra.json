@@ -1,0 +1,31 @@
+{
+  "id": "reel-worker-plumber-accra",
+  "type": "reel",
+  "audience": "worker",
+  "painCaption": "Ghosted. Overcharged. No-shows.",
+  "searchQuery": "Plumber · Accra",
+  "workers": [
+    {
+      "name": "Kwame Mensah",
+      "trade": "Plumber",
+      "city": "Accra",
+      "rating": 4.9,
+      "tags": ["Pipes", "Leak Fix", "Installs"],
+      "initials": "KM"
+    },
+    {
+      "name": "Jerry Justice",
+      "trade": "Master Plumber",
+      "city": "Accra",
+      "rating": 5.0,
+      "tags": ["Burst pipes", "Bathrooms", "Water heaters"],
+      "initials": "JJ"
+    }
+  ],
+  "bookWorker": "Jerry Justice",
+  "chatLine": "On my way — 20 mins.",
+  "tradesChips": ["Plumber", "Electrician", "Carpenter", "Painter", "AC Tech"],
+  "ctaUrl": "forge-9ieq.onrender.com",
+  "jobLabel": "Burst pipe fix",
+  "escrowLabel": "GHS 180 locked"
+}
