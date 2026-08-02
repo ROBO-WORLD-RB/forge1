@@ -30,7 +30,7 @@ npm run dev
 ```
 
 Opens Remotion Studio so you can scrub compositions and tweak Interactive props.  
-Select **`ForgePitch`** for the investor narrative, **`ForgeReel`** for the punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
+Select **`Blackout`** for the hardcore power-outage trailer, **`ForgePitch`** for the investor narrative, **`ForgeReel`** for the punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
 
 See **[HOW-TO-RENDER.md](./HOW-TO-RENDER.md)** for story JSON, single renders, and batch export.
 
@@ -52,6 +52,12 @@ Render the vertical problem story (`ProblemStory`, 30s, 1080×1920):
 
 ```bash
 npm run render:problem
+```
+
+Render the hardcore BLACKOUT trailer (`Blackout`, 1080×1920 @ 60fps, 60s):
+
+```bash
+npm run render:blackout
 ```
 
 Render the punchy vertical reel (`ForgeReel`, 1080×1920 @ 60fps, 4s beats):
@@ -99,6 +105,7 @@ npm run build
 
 | ID             | Length | Size              | Purpose                                                                 |
 | -------------- | ------ | ----------------- | ----------------------------------------------------------------------- |
+| `Blackout`     | 60s    | 1080×1920 @ 60fps | Hardcore trailer: night outage → melting stock → FORGE → lights on      |
 | `ForgePitch`   | ~2:10  | 1920×1080 @ 30fps | Investor narrative (hook → problem → product → ask); JSON-driven props  |
 | `ForgeReel`    | 60s    | 1080×1920 @ 60fps | Punchy reel (4s beats): chaos → pros → CTA → Intelligent Systems credit |
 | `HelloForge`   | 3s     | 1920×1080         | Minimal branded mark + accent bar                                       |
@@ -111,6 +118,19 @@ npm run build
 JSON variants live in **`stories/`** (`pitch-investor.json` + reel variants).  
 `ForgePitch` / `ForgeReel` read them via `--props=stories/….json`.  
 `npm run render:all` loops all stories into `out/{id}.mp4` (PowerShell). Details: [HOW-TO-RENDER.md](./HOW-TO-RENDER.md).
+
+### Blackout creative
+
+A **60s vertical** hardcore trailer (AE energy — slam type, impact flashes, chromatic cuts):
+
+1. **Power dies** — Accra/Lagos night grid → BLACKOUT  
+2. **Melting money** — dead freezer, panic kinetic type  
+3. **Chaos calls** — wrong guy / “tomorrow” / cash fight hard cuts  
+4. **FORGE flip** — search → verified pro → escrow → book  
+5. **Lights on** — shop alive + worker “Paid. Protected.”  
+6. **End card** — FORGE · Where work meets hands · URL · Intelligent Systems  
+
+Type: Bebas Neue + Outfit. Palette: ink black + orange `#FF7A00`.
 
 ### ForgeReel creative
 
@@ -172,6 +192,7 @@ marketing/
     ├── BrandIntro.tsx
     ├── index.css
     └── compositions/
+        ├── Blackout/             # Hardcore 60s power-outage trailer
         ├── ForgePitch/           # Investor pitch (1920×1080)
         ├── ForgeReel/            # Vertical reel + Zod story props
         ├── ForgeIntro/

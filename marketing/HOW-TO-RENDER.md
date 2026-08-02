@@ -21,6 +21,7 @@ Open compositions in the left sidebar:
 
 | Composition    | Format                         | Notes                                      |
 | -------------- | ------------------------------ | ------------------------------------------ |
+| `Blackout`     | 1080×1920 @ 60fps (60s)        | Hardcore power-outage trailer              |
 | `ForgePitch`   | 1920×1080 @ 30fps (~2:10)      | Investor narrative — edit props / JSON     |
 | `ForgeReel`    | 1080×1920 @ 60fps (~60s)       | Punchy social reel — story-driven props    |
 | `ForgeIntro`   | 1920×1080                      | Cinematic intro                            |
@@ -34,6 +35,12 @@ Investor pitch (reads `stories/pitch-investor.json`):
 
 ```bash
 npm run render:pitch
+```
+
+Hardcore BLACKOUT trailer (60s vertical @ 60fps):
+
+```bash
+npm run render:blackout
 ```
 
 Default reel (hardcoded defaults — same as previous `render:reel`):
