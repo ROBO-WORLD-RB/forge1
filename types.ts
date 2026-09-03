@@ -20,7 +20,7 @@ export interface User {
   username?: string;
   bio?: string;
   location?: string;
-  country?: 'GH' | 'NG';
+  country?: 'GH' | 'NG' | 'TG';
   profileCompleted: boolean;
   workerStatus?: string;
   specialties?: string[];
@@ -50,13 +50,13 @@ export interface WorkerProfile {
   name: string;
   role: string; // e.g., Electrician, Plumber
   location: string; // e.g., Accra, GH
-  country: 'GH' | 'NG';
+  country: 'GH' | 'NG' | 'TG';
   avatarUrl: string;
   bio: string;
   hourlyRate: {
     min: number;
     max: number;
-    currency: 'GHS' | 'NGN';
+    currency: 'GHS' | 'NGN' | 'XOF';
   };
   rating: number;
   reviewCount: number;

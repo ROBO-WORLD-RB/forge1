@@ -40,7 +40,7 @@ const userIdArbitrary = fc.uuid();
 const subscriptionIdArbitrary = fc.uuid();
 
 // Expected pricing by country and tier (must match subscriptionService.ts PRICING)
-const EXPECTED_PRICING: Record<Country, Record<WorkerTier, { price: number; currency: Currency }>> = {
+const EXPECTED_PRICING: Record<'GH' | 'NG', Record<WorkerTier, { price: number; currency: Currency }>> = {
   GH: {
     free: { price: 0, currency: 'GHS' },
     basic: { price: 20, currency: 'GHS' },
@@ -72,6 +72,12 @@ describe('Subscription Service Property Tests', () => {
    * tier pricing (Free: 0, Basic: 10/900, Premium: 20/1500).
    */
   describe('Property 1: Subscription Plans Return Correct Pricing by Country', () => {
+    it('offers Togo signup in XOF without inventing paid prices', () => {
+      expect(getSubscriptionPlans('TG')).toEqual([
+        expect.objectContaining({ tier: 'free', price: 0, currency: 'XOF' }),
+      ]);
+    });
+
     it('for any country, getSubscriptionPlans returns plans with correct local currency', () => {
       fc.assert(
         fc.property(countryArbitrary, (country) => {

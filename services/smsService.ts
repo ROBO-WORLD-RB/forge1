@@ -131,10 +131,10 @@ function generateOTP(): string {
 }
 
 /**
- * Format phone number to international format (+233 / +234).
+ * Format phone number to international format (+233 / +234 / +228).
  * Accepts local (0244...), national without 0 (244...), or already-prefixed numbers.
  */
-export function formatPhoneNumber(phone: string, country: 'GH' | 'NG'): string {
+export function formatPhoneNumber(phone: string, country: import('../types/database').Country): string {
   let cleaned = phone.replace(/\D/g, '');
 
   // Remove leading zero if present
@@ -142,7 +142,7 @@ export function formatPhoneNumber(phone: string, country: 'GH' | 'NG'): string {
     cleaned = cleaned.substring(1);
   }
 
-  const cc = country === 'GH' ? '233' : '234';
+  const cc = country === 'GH' ? '233' : country === 'NG' ? '234' : '228';
 
   // Strip country code if already present (with or without +)
   if (cleaned.startsWith(cc)) {
@@ -235,7 +235,7 @@ function fallbackResult(
  * Send OTP to phone number.
  * On missing provider or send failure: still stores OTP and returns displayCode (beta unblock).
  */
-export async function sendOTP(phone: string, country: 'GH' | 'NG'): Promise<SendOTPResult> {
+export async function sendOTP(phone: string, country: import('../types/database').Country): Promise<SendOTPResult> {
   try {
     const formattedPhone = formatPhoneNumber(phone, country);
     const otp = generateOTP();
@@ -301,7 +301,7 @@ export async function sendOTP(phone: string, country: 'GH' | 'NG'): Promise<Send
  */
 export async function verifyOTP(
   phone: string,
-  country: 'GH' | 'NG',
+  country: import('../types/database').Country,
   code: string
 ): Promise<VerifyOTPResult> {
   try {
@@ -349,6 +349,6 @@ export async function verifyOTP(
 /**
  * Resend OTP — generates a new code and retries SMS delivery
  */
-export async function resendOTP(phone: string, country: 'GH' | 'NG'): Promise<SendOTPResult> {
+export async function resendOTP(phone: string, country: import('../types/database').Country): Promise<SendOTPResult> {
   return sendOTP(phone, country);
 }

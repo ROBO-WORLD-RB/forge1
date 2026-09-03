@@ -43,7 +43,7 @@ const referenceArbitrary = fc.tuple(
   fc.array(fc.integer({ min: 0, max: 15 }), { minLength: 20, maxLength: 20 })
 ).map(([len, arr]) => arr.slice(0, len).map(n => '0123456789abcdef'[n]).join(''));
 const amountArbitrary = fc.integer({ min: 100, max: 1000000 }); // Amount in kobo/pesewas
-const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN');
+const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN', 'XOF');
 const transactionTypeArbitrary: fc.Arbitrary<TransactionType> = fc.constantFrom('subscription', 'booking', 'refund');
 const providerArbitrary = fc.constantFrom('paystack', 'flutterwave', 'stripe');
 const statusStringArbitrary = fc.constantFrom('success', 'failed', 'pending');

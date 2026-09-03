@@ -15,6 +15,7 @@ import type {
 } from '../types/database';
 import { handleDatabaseError, DatabaseError, ERROR_CODES } from './databaseErrors';
 import { startTransaction, captureError } from './monitoringService';
+import { currencyForCountry } from '../utils/locale';
 
 /**
  * Job input data for creating a new job
@@ -79,12 +80,12 @@ export async function createJob(
     }
 
     // Validate country
-    if (!['GH', 'NG'].includes(jobData.country)) {
+    if (!['GH', 'NG', 'TG'].includes(jobData.country)) {
       return {
         data: null,
         error: {
           code: ERROR_CODES.VALIDATION_ERROR,
-          message: 'Invalid country code. Must be GH or NG',
+          message: 'Invalid country code. Must be GH, NG, or TG',
         },
       };
     }
@@ -126,7 +127,7 @@ export async function createJob(
       country: jobData.country,
       budget_min: jobData.budget_min ?? null,
       budget_max: jobData.budget_max ?? null,
-      currency: jobData.currency ?? null,
+      currency: currencyForCountry(jobData.country),
       status: 'open',
       media_urls: jobData.media_urls ?? null,
       scheduled_at: jobData.scheduled_at ?? null,
@@ -168,12 +169,12 @@ export async function updateJob(
 
   try {
     // Validate country if provided
-    if (updates.country && !['GH', 'NG'].includes(updates.country)) {
+    if (updates.country && !['GH', 'NG', 'TG'].includes(updates.country)) {
       return {
         data: null,
         error: {
           code: ERROR_CODES.VALIDATION_ERROR,
-          message: 'Invalid country code. Must be GH or NG',
+          message: 'Invalid country code. Must be GH, NG, or TG',
         },
       };
     }
@@ -186,10 +187,13 @@ export async function updateJob(
     if (updates.location !== undefined) updateData.location = updates.location;
     if (updates.location_lat !== undefined) updateData.location_lat = updates.location_lat;
     if (updates.location_lng !== undefined) updateData.location_lng = updates.location_lng;
-    if (updates.country !== undefined) updateData.country = updates.country;
+    if (updates.country !== undefined) {
+      updateData.country = updates.country;
+      updateData.currency = currencyForCountry(updates.country);
+    }
     if (updates.budget_min !== undefined) updateData.budget_min = updates.budget_min;
     if (updates.budget_max !== undefined) updateData.budget_max = updates.budget_max;
-    if (updates.currency !== undefined) updateData.currency = updates.currency;
+    if (updates.currency !== undefined && updates.country === undefined) updateData.currency = updates.currency;
     if (updates.scheduled_at !== undefined) updateData.scheduled_at = updates.scheduled_at;
     if (updates.media_urls !== undefined) updateData.media_urls = updates.media_urls;
 

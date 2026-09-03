@@ -70,7 +70,7 @@ import { supabase } from './supabase';
 interface UserMetadata {
   phone: string;
   role: UserRole;
-  country: 'GH' | 'NG';
+  country: 'GH' | 'NG' | 'TG';
   firstName?: string;
   lastName?: string;
 }
@@ -85,12 +85,14 @@ const phoneArbitrary = fc.oneof(
   // Ghana phone format
   fc.stringMatching(/^\+233[245]\d{8}$/),
   // Nigeria phone format  
-  fc.stringMatching(/^\+234[0-9]\d{9}$/)
+  fc.stringMatching(/^\+234[0-9]\d{9}$/),
+  // Togo phone format
+  fc.stringMatching(/^\+228\d{8}$/)
 );
 
 const roleArbitrary: fc.Arbitrary<UserRole> = fc.constantFrom('worker', 'customer', 'admin');
 
-const countryArbitrary: fc.Arbitrary<'GH' | 'NG'> = fc.constantFrom('GH', 'NG');
+const countryArbitrary: fc.Arbitrary<'GH' | 'NG' | 'TG'> = fc.constantFrom('GH', 'NG', 'TG');
 
 const nameArbitrary = fc.string({ minLength: 1, maxLength: 50 })
   .filter(s => s.trim().length > 0);

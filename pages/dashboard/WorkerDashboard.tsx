@@ -29,6 +29,7 @@ import type {
   Subscription,
   JobApplicationWithJob,
   Job,
+  Currency,
 } from '../../types/database';
 import type { WorkerProfile, WorkerTier } from '../../types';
 import {
@@ -38,6 +39,7 @@ import {
   Shield, Pencil
 } from 'lucide-react';
 import PageHelmet from '../../components/PageHelmet';
+import { currencyForCountry, formatMoney } from '../../utils/locale';
 import BookingTrendBars, { type TrendPoint } from '../../components/BookingTrendBars';
 import { uploadPublicFile } from '../../utils/storageUpload';
 
@@ -56,7 +58,7 @@ const WorkerDashboard: React.FC = () => {
   const [kycStatus, setKycStatus] = useState<string>('none');
   const [kycVerified, setKycVerified] = useState(false);
   const [earningsEstimate, setEarningsEstimate] = useState(0);
-  const [earningsCurrency, setEarningsCurrency] = useState('GHS');
+  const [earningsCurrency, setEarningsCurrency] = useState<Currency>('GHS');
   const [recommendedJobs, setRecommendedJobs] = useState<Array<Job & { matchScore: number; matchReason: string }>>([]);
   const [acceptingWork, setAcceptingWork] = useState(true);
   const [rawWorkerProfile, setRawWorkerProfile] = useState<any>(null);
@@ -130,7 +132,7 @@ const WorkerDashboard: React.FC = () => {
           setKycVerified(kycResult.data.isVerified);
         }
 
-        const currency = user.country === 'GH' ? 'GHS' : 'NGN';
+        const currency = currencyForCountry(user.country);
         setEarningsCurrency(currency);
 
         // Honest earnings: booking transactions if any, else 0 (no fake numbers)
@@ -411,7 +413,7 @@ const WorkerDashboard: React.FC = () => {
     hourlyRate: {
       min: 15,
       max: 45,
-      currency: user?.country === 'GH' ? 'GHS' : 'NGN',
+      currency: currencyForCountry(user?.country),
     },
     rating: user?.rating || 5.0,
     reviewCount: user?.reviewCount || 0,
@@ -570,7 +572,7 @@ const WorkerDashboard: React.FC = () => {
                 >
                   <div className="text-gray-500 text-sm mb-1">Earnings estimate</div>
                   <div className="text-2xl font-bold text-gray-900">
-                    {earningsCurrency} {earningsEstimate.toLocaleString()}
+                    {formatMoney(earningsEstimate, earningsCurrency)}
                   </div>
                   <span className="text-xs text-forge-orange font-medium mt-2 inline-flex items-center gap-0.5">
                     Open wallet <ChevronRight className="w-3.5 h-3.5" />
@@ -619,7 +621,7 @@ const WorkerDashboard: React.FC = () => {
                     </p>
                     <p className="text-xs text-gray-400">
                       {rawWorkerProfile?.hourly_rate_min != null
-                        ? `${rawWorkerProfile.currency || earningsCurrency} ${rawWorkerProfile.hourly_rate_min}–${rawWorkerProfile.hourly_rate_max || '—'}/hr`
+                        ? `${formatMoney(Number(rawWorkerProfile.hourly_rate_min), rawWorkerProfile.currency || earningsCurrency)}–${rawWorkerProfile.hourly_rate_max != null ? formatMoney(Number(rawWorkerProfile.hourly_rate_max), rawWorkerProfile.currency || earningsCurrency) : '—'}/hr`
                         : 'Set rates in profile'}
                     </p>
                     <Link to="/profile/edit" className="text-xs text-forge-orange font-medium hover:underline">

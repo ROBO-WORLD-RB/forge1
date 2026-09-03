@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { initializePayment, generateReference } from '../services/paystackService';
+import { createOnboardingPayment, initializePayment } from '../services/paystackService';
 import { getUserProfile } from '../services/authService';
 import Button from './Button';
 import { Smartphone, ShieldCheck, Briefcase, CheckCircle, Zap, Loader2 } from 'lucide-react';
@@ -9,7 +9,7 @@ import { Smartphone, ShieldCheck, Briefcase, CheckCircle, Zap, Loader2 } from 'l
 /**
  * PaymentGateModal
  * Non-dismissible overlay that blocks dashboard access until the worker
- * completes a GHC 10 mobile money onboarding payment via Paystack.
+ * completes the country-specific mobile money onboarding payment via Paystack.
  */
 const PaymentGateModal: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -34,20 +34,11 @@ const PaymentGateModal: React.FC = () => {
     setError(null);
 
     try {
-      const country = (user as any).country || 'GH';
-      const currency = country === 'GH' ? 'GHS' : 'NGN';
-      const amount = country === 'GH' ? 10 : 2000;
+      const payment = createOnboardingPayment(user.id, user.email || '', user.country || 'GH');
 
       await initializePayment(
         {
-          email: user.email || '',
-          amount: amount * 100,
-          currency,
-          reference: generateReference('ONB'),
-          metadata: {
-            user_id: user.id,
-            type: 'onboarding_fee',
-          },
+          ...payment,
         },
         async (_transaction) => {
           try {

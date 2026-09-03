@@ -7,12 +7,13 @@ import Button from '../../components/Button';
 import Input from '../../components/Input';
 import LocationCapture from '../../components/LocationCapture';
 import type { GeoCoordinates } from '../../utils/geolocation';
-import { Camera, Briefcase, MapPin, DollarSign, Loader2 } from 'lucide-react';
+import { Camera, Briefcase, MapPin, Loader2 } from 'lucide-react';
 import type { Country, Currency } from '../../types/database';
 import PageHelmet from '../../components/PageHelmet';
 import VerificationUpload from '../../components/VerificationUpload';
 import { uploadPublicFile } from '../../utils/storageUpload';
 import { withTimeout } from '../../utils/promiseTimeout';
+import { currencyForCountry, currencySymbol } from '../../utils/locale';
 
 const WorkerOnboarding: React.FC = () => {
   const navigate = useNavigate();
@@ -82,8 +83,11 @@ const WorkerOnboarding: React.FC = () => {
         label: 'Profile photo upload',
         timeoutMs: 45_000,
       });
+      const savedProfile = await updateUserProfile(user.id, { avatar_url: publicUrl });
+      if (!savedProfile) {
+        throw new Error('The photo uploaded, but its URL could not be saved to your profile.');
+      }
       setAvatarUrl(publicUrl);
-      await updateUserProfile(user.id, { avatar_url: publicUrl });
     } catch (err: any) {
       console.error('Onboarding avatar upload error:', err);
       setError(
@@ -105,8 +109,8 @@ const WorkerOnboarding: React.FC = () => {
       if (!user) return;
       
       // Determine country and currency based on user's country or default
-      const country: Country = (user as any).country || 'GH';
-      const currency: Currency = country === 'GH' ? 'GHS' : 'NGN';
+      const country: Country = user.country || 'GH';
+      const currency: Currency = currencyForCountry(country);
       
       // Create worker profile using workerService
       const { error: createError } = await withTimeout(
@@ -133,18 +137,6 @@ const WorkerOnboarding: React.FC = () => {
       if (createError) {
         setError(createError.message);
         return;
-      }
-
-      if (avatarUrl) {
-        const avatarSaved = await withTimeout(
-          updateUserProfile(user.id, { avatar_url: avatarUrl }),
-          15_000,
-          'Saving profile photo'
-        );
-        if (!avatarSaved) {
-          setError('Failed to save profile photo. Please try again.');
-          return;
-        }
       }
 
       // Must persist profile_completed before navigate — throws on failure
@@ -370,7 +362,7 @@ const WorkerOnboarding: React.FC = () => {
                   type="number"
                   value={formData.rateMin}
                   onChange={e => setFormData({...formData, rateMin: e.target.value})}
-                  icon={<DollarSign className="w-4 h-4" />}
+                  icon={<span className="text-xs font-bold">{currencySymbol(currencyForCountry(user.country))}</span>}
                   placeholder="0.00"
                 />
                 <Input 
@@ -378,7 +370,7 @@ const WorkerOnboarding: React.FC = () => {
                   type="number"
                   value={formData.rateMax}
                   onChange={e => setFormData({...formData, rateMax: e.target.value})}
-                  icon={<DollarSign className="w-4 h-4" />}
+                  icon={<span className="text-xs font-bold">{currencySymbol(currencyForCountry(user.country))}</span>}
                   placeholder="0.00"
                 />
               </div>

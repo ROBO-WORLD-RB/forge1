@@ -81,7 +81,7 @@ describe('paystackService', () => {
       fc.assert(
         fc.property(fc.float({ min: 0, max: 1000000, noNaN: true }), (amount) => {
           const formatted = formatCurrency(amount, 'GHS');
-          return formatted.includes('GH₵');
+          return formatted.includes('₵');
         })
       );
     });
@@ -91,6 +91,15 @@ describe('paystackService', () => {
         fc.property(fc.float({ min: 0, max: 1000000, noNaN: true }), (amount) => {
           const formatted = formatCurrency(amount, 'NGN');
           return formatted.includes('₦');
+        })
+      );
+    });
+
+    it('should include CFA for West African CFA francs', () => {
+      fc.assert(
+        fc.property(fc.float({ min: 0, max: 1000000, noNaN: true }), (amount) => {
+          const formatted = formatCurrency(amount, 'XOF');
+          return formatted.includes('CFA');
         })
       );
     });

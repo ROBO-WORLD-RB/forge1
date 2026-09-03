@@ -7,7 +7,7 @@ import Button from '../components/Button';
 interface SignupFormProps {
   onSuccess: (data: any) => void;
   role: UserRole;
-  country: 'GH' | 'NG';
+  country: 'GH' | 'NG' | 'TG';
 }
 
 export const SignupForm: React.FC<SignupFormProps> = ({ onSuccess, role, country }) => {

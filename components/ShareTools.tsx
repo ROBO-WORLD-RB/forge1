@@ -1,6 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { Download, Share2, Check, Copy } from 'lucide-react';
 import type { WorkerProfile } from '../types';
+import { COUNTRY_DETAILS } from '../utils/locale';
 
 interface ShareToolsProps {
   worker: WorkerProfile;
@@ -117,7 +118,7 @@ export const ShareTools: React.FC<ShareToolsProps> = ({ worker, usernameSlug }) 
           {/* Details (Location, Rating) */}
           <text x="20" y="115" fill="#94A3B8" fontSize="11">LOCATION</text>
           <text x="20" y="132" fill="#FFFFFF" fontSize="13" fontWeight="600">
-            {worker.location}, {worker.country === 'GH' ? 'Ghana' : 'Nigeria'}
+            {worker.location}, {COUNTRY_DETAILS[worker.country].name}
           </text>
 
           <text x="20" y="160" fill="#94A3B8" fontSize="11">RATING</text>

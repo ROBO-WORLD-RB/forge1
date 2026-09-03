@@ -131,7 +131,7 @@ const Home: React.FC = () => {
               <p className="text-2xl sm:text-3xl font-bold tracking-tight text-white mb-3">FORGE</p>
               <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 sm:px-4 py-1.5 rounded-full mb-5 sm:mb-6 border border-white/10">
                 <span className="w-2 h-2 rounded-full bg-forge-green animate-pulse" />
-                <span className="text-xs sm:text-sm font-medium text-gray-200">Live in Ghana & Nigeria</span>
+                <span className="text-xs sm:text-sm font-medium text-gray-200">Live in Ghana, Nigeria & Togo</span>
               </div>
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold tracking-tight mb-4 sm:mb-5 leading-[1.15]">
                 Find Trusted{' '}
@@ -260,7 +260,7 @@ const Home: React.FC = () => {
                 </div>
                 <h3 className="text-lg sm:text-xl font-bold text-gray-900 mb-2">AI hire assistant</h3>
                 <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
-                  Ask Forge AI to scope a job, suggest fair GHS/NGN bands, and match you with ranked
+                  Ask Forge AI to scope a job, suggest fair GHS/NGN/XOF bands, and match you with ranked
                   workers — you confirm every booking and payment.
                 </p>
               </div>
@@ -275,7 +275,7 @@ const Home: React.FC = () => {
             <div className="relative z-10">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4 sm:mb-6">Ready to get work done?</h2>
               <p className="text-gray-300 mb-6 sm:mb-8 max-w-xl mx-auto leading-relaxed text-sm sm:text-base">
-                Join thousands of homeowners and businesses in Ghana and Nigeria who trust Forge for
+                Join homeowners and businesses in Ghana, Nigeria, and Togo who trust Forge for
                 their projects.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">

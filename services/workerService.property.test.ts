@@ -35,8 +35,8 @@ function mockMaybeSingleQuery(result: { data: unknown; error: unknown }) {
 }
 
 // Arbitraries for generating test data
-const countryArbitrary: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG');
-const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN');
+const countryArbitrary: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG', 'TG');
+const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN', 'XOF');
 
 const nameArbitrary = fc.string({ minLength: 1, maxLength: 100 })
   .filter(s => s.trim().length > 0);

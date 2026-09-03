@@ -2,6 +2,9 @@
  * OAuth helpers for Google sign-in via Supabase.
  */
 
+import type { Country } from '../types/database';
+import { isCountry } from './locale';
+
 export const OAUTH_PENDING_ROLE_KEY = 'oauth_pending_role';
 export const OAUTH_PENDING_COUNTRY_KEY = 'oauth_pending_country';
 /** Signup page also writes these before Google redirect — read as fallback after OAuth round-trip */
@@ -40,7 +43,7 @@ function removeStorageItem(key: string): void {
 }
 
 /** Persist signup role/country before Google redirect (sessionStorage + localStorage). */
-export function persistOAuthSignupIntent(role: OAuthPendingRole, country: 'GH' | 'NG'): void {
+export function persistOAuthSignupIntent(role: OAuthPendingRole, country: Country): void {
   writeStorageItem(OAUTH_PENDING_ROLE_KEY, role);
   writeStorageItem(OAUTH_PENDING_COUNTRY_KEY, country);
   writeStorageItem(SIGNUP_ROLE_KEY, role);
@@ -58,12 +61,12 @@ export function readOAuthPendingRole(): OAuthPendingRole | null {
   return null;
 }
 
-export function readOAuthPendingCountry(): 'GH' | 'NG' {
+export function readOAuthPendingCountry(): Country {
   const fromOAuth = readStorageItem(OAUTH_PENDING_COUNTRY_KEY);
-  if (fromOAuth === 'GH' || fromOAuth === 'NG') return fromOAuth;
+  if (isCountry(fromOAuth)) return fromOAuth;
 
   const fromSignup = readStorageItem(SIGNUP_COUNTRY_KEY);
-  if (fromSignup === 'GH' || fromSignup === 'NG') return fromSignup;
+  if (isCountry(fromSignup)) return fromSignup;
 
   return 'GH';
 }

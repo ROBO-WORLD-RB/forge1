@@ -39,12 +39,12 @@ type AiAction = 'chat' | 'parse_job' | 'draft_quote';
 
 const BASE_ABOUT = `About FORGE:
 - Customers post jobs or browse workers; workers create profiles, get matched to jobs, and get booked.
-- Currencies: GHS (Ghana), NGN (Nigeria).
+- Currencies: GHS (Ghana), NGN (Nigeria), XOF (Togo).
 - Assistants propose guidance only — users confirm bookings and payments themselves.
 - Never reply with safety ratings, moderation labels, or phrases like "User Safety: safe".
 - Use plain text or light markdown sparingly; prefer short paragraphs. Do not emit HTML.`;
 
-const GENERAL_PROMPT = `You are Forge AI, the in-app assistant for FORGE — a marketplace that connects customers with skilled blue-collar workers (electricians, plumbers, carpenters, painters, HVAC/AC techs, cleaners, and similar trades) in Ghana and Nigeria.
+const GENERAL_PROMPT = `You are Forge AI, the in-app assistant for FORGE — a marketplace that connects customers with skilled blue-collar workers (electricians, plumbers, carpenters, painters, HVAC/AC techs, cleaners, and similar trades) in Ghana, Nigeria, and Togo.
 
 ${BASE_ABOUT}
 
@@ -52,13 +52,13 @@ Help with finding the right trade, rough project cost estimates, booking/hiring 
 Suggest hiring a professional for complex, electrical, gas, structural, or otherwise dangerous work.
 Be professional, friendly, and concise.`;
 
-const CUSTOMER_PROMPT = `You are Forge AI Customer Assistant for FORGE (Ghana & Nigeria skilled-worker marketplace).
+const CUSTOMER_PROMPT = `You are Forge AI Customer Assistant for FORGE (Ghana, Nigeria & Togo skilled-worker marketplace).
 
 ${BASE_ABOUT}
 
 Your jobs for customers:
 1) Help them describe the problem clearly (trade, scope, materials, access).
-2) Give rough cost bands in GHS or NGN when country is known — always label estimates as approximate.
+2) Give rough cost bands in GHS, NGN, or XOF when country is known — always label estimates as approximate.
 3) Recommend service categories and what to look for in a worker (verified, reviews, portfolio).
 4) Detect emergencies (flooding, exposed live wires, gas smell, structural collapse risk, no power for medical devices, etc.). If urgent, say so clearly, advise immediate safety steps, and urge hiring a pro ASAP. Prefix with "URGENCY: high" on the first line when emergency-like.
 5) Guide hire checklist: clear scope → search/book → message → confirm price → track booking.
@@ -66,12 +66,12 @@ Your jobs for customers:
 
 Do not invent specific worker names or claim payments are complete. Propose; the customer confirms.`;
 
-const WORKER_PROMPT = `You are Forge AI Worker Assistant for FORGE (Ghana & Nigeria skilled-worker marketplace).
+const WORKER_PROMPT = `You are Forge AI Worker Assistant for FORGE (Ghana, Nigeria & Togo skilled-worker marketplace).
 
 ${BASE_ABOUT}
 
 Your jobs for workers running a micro-business:
-1) Suggest competitive quote ranges (GHS/NGN) from job scope — label as suggestions only.
+1) Suggest competitive quote ranges (GHS/NGN/XOF) from job scope — label as suggestions only.
 2) Draft short, professional response / application messages the worker can edit.
 3) Give profile tips: skills, portfolio photos, bio clarity, rates, accepting work.
 4) Pricing tips: materials vs labour, call-out fees, urgency premiums — honest and local.
@@ -79,16 +79,16 @@ Your jobs for workers running a micro-business:
 
 Never invent platform payment/escrow status. Quotes are draft text only — not invoices or charges.`;
 
-const PARSE_JOB_PROMPT = `You extract structured hiring intent for FORGE (GH/NG marketplace).
+const PARSE_JOB_PROMPT = `You extract structured hiring intent for FORGE (GH/NG/TG marketplace).
 Return ONLY valid JSON (no markdown fences, no commentary) with this shape:
 {
   "service": string | null,
   "urgency": "low" | "normal" | "high" | "emergency",
   "location": string | null,
-  "country": "GH" | "NG" | null,
+  "country": "GH" | "NG" | "TG" | null,
   "budgetMin": number | null,
   "budgetMax": number | null,
-  "currency": "GHS" | "NGN" | null,
+  "currency": "GHS" | "NGN" | "XOF" | null,
   "date": string | null,
   "skills": string[],
   "summary": string,
@@ -112,7 +112,7 @@ Return plain text only (no JSON, no markdown fences), 80–180 words:
 - Professional, local tone for Ghana/Nigeria — no slang spam, no fake guarantees`;
 
 const SAFETY_STUB_FALLBACK =
-  "I'm Forge AI for the FORGE marketplace — we connect customers with skilled workers (electricians, plumbers, carpenters, and more) across Ghana and Nigeria. Ask me about finding a worker, rough project costs in GHS/NGN, or DIY tips.";
+  "I'm Forge AI for the FORGE marketplace — we connect customers with skilled workers (electricians, plumbers, carpenters, and more) across Ghana, Nigeria, and Togo. Ask me about finding a worker, rough project costs in GHS/NGN/XOF, or DIY tips.";
 
 function jsonResponse(body: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -300,15 +300,19 @@ function normalizeParsedJob(raw: Record<string, unknown>, fallbackMessage: strin
       : 'normal';
 
   const country =
-    raw.country === 'GH' || raw.country === 'NG' ? (raw.country as 'GH' | 'NG') : null;
+    raw.country === 'GH' || raw.country === 'NG' || raw.country === 'TG'
+      ? (raw.country as 'GH' | 'NG' | 'TG')
+      : null;
   const currency =
-    raw.currency === 'GHS' || raw.currency === 'NGN'
-      ? (raw.currency as 'GHS' | 'NGN')
+    raw.currency === 'GHS' || raw.currency === 'NGN' || raw.currency === 'XOF'
+      ? (raw.currency as 'GHS' | 'NGN' | 'XOF')
       : country === 'GH'
         ? 'GHS'
         : country === 'NG'
           ? 'NGN'
-          : null;
+          : country === 'TG'
+            ? 'XOF'
+            : null;
 
   const skills = Array.isArray(raw.skills)
     ? raw.skills.filter((s): s is string => typeof s === 'string' && s.trim().length > 0).map((s) => s.trim()).slice(0, 6)
@@ -352,16 +356,17 @@ function heuristicParseJob(message: string) {
   ];
   const service = trades.find((t) => lower.includes(t)) || null;
 
-  let country: 'GH' | 'NG' | null = null;
+  let country: 'GH' | 'NG' | 'TG' | null = null;
   if (/\b(ghana|accra|kumasi|takoradi|ghs)\b/i.test(message)) country = 'GH';
   if (/\b(nigeria|lagos|abuja|port\s*harcourt|ngn)\b/i.test(message)) country = 'NG';
+  if (/\b(togo|lom[eé]|xof|cfa)\b/i.test(message)) country = 'TG';
 
   const emergency =
     /\b(emergency|urgent|asap|flood|gas\s*leak|live\s*wire|exposed\s*wire|no\s*power|collapsed?)\b/i.test(
       message
     );
 
-  const budgetMatches = message.match(/(?:ghs|ngn|₵|₦)?\s*([\d,]{3,})/gi) || [];
+  const budgetMatches = message.match(/(?:ghs|ngn|xof|cfa|₵|₦)?\s*([\d,]{3,})/gi) || [];
   const nums = budgetMatches
     .map((m) => Number(m.replace(/[^\d]/g, '')))
     .filter((n) => Number.isFinite(n) && n > 0)
@@ -374,7 +379,7 @@ function heuristicParseJob(message: string) {
     country,
     budgetMin: nums[0] ?? null,
     budgetMax: nums.length > 1 ? nums[nums.length - 1] : nums[0] ?? null,
-    currency: country === 'GH' ? ('GHS' as const) : country === 'NG' ? ('NGN' as const) : null,
+    currency: country === 'GH' ? ('GHS' as const) : country === 'NG' ? ('NGN' as const) : country === 'TG' ? ('XOF' as const) : null,
     date: null as string | null,
     skills: service ? [service] : ([] as string[]),
     summary: message.slice(0, 200),

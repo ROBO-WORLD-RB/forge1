@@ -7,6 +7,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import type { WorkerProfile as DBWorkerProfile, Country } from '../types/database';
 import type { WorkerProfile, WorkerTier } from '../types';
 import PageHelmet from '../components/PageHelmet';
+import { COUNTRY_DETAILS, SUPPORTED_COUNTRIES, currencyForCountry } from '../utils/locale';
 
 /**
  * Convert database WorkerProfile to app WorkerProfile type
@@ -25,7 +26,7 @@ function mapToAppWorkerProfile(dbProfile: any): WorkerProfile {
     hourlyRate: {
       min: dbProfile.hourly_rate_min || 0,
       max: dbProfile.hourly_rate_max || 0,
-      currency: dbProfile.currency || (dbProfile.country === 'GH' ? 'GHS' : 'NGN'),
+      currency: dbProfile.currency || currencyForCountry(dbProfile.country),
     },
     rating: dbProfile.rating,
     reviewCount: dbProfile.review_count,
@@ -197,7 +198,7 @@ const WorkerSearch: React.FC = () => {
       if (selectedCategory !== 'all' || selectedCountry !== 'all') {
         return {
           title: 'No professionals match your filters',
-          message: `We couldn't find workers${activeCategory ? ` in ${activeCategory.name}` : ''}${selectedCountry !== 'all' ? ` in ${selectedCountry === 'GH' ? 'Ghana' : 'Nigeria'}` : ''}. Try broadening your filters or check back soon.`,
+          message: `We couldn't find workers${activeCategory ? ` in ${activeCategory.name}` : ''}${selectedCountry !== 'all' ? ` in ${COUNTRY_DETAILS[selectedCountry].name}` : ''}. Try broadening your filters or check back soon.`,
           action: 'Clear filters',
           onAction: () => {
             setSelectedCategory('all');
@@ -253,7 +254,7 @@ const WorkerSearch: React.FC = () => {
               </h1>
               {selectedCountry !== 'all' && (
                 <p className="text-gray-500 mt-1 text-sm">
-                  Showing workers in {selectedCountry === 'GH' ? 'Ghana' : 'Nigeria'}
+                  Showing workers in {COUNTRY_DETAILS[selectedCountry].name}
                 </p>
               )}
               <p className="text-xs text-gray-400 mt-1 leading-snug">
@@ -299,8 +300,9 @@ const WorkerSearch: React.FC = () => {
                   className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange shadow-sm text-sm"
                >
                  <option value="all">All Locations</option>
-                 <option value="GH">Ghana</option>
-                 <option value="NG">Nigeria</option>
+                 {SUPPORTED_COUNTRIES.map((countryCode) => (
+                   <option key={countryCode} value={countryCode}>{COUNTRY_DETAILS[countryCode].name}</option>
+                 ))}
                </select>
 
                <select 

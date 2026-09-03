@@ -2,7 +2,7 @@
  * Payment types for Paystack integration
  */
 
-export type PaymentCurrency = 'GHS' | 'NGN';
+export type PaymentCurrency = 'GHS' | 'NGN' | 'XOF';
 
 export type PaymentStatus = 'pending' | 'success' | 'failed' | 'abandoned';
 

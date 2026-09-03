@@ -2,6 +2,7 @@ import React from 'react';
 import { WorkerProfile, WorkerTier } from '../types';
 import { Star, MapPin, ShieldCheck } from 'lucide-react';
 import Button from './Button';
+import { formatMoney } from '../utils/locale';
 
 interface WorkerCardProps {
   worker: WorkerProfile;
@@ -111,7 +112,7 @@ const WorkerCard: React.FC<WorkerCardProps> = ({ worker, onViewProfile }) => {
 
         <div className="mt-auto pt-3 border-t border-gray-50 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="text-forge-navy font-bold">
-            {worker.hourlyRate.currency} {worker.hourlyRate.min}
+            {formatMoney(worker.hourlyRate.min, worker.hourlyRate.currency)}
             <span className="text-xs font-normal text-gray-500">/hr</span>
           </div>
           <Button size="sm" onClick={() => onViewProfile(worker.userId)} className="w-full sm:w-auto min-h-[44px]">

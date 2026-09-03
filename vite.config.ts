@@ -151,7 +151,7 @@ export default defineConfig(({ mode }) => {
           manifest: {
             name: 'FORGE - Blue-Collar Marketplace',
             short_name: 'FORGE',
-            description: 'Find skilled workers in Ghana and Nigeria',
+            description: 'Find skilled workers in Ghana, Nigeria, and Togo',
             start_url: '/',
             display: 'standalone',
             background_color: '#FAFAFA',

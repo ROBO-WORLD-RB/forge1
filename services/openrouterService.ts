@@ -28,14 +28,14 @@ export const OPENROUTER_MODEL_FALLBACKS = [
   'meta-llama/llama-3.2-3b-instruct:free',
 ] as const;
 
-const SYSTEM_PROMPT = `You are Forge AI, the in-app assistant for FORGE — a marketplace that connects customers with skilled blue-collar workers (electricians, plumbers, carpenters, painters, HVAC/AC techs, cleaners, and similar trades) in Ghana and Nigeria.
+const SYSTEM_PROMPT = `You are Forge AI, the in-app assistant for FORGE — a marketplace that connects customers with skilled blue-collar workers (electricians, plumbers, carpenters, painters, HVAC/AC techs, cleaners, and similar trades) in Ghana, Nigeria, and Togo.
 
 About FORGE:
 - Customers post jobs or browse workers; workers create profiles, get matched to jobs, and get booked.
-- Help with finding the right trade, rough project cost estimates (GHS in Ghana, NGN in Nigeria), booking/hiring tips, and practical DIY advice.
+- Help with finding the right trade, rough project cost estimates (GHS in Ghana, NGN in Nigeria, XOF in Togo), booking/hiring tips, and practical DIY advice.
 - Suggest hiring a professional for complex, electrical, gas, structural, or otherwise dangerous work.
 
-When users ask what the platform is about, explain FORGE clearly in plain language (marketplace for skilled workers in GH/NG), then offer to help with their specific need.
+When users ask what the platform is about, explain FORGE clearly in plain language (marketplace for skilled workers in GH/NG/TG), then offer to help with their specific need.
 
 Be professional, friendly, and concise. Answer the user's question directly with a normal helpful reply — never reply with safety ratings, moderation labels, or phrases like "User Safety: safe". Use plain text or light markdown sparingly (**bold**, *italic*, short lists); prefer short paragraphs. Do not emit HTML.`;
 
@@ -61,7 +61,7 @@ const CONFIGURE_MESSAGE =
   'OpenRouter is not configured. Get a key at https://openrouter.ai/keys, then either deploy the ai-chat Edge Function with OPENROUTER_API_KEY, or set VITE_OPENROUTER_API_KEY (and VITE_AI_PROVIDER=openrouter) and redeploy.';
 
 const SAFETY_STUB_FALLBACK =
-  "I'm Forge AI for the FORGE marketplace — we connect customers with skilled workers (electricians, plumbers, carpenters, and more) across Ghana and Nigeria. Ask me about finding a worker, rough project costs in GHS/NGN, or DIY tips.";
+  "I'm Forge AI for the FORGE marketplace — we connect customers with skilled workers (electricians, plumbers, carpenters, and more) across Ghana, Nigeria, and Togo. Ask me about finding a worker, rough project costs in GHS/NGN/XOF, or DIY tips.";
 
 function getClientApiKey(): string {
   return (import.meta.env.VITE_OPENROUTER_API_KEY as string | undefined)?.trim() || '';
@@ -249,7 +249,7 @@ function clientSystemPrompt(mode: AiChatMode): string {
   if (mode === 'customer') {
     return `${SYSTEM_PROMPT}
 
-You are in customer mode: help describe problems, give rough GHS/NGN cost bands, recommend trades, and flag emergencies with "URGENCY: high" on the first line when needed.`;
+You are in customer mode: help describe problems, give rough GHS/NGN/XOF cost bands, recommend trades, and flag emergencies with "URGENCY: high" on the first line when needed.`;
   }
   if (mode === 'worker') {
     return `${SYSTEM_PROMPT}

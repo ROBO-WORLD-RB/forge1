@@ -7,11 +7,12 @@ import { rankJobsForWorker } from '../services/jobApplicationService';
 import type { Job, Country, Currency } from '../types/database';
 import { CATEGORIES } from '../constants';
 import { 
-  Briefcase, MapPin, DollarSign, Calendar, Plus, Search, 
+  Briefcase, MapPin, Banknote, Calendar, Plus, Search,
   Loader2, Trash2, ChevronRight, X, Video, Upload, AlertCircle, RefreshCw, Sparkles
 } from 'lucide-react';
 import { uploadPublicFile } from '../utils/storageUpload';
 import PageHelmet from '../components/PageHelmet';
+import { COUNTRY_DETAILS, SUPPORTED_COUNTRIES, currencyForCountry, formatMoney } from '../utils/locale';
 
 const Jobs: React.FC = () => {
   const { user, isLoading: authLoading } = useAuth();
@@ -222,7 +223,7 @@ const Jobs: React.FC = () => {
         }
       }
 
-      const currency: Currency = formData.country === 'GH' ? 'GHS' : 'NGN';
+      const currency: Currency = currencyForCountry(formData.country);
       
       const result = await createJob(user.id, {
         title: formData.title,
@@ -426,8 +427,9 @@ const Jobs: React.FC = () => {
                 className="w-full min-h-[44px] px-3 py-3 rounded-xl border border-gray-200 bg-white focus:outline-none focus:border-forge-orange text-sm"
               >
                 <option value="">All Countries</option>
-                <option value="GH">Ghana</option>
-                <option value="NG">Nigeria</option>
+                {SUPPORTED_COUNTRIES.map((countryCode) => (
+                  <option key={countryCode} value={countryCode}>{COUNTRY_DETAILS[countryCode].name}</option>
+                ))}
               </select>
             </div>
           )}
@@ -603,12 +605,12 @@ const Jobs: React.FC = () => {
                       </span>
                       <span className="flex items-center gap-1">
                         <MapPin className="w-4 h-4" />
-                        {job.location}, {job.country === 'GH' ? '🇬🇭' : '🇳🇬'}
+                        {job.location}, {COUNTRY_DETAILS[job.country].flag}
                       </span>
                       {job.budget_min && job.budget_max && (
                         <span className="flex items-center gap-1">
-                          <DollarSign className="w-4 h-4" />
-                          {job.currency} {job.budget_min.toLocaleString()} - {job.budget_max.toLocaleString()}
+                          <Banknote className="w-4 h-4" />
+                          {formatMoney(job.budget_min, job.currency || currencyForCountry(job.country))} - {formatMoney(job.budget_max, job.currency || currencyForCountry(job.country))}
                         </span>
                       )}
                       <span className="flex items-center gap-1">
@@ -738,8 +740,9 @@ const Jobs: React.FC = () => {
                     onChange={(e) => setFormData(prev => ({ ...prev, country: e.target.value as Country }))}
                     className="w-full px-4 py-2 rounded-lg border border-gray-200 focus:outline-none focus:border-forge-orange"
                   >
-                    <option value="GH">Ghana</option>
-                    <option value="NG">Nigeria</option>
+                    {SUPPORTED_COUNTRIES.map((countryCode) => (
+                      <option key={countryCode} value={countryCode}>{COUNTRY_DETAILS[countryCode].name}</option>
+                    ))}
                   </select>
                 </div>
               </div>
@@ -747,7 +750,7 @@ const Jobs: React.FC = () => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Min Budget ({formData.country === 'GH' ? 'GHS' : 'NGN'})
+                    Min Budget ({currencyForCountry(formData.country)})
                   </label>
                   <input
                     type="number"
@@ -760,7 +763,7 @@ const Jobs: React.FC = () => {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Max Budget ({formData.country === 'GH' ? 'GHS' : 'NGN'})
+                    Max Budget ({currencyForCountry(formData.country)})
                   </label>
                   <input
                     type="number"

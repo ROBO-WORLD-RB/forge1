@@ -68,6 +68,11 @@ describe('oauth signup intent persistence', () => {
     expect(readOAuthPendingCountry()).toBe('GH');
   });
 
+  it('persists Togo across the OAuth round trip', () => {
+    persistOAuthSignupIntent('worker', 'TG');
+    expect(readOAuthPendingCountry()).toBe('TG');
+  });
+
   it('clears all signup intent keys', () => {
     persistOAuthSignupIntent('customer', 'GH');
     clearOAuthSignupIntent();

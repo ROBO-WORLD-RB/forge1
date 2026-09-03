@@ -14,7 +14,8 @@ import {
 import { detectSpamText } from './aiSafety';
 import { logger } from '../utils/logger';
 import { analytics } from '../utils/analytics';
-import type { Country } from '../types/database';
+import type { Country, Currency } from '../types/database';
+import { currencyForCountry } from '../utils/locale';
 
 export type ParsedJobRequest = {
   service: string | null;
@@ -23,7 +24,7 @@ export type ParsedJobRequest = {
   country: Country | null;
   budgetMin: number | null;
   budgetMax: number | null;
-  currency: 'GHS' | 'NGN' | null;
+  currency: Currency | null;
   date: string | null;
   skills: string[];
   summary: string;
@@ -164,6 +165,7 @@ export function heuristicParseJobRequest(message: string, defaultCountry?: Count
   let country: Country | null = defaultCountry || null;
   if (/\b(ghana|accra|kumasi|ghs)\b/i.test(message)) country = 'GH';
   if (/\b(nigeria|lagos|abuja|ngn)\b/i.test(message)) country = 'NG';
+  if (/\b(togo|lom[eé]|xof|cfa)\b/i.test(message)) country = 'TG';
   const emergency =
     /\b(emergency|urgent|asap|flood|gas\s*leak|live\s*wire|no\s*power)\b/i.test(message);
 
@@ -174,7 +176,7 @@ export function heuristicParseJobRequest(message: string, defaultCountry?: Count
     country,
     budgetMin: null,
     budgetMax: null,
-    currency: country === 'GH' ? 'GHS' : country === 'NG' ? 'NGN' : null,
+    currency: country ? currencyForCountry(country) : null,
     date: null,
     skills: service ? [service] : [],
     summary: message.slice(0, 200),

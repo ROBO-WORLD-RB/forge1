@@ -25,6 +25,7 @@ import { getReviewsByUser, getReviewsForWorker } from '../services/reviewService
 import { getProfileByUserId } from '../services/workerService';
 import { supabase } from '../services/supabase';
 import type { Review } from '../types/database';
+import { getCountryDetails } from '../utils/locale';
 
 type DisplayReview = {
   id: string;
@@ -297,12 +298,7 @@ const UserProfile: React.FC = () => {
                           <div>
                             <p className="text-xs text-gray-500">Location</p>
                             <p className="font-medium text-gray-900">
-                              {user.location ||
-                                (user.country === 'GH'
-                                  ? 'Ghana'
-                                  : user.country === 'NG'
-                                    ? 'Nigeria'
-                                    : 'Not provided')}
+                              {user.location || (user.country ? getCountryDetails(user.country).name : 'Not provided')}
                             </p>
                           </div>
                         </div>

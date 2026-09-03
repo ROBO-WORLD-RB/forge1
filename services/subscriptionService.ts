@@ -1,6 +1,6 @@
 /**
  * Subscription Service
- * Manages worker subscription tiers with local pricing for Ghana and Nigeria
+ * Manages worker subscription tiers with local pricing by country.
  * Requirements: 1.1, 1.2, 1.3, 1.4, 1.5, 1.6
  *
  * SECURITY (M0): Clients must NOT activate paid tiers. After Paystack checkout,
@@ -47,7 +47,7 @@ export interface SubscriptionServiceResult<T> {
 export type SubscriptionStatusCheck = 'active' | 'expiring' | 'expired' | 'none';
 
 // Pricing configuration by country
-const PRICING: Record<Country, Record<WorkerTier, { price: number; currency: Currency }>> = {
+const PRICING: Record<Country, Partial<Record<WorkerTier, { price: number; currency: Currency }>>> = {
   GH: {
     free: { price: 0, currency: 'GHS' },
     basic: { price: 20, currency: 'GHS' },
@@ -57,6 +57,11 @@ const PRICING: Record<Country, Record<WorkerTier, { price: number; currency: Cur
     free: { price: 0, currency: 'NGN' },
     basic: { price: 2000, currency: 'NGN' },
     premium: { price: 5000, currency: 'NGN' },
+  },
+  // Paid Togo pricing is not specified in the product configuration. Keep
+  // signup usable with the free tier without inventing a business price.
+  TG: {
+    free: { price: 0, currency: 'XOF' },
   },
 };
 
@@ -69,20 +74,24 @@ const PLAN_FEATURES: Record<WorkerTier, string[]> = {
 
 /**
  * Get subscription plans with pricing for a specific country
- * Returns available tiers with local pricing (GHS for GH, NGN for NG)
+ * Returns configured tiers with local pricing (GHS, NGN, or XOF).
  * Requirements: 1.1
  */
 export function getSubscriptionPlans(country: Country): SubscriptionPlan[] {
   const countryPricing = PRICING[country];
   
-  return (['free', 'basic', 'premium'] as WorkerTier[]).map((tier) => ({
-    id: `${tier}-${country.toLowerCase()}`,
-    tier,
-    name: tier.charAt(0).toUpperCase() + tier.slice(1),
-    price: countryPricing[tier].price,
-    currency: countryPricing[tier].currency,
-    features: PLAN_FEATURES[tier],
-  }));
+  return (['free', 'basic', 'premium'] as WorkerTier[])
+    .flatMap((tier) => {
+      const pricing = countryPricing[tier];
+      return pricing ? [{
+        id: `${tier}-${country.toLowerCase()}`,
+        tier,
+        name: tier.charAt(0).toUpperCase() + tier.slice(1),
+        price: pricing.price,
+        currency: pricing.currency,
+        features: PLAN_FEATURES[tier],
+      }] : [];
+    });
 }
 
 
@@ -118,7 +127,7 @@ export async function createSubscription(
     }
 
     // Validate country
-    if (!['GH', 'NG'].includes(country)) {
+    if (!['GH', 'NG', 'TG'].includes(country)) {
       return {
         data: null,
         error: {
@@ -140,6 +149,15 @@ export async function createSubscription(
     }
 
     const pricing = PRICING[country][tier];
+    if (!pricing) {
+      return {
+        data: null,
+        error: {
+          code: ERROR_CODES.VALIDATION_ERROR,
+          message: 'Paid subscription prices are not configured for Togo yet. The free plan remains available.',
+        },
+      };
+    }
     const now = new Date();
     const expiresAt = new Date(now);
     expiresAt.setDate(expiresAt.getDate() + 30);

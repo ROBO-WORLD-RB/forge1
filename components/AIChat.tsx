@@ -33,7 +33,7 @@ function welcomeForMode(mode: AiChatMode): string {
     return "Hi! I'm your Forge AI hiring assistant. Describe a problem (e.g. \"emergency plumber in Accra tonight\") or tap Find a pro with AI — I'll match skilled workers and share rough cost tips.";
   }
   if (mode === 'worker') {
-    return "Hi! I'm your Forge AI business assistant. Ask for quote wording, profile tips, or pricing ideas for jobs in Ghana & Nigeria. On a project page you can also Generate quote.";
+    return "Hi! I'm your Forge AI business assistant. Ask for quote wording, profile tips, or pricing ideas for jobs in Ghana, Nigeria, or Togo. On a project page you can also Generate quote.";
   }
   return "Hello! I'm Forge AI. I can help you find workers, estimate project costs, or give DIY advice. Ask me anything!";
 }

@@ -590,7 +590,7 @@ export async function handleOnboardingPayment(
  * @param userId - User ID associated with the transaction
  * @param type - Transaction type (subscription/booking/refund)
  * @param amount - Transaction amount in main currency unit
- * @param currency - Currency code (GHS/NGN)
+ * @param currency - Currency code (GHS/NGN/XOF)
  * @param provider - Payment provider name
  * @param status - Transaction status
  * @param metadata - Optional additional metadata

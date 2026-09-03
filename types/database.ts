@@ -4,8 +4,8 @@
  */
 
 export type UserRole = 'worker' | 'customer' | 'admin';
-export type Country = 'GH' | 'NG';
-export type Currency = 'GHS' | 'NGN';
+export type Country = 'GH' | 'NG' | 'TG';
+export type Currency = 'GHS' | 'NGN' | 'XOF';
 export type WorkerTier = 'free' | 'basic' | 'premium';
 
 export interface Profile {

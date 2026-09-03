@@ -30,7 +30,7 @@ const OnboardingPayment: React.FC = () => {
     setError(null);
     
     try {
-      const country = ((user as { country?: string }).country || 'GH') as 'GH' | 'NG';
+      const country = user.country || 'GH';
       const paymentParams = createOnboardingPayment(user.id, user.email || '', country);
 
       await initializePayment(

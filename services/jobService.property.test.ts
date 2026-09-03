@@ -36,8 +36,8 @@ import {
 import { supabase } from './supabase';
 
 // Arbitraries for generating test data
-const countryArbitrary: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG');
-const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN');
+const countryArbitrary: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG', 'TG');
+const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN', 'XOF');
 const jobStatusArbitrary: fc.Arbitrary<JobStatus> = fc.constantFrom('open', 'filled', 'cancelled');
 const userIdArbitrary = fc.uuid();
 const jobIdArbitrary = fc.uuid();

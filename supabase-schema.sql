@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS worker_payments (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID REFERENCES profiles(id),
   amount NUMERIC(10,2) NOT NULL,
-  currency TEXT DEFAULT 'GHS',
+  currency TEXT DEFAULT 'GHS' CHECK (currency IN ('GHS', 'NGN', 'XOF')),
   payment_reference TEXT UNIQUE,
   status TEXT DEFAULT 'pending',
   paid_at TIMESTAMPTZ,
@@ -66,11 +66,17 @@ CREATE TABLE IF NOT EXISTS worker_profiles (
   location TEXT NOT NULL,
   location_lat DECIMAL(10,8),
   location_lng DECIMAL(11,8),
-  country TEXT NOT NULL CHECK (country IN ('GH', 'NG')),
+  country TEXT NOT NULL CHECK (country IN ('GH', 'NG', 'TG')),
   bio TEXT,
   hourly_rate_min DECIMAL(10,2),
   hourly_rate_max DECIMAL(10,2),
-  currency TEXT CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT CHECK (currency IN ('GHS', 'NGN', 'XOF')),
+  CONSTRAINT worker_profiles_country_currency_check CHECK (
+    currency IS NULL OR
+    (country = 'GH' AND currency = 'GHS') OR
+    (country = 'NG' AND currency = 'NGN') OR
+    (country = 'TG' AND currency = 'XOF')
+  ),
   rating DECIMAL(3,2) DEFAULT 0,
   review_count INTEGER DEFAULT 0,
   skills TEXT[] DEFAULT '{}',
@@ -89,7 +95,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   tier TEXT NOT NULL CHECK (tier IN ('free', 'basic', 'premium')),
-  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN', 'XOF')),
   amount DECIMAL(10,2) NOT NULL,
   status TEXT DEFAULT 'active' CHECK (status IN ('active', 'cancelled', 'expired')),
   payment_provider TEXT,
@@ -113,10 +119,16 @@ CREATE TABLE IF NOT EXISTS jobs (
   location TEXT NOT NULL,
   location_lat DECIMAL(10,8),
   location_lng DECIMAL(11,8),
-  country TEXT NOT NULL CHECK (country IN ('GH', 'NG')),
+  country TEXT NOT NULL CHECK (country IN ('GH', 'NG', 'TG')),
   budget_min DECIMAL(10,2),
   budget_max DECIMAL(10,2),
-  currency TEXT CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT CHECK (currency IN ('GHS', 'NGN', 'XOF')),
+  CONSTRAINT jobs_country_currency_check CHECK (
+    currency IS NULL OR
+    (country = 'GH' AND currency = 'GHS') OR
+    (country = 'NG' AND currency = 'NGN') OR
+    (country = 'TG' AND currency = 'XOF')
+  ),
   status TEXT DEFAULT 'open' CHECK (status IN ('open', 'filled', 'cancelled')),
   media_urls TEXT[],
   scheduled_at TIMESTAMPTZ,
@@ -192,7 +204,7 @@ CREATE TABLE IF NOT EXISTS transactions (
   user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('subscription', 'booking', 'refund')),
   amount DECIMAL(10,2) NOT NULL,
-  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN', 'XOF')),
   payment_provider TEXT NOT NULL,
   provider_txn_id TEXT,
   status TEXT NOT NULL,
@@ -279,6 +291,21 @@ ALTER TABLE verification_documents ENABLE ROW LEVEL SECURITY;
 -- RLS POLICIES
 -- ============================================
 
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.profiles
+    WHERE id = auth.uid() AND role = 'admin'
+  );
+$$;
+REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+
 -- Profiles (hardened — see migrations/002_security_hardening.sql)
 DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
 DROP POLICY IF EXISTS "Users can update own profile" ON profiles;
@@ -297,8 +324,8 @@ CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT TO authentic
   AND worker_status IN ('pending', 'pending_payment', 'active')
 );
 CREATE POLICY "Admins can update any profile" ON profiles FOR UPDATE TO authenticated
-  USING (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'))
-  WITH CHECK (EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'admin'));
+  USING (public.is_admin())
+  WITH CHECK (public.is_admin());
 
 -- Worker Profiles
 DROP POLICY IF EXISTS "Worker profiles are viewable by everyone" ON worker_profiles;
@@ -723,4 +750,3 @@ CREATE POLICY "Workers can manage own endorsements" ON worker_endorsements FOR A
 -- Triggers for updated_at
 DROP TRIGGER IF EXISTS update_worker_portfolios_updated_at ON worker_portfolios;
 CREATE TRIGGER update_worker_portfolios_updated_at BEFORE UPDATE ON worker_portfolios FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
-

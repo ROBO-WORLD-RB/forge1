@@ -6,7 +6,7 @@
 
 import { supabase, isSupabaseConfigured } from './supabase';
 import type { User as SupabaseUser, Session, AuthChangeEvent, Subscription } from '@supabase/supabase-js';
-import type { Profile, UserRole } from '../types/database';
+import type { Country, Profile, UserRole } from '../types/database';
 import { startTransaction, captureError } from './monitoringService';
 import {
   clearOAuthSignupIntent,
@@ -28,7 +28,7 @@ export const AUTH_GET_SESSION_ATTEMPT_MS = 2500;
 export interface UserMetadata {
   phone: string;
   role: UserRole;
-  country: 'GH' | 'NG';
+  country: Country;
   firstName?: string;
   lastName?: string;
   username?: string;
@@ -601,7 +601,7 @@ export async function completeWorkerOnboardingProfile(userId: string): Promise<P
  */
 export async function signInWithGoogle(
   role?: UserRole | null,
-  country: 'GH' | 'NG' = 'GH'
+  country: Country = 'GH'
 ): Promise<{ error: AuthError | null }> {
   const transaction = startTransaction('auth.signInWithGoogle', 'auth');
 

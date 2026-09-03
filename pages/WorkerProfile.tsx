@@ -18,6 +18,7 @@ import { ShieldCheck, MapPin, Star, MessageSquare, Loader2, Image as ImageIcon, 
 import type { Profile as DBProfile } from '../types/database';
 import type { WorkerProfile, WorkerTier, Review as AppReview } from '../types';
 import PageHelmet from '../components/PageHelmet';
+import { currencyForCountry, formatMoney } from '../utils/locale';
 
 /**
  * Convert database WorkerProfile to app WorkerProfile type
@@ -35,7 +36,7 @@ function mapToAppWorkerProfile(dbProfile: any): WorkerProfile {
     hourlyRate: {
       min: dbProfile.hourly_rate_min || 0,
       max: dbProfile.hourly_rate_max || 0,
-      currency: dbProfile.currency || (dbProfile.country === 'GH' ? 'GHS' : 'NGN'),
+      currency: dbProfile.currency || currencyForCountry(dbProfile.country),
     },
     rating: dbProfile.rating,
     reviewCount: dbProfile.review_count,
@@ -378,7 +379,7 @@ const WorkerProfilePage: React.FC = () => {
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-bold text-forge-navy">
-                      {worker.hourlyRate.currency} {worker.hourlyRate.min}-{worker.hourlyRate.max}
+                      {formatMoney(worker.hourlyRate.min, worker.hourlyRate.currency)}-{formatMoney(worker.hourlyRate.max, worker.hourlyRate.currency)}
                       <span className="text-base font-normal text-gray-500">/hr</span>
                     </div>
                   </div>

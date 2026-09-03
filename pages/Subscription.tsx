@@ -18,6 +18,7 @@ import {
   AlertTriangle, Calendar, CreditCard
 } from 'lucide-react';
 import PageHelmet from '../components/PageHelmet';
+import { formatMoney } from '../utils/locale';
 
 const Subscription: React.FC = () => {
   const { user } = useAuth();
@@ -272,7 +273,7 @@ const Subscription: React.FC = () => {
                   </div>
                   <div className="flex items-baseline gap-1">
                     <span className="text-4xl font-bold">
-                      {plan.currency} {plan.price.toLocaleString()}
+                      {formatMoney(plan.price, plan.currency)}
                     </span>
                     <span className="text-white/70">/month</span>
                   </div>

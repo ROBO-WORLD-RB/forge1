@@ -12,11 +12,12 @@ import { draftQuoteWithAI } from '../services/aiMatchService';
 import type { Job, Booking, JobApplication } from '../types/database';
 import { CATEGORIES } from '../constants';
 import { 
-  ArrowLeft, Briefcase, MapPin, DollarSign, Calendar, 
+  ArrowLeft, Briefcase, MapPin, Banknote, Calendar,
   Trash2, Loader2, Play, X, ChevronLeft, ChevronRight,
   Users, Send, CheckCircle, MessageSquare, AlertCircle, RefreshCw, Sparkles
 } from 'lucide-react';
 import PageHelmet from '../components/PageHelmet';
+import { COUNTRY_DETAILS, currencyForCountry, formatMoney } from '../utils/locale';
 
 const JobDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -353,7 +354,7 @@ const JobDetail: React.FC = () => {
                   </span>
                   <span className="flex items-center gap-1">
                     <MapPin className="w-4 h-4" />
-                    {job.location}, {job.country === 'GH' ? '🇬🇭 Ghana' : '🇳🇬 Nigeria'}
+                    {job.location}, {COUNTRY_DETAILS[job.country].flag} {COUNTRY_DETAILS[job.country].name}
                   </span>
                   <span className="flex items-center gap-1">
                     <Calendar className="w-4 h-4" />
@@ -384,9 +385,9 @@ const JobDetail: React.FC = () => {
             {/* Budget */}
             {(job.budget_min || job.budget_max) && (
               <div className="flex items-center gap-2 mb-6 p-4 bg-green-50 rounded-xl">
-                <DollarSign className="w-5 h-5 text-green-600" />
+                <Banknote className="w-5 h-5 text-green-600" />
                 <span className="font-medium text-green-800">
-                  Budget: {job.currency} {job.budget_min?.toLocaleString()} - {job.budget_max?.toLocaleString()}
+                  Budget: {job.budget_min != null ? formatMoney(job.budget_min, job.currency || currencyForCountry(job.country)) : 'Open'} - {job.budget_max != null ? formatMoney(job.budget_max, job.currency || currencyForCountry(job.country)) : 'Open'}
                 </span>
               </div>
             )}

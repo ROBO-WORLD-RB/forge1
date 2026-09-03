@@ -51,8 +51,8 @@ import { supabase } from './supabase';
 const userIdArbitrary = fc.uuid();
 const bookingIdArbitrary = fc.uuid();
 const jobIdArbitrary = fc.uuid();
-const countryArbitrary: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG');
-const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN');
+const countryArbitrary: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG', 'TG');
+const currencyArbitrary: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN', 'XOF');
 
 const bookingStatusArbitrary: fc.Arbitrary<BookingStatus> = fc.constantFrom(
   'PENDING', 'ACCEPTED', 'IN_PROGRESS', 'COMPLETED', 'REVIEWED', 'CANCELLED'

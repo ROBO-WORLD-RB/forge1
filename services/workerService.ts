@@ -19,6 +19,7 @@ import type {
 } from '../types/database';
 import { handleDatabaseError, DatabaseError, ERROR_CODES } from './databaseErrors';
 import { startTransaction, captureError } from './monitoringService';
+import { currencyForCountry } from '../utils/locale';
 
 /**
  * Input type for creating a worker profile
@@ -169,7 +170,7 @@ export async function createProfile(
       bio: profile.bio ?? null,
       hourly_rate_min: profile.hourlyRate?.min ?? null,
       hourly_rate_max: profile.hourlyRate?.max ?? null,
-      currency: profile.hourlyRate?.currency ?? null,
+      currency: profile.hourlyRate ? currencyForCountry(profile.country) : null,
       skills: profile.skills ?? [],
       experience_years: profile.experienceYears ?? null,
       location_lat: profile.locationLat ?? null,
@@ -218,7 +219,10 @@ export async function updateProfile(
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.role !== undefined) updateData.role = updates.role;
     if (updates.location !== undefined) updateData.location = updates.location;
-    if (updates.country !== undefined) updateData.country = updates.country;
+    if (updates.country !== undefined) {
+      updateData.country = updates.country;
+      updateData.currency = currencyForCountry(updates.country);
+    }
     if (updates.bio !== undefined) updateData.bio = updates.bio;
     if (updates.skills !== undefined) updateData.skills = updates.skills;
     if (updates.experienceYears !== undefined) updateData.experience_years = updates.experienceYears;

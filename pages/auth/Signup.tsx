@@ -11,6 +11,8 @@ import { Briefcase, User, Phone, ArrowLeft, Eye, EyeOff, Check, Camera, AtSign, 
 import { getSubscriptionPlans, type SubscriptionPlan } from '../../services/subscriptionService';
 import PageHelmet from '../../components/PageHelmet';
 import { getDefaultDashboardPath, getSafeRedirectPath, resolvePostAuthPath } from '../../utils/authRedirect';
+import type { Country } from '../../types/database';
+import { COUNTRY_DETAILS, SUPPORTED_COUNTRIES, formatMoney, getCountryDetails, isCountry } from '../../utils/locale';
 
 // Google icon component
 const GoogleIcon = () => (
@@ -50,17 +52,17 @@ function readPersistedRole(): UserRole | null {
   return null;
 }
 
-function readPersistedCountry(): 'GH' | 'NG' {
+function readPersistedCountry(): Country {
   try {
     const saved = localStorage.getItem(SIGNUP_COUNTRY_KEY);
-    if (saved === 'GH' || saved === 'NG') return saved;
+    if (isCountry(saved)) return saved;
   } catch {
     // ignore storage errors
   }
   return 'GH';
 }
 
-function persistSignupIntent(selectedRole: UserRole, selectedCountry: 'GH' | 'NG') {
+function persistSignupIntent(selectedRole: UserRole, selectedCountry: Country) {
   try {
     localStorage.setItem(SIGNUP_ROLE_KEY, selectedRole);
     localStorage.setItem(SIGNUP_COUNTRY_KEY, selectedCountry);
@@ -88,7 +90,7 @@ const Signup: React.FC = () => {
 
   // Form State
   const [role, setRole] = useState<UserRole | null>(() => readPersistedRole());
-  const [country, setCountry] = useState<'GH' | 'NG'>(() => readPersistedCountry());
+  const [country, setCountry] = useState<Country>(() => readPersistedCountry());
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [username, setUsername] = useState('');
@@ -521,33 +523,32 @@ const Signup: React.FC = () => {
                 {/* Country Selection - For both workers and customers */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Country</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCountry('GH');
-                        if (role) persistSignupIntent(role, 'GH');
-                      }}
-                      className={`p-3 rounded-xl border font-medium transition-all ${country === 'GH' ? 'border-forge-orange bg-orange-50 text-forge-orange' : 'border-gray-200 hover:border-gray-300'}`}
-                    >
-                      🇬🇭 Ghana
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setCountry('NG');
-                        if (role) persistSignupIntent(role, 'NG');
-                      }}
-                      className={`p-3 rounded-xl border font-medium transition-all ${country === 'NG' ? 'border-forge-orange bg-orange-50 text-forge-orange' : 'border-gray-200 hover:border-gray-300'}`}
-                    >
-                      🇳🇬 Nigeria
-                    </button>
+                  <div className="grid grid-cols-3 gap-2">
+                    {SUPPORTED_COUNTRIES.map((countryCode) => {
+                      const details = COUNTRY_DETAILS[countryCode];
+                      return (
+                        <button
+                          key={countryCode}
+                          type="button"
+                          onClick={() => {
+                            setCountry(countryCode);
+                            if (role) persistSignupIntent(role, countryCode);
+                          }}
+                          className={`p-3 rounded-xl border font-medium transition-all ${country === countryCode ? 'border-forge-orange bg-orange-50 text-forge-orange' : 'border-gray-200 hover:border-gray-300'}`}
+                        >
+                          {details.flag} {details.name}
+                        </button>
+                      );
+                    })}
                   </div>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Your account currency will be {getCountryDetails(country).currency} ({getCountryDetails(country).currencySymbol}).
+                  </p>
                 </div>
 
                 <Input 
                   label="Phone Number (optional)"
-                  placeholder={country === 'GH' ? '050 123 4567' : '0801 234 5678'}
+                  placeholder={getCountryDetails(country).phonePlaceholder}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   icon={<Phone className="w-4 h-4" />}
@@ -594,7 +595,7 @@ const Signup: React.FC = () => {
                       <div className="flex items-center justify-between">
                         <h3 className="font-bold text-gray-900">{plan.name}</h3>
                         <span className="font-bold text-gray-900">
-                          {plan.price === 0 ? 'Free' : `${plan.currency} ${plan.price.toLocaleString()}/mo`}
+                          {plan.price === 0 ? 'Free' : `${formatMoney(plan.price, plan.currency)}/mo`}
                         </span>
                       </div>
                       <p className="text-sm text-gray-500 mt-1">

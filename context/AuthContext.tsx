@@ -36,7 +36,7 @@ function mapToAppUser(
     username: string | null;
     bio: string | null;
     location: string | null;
-    country: 'GH' | 'NG' | null;
+    country: 'GH' | 'NG' | 'TG' | null;
     avatar_url: string | null;
     profile_completed: boolean;
     worker_status?: string;

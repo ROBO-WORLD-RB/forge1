@@ -47,7 +47,7 @@ CREATE INDEX IF NOT EXISTS bookings_payment_status_idx
 CREATE TABLE IF NOT EXISTS public.wallets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
-  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN', 'XOF')),
   available_balance NUMERIC(14, 2) NOT NULL DEFAULT 0
     CHECK (available_balance >= 0),
   pending_balance NUMERIC(14, 2) NOT NULL DEFAULT 0
@@ -79,7 +79,7 @@ CREATE TABLE IF NOT EXISTS public.escrow_holds (
   customer_user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   worker_user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
   amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
-  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN', 'XOF')),
   status TEXT NOT NULL DEFAULT 'held'
     CHECK (status IN ('held', 'released', 'refunded', 'cancelled')),
   provider_txn_id TEXT,
@@ -128,7 +128,7 @@ CREATE TABLE IF NOT EXISTS public.wallet_ledger_entries (
     'withdrawal_request'
   )),
   amount NUMERIC(14, 2) NOT NULL,
-  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN')),
+  currency TEXT NOT NULL CHECK (currency IN ('GHS', 'NGN', 'XOF')),
   direction TEXT NOT NULL CHECK (direction IN ('credit', 'debit')),
   balance_available_after NUMERIC(14, 2) NOT NULL,
   balance_pending_after NUMERIC(14, 2) NOT NULL,
@@ -227,7 +227,7 @@ AS $$
 DECLARE
   v_wallet public.wallets;
 BEGIN
-  IF p_currency NOT IN ('GHS', 'NGN') THEN
+  IF p_currency NOT IN ('GHS', 'NGN', 'XOF') THEN
     RAISE EXCEPTION 'invalid currency: %', p_currency USING ERRCODE = '22023';
   END IF;
 
@@ -346,7 +346,7 @@ BEGIN
   IF v_amount IS NULL OR v_amount <= 0 THEN
     RAISE EXCEPTION 'cannot fund escrow: missing amount' USING ERRCODE = '22023';
   END IF;
-  IF v_currency IS NULL OR v_currency NOT IN ('GHS', 'NGN') THEN
+  IF v_currency IS NULL OR v_currency NOT IN ('GHS', 'NGN', 'XOF') THEN
     RAISE EXCEPTION 'cannot fund escrow: invalid currency' USING ERRCODE = '22023';
   END IF;
 

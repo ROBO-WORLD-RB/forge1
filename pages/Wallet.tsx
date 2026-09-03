@@ -11,6 +11,7 @@ import type { EscrowHold, Wallet, WalletLedgerEntry } from '../types/database';
 import type { PaymentCurrency } from '../types/payment';
 import PageHelmet from '../components/PageHelmet';
 import Button from '../components/Button';
+import { currencyForCountry } from '../utils/locale';
 
 const entryLabels: Record<string, string> = {
   escrow_hold: 'Escrow hold (pending)',
@@ -36,7 +37,7 @@ const WalletPage: React.FC = () => {
     (async () => {
       setLoading(true);
       setError(null);
-      const result = await getWorkerWalletSummary(user.id);
+      const result = await getWorkerWalletSummary(user.id, currencyForCountry(user.country));
       if (cancelled) return;
       if (result.error) {
         setError(result.error.message || 'Could not load wallet');
@@ -51,7 +52,7 @@ const WalletPage: React.FC = () => {
     return () => {
       cancelled = true;
     };
-  }, [user?.id]);
+  }, [user?.id, user?.country]);
 
   const handleWithdrawStub = async (currency: PaymentCurrency) => {
     if (!user?.id) return;

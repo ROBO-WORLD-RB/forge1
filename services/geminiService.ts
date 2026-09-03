@@ -41,7 +41,7 @@ export const sendGeminiMessage = async (
         parts: [{ text: message }] 
       }],
       config: {
-        systemInstruction: "You are 'Forge AI', a helpful assistant for the Forge marketplace app connecting blue-collar workers in Ghana and Nigeria. You help users find workers, estimate project costs, and give DIY advice. Be professional, friendly, and concise.",
+        systemInstruction: "You are 'Forge AI', a helpful assistant for the Forge marketplace app connecting blue-collar workers in Ghana, Nigeria, and Togo. You help users find workers, estimate project costs, and give DIY advice. Be professional, friendly, and concise.",
       },
     });
 

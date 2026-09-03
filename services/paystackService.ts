@@ -1,6 +1,6 @@
 /**
  * Paystack Payment Service
- * Handles payment initialization and verification for Ghana (GHS) and Nigeria (NGN)
+ * Handles payment initialization and verification in supported account currencies.
  */
 
 import type {
@@ -11,6 +11,8 @@ import type {
   BookingRequest,
 } from '../types/payment';
 import { logger } from '../utils/logger';
+import type { Country } from '../types/database';
+import { currencyForCountry, formatMoney } from '../utils/locale';
 
 // Paystack public key from environment
 const PAYSTACK_PUBLIC_KEY = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY || '';
@@ -104,8 +106,7 @@ export function fromSmallestUnit(amount: number): number {
  * Format currency for display
  */
 export function formatCurrency(amount: number, currency: PaymentCurrency): string {
-  const symbol = currency === 'GHS' ? 'GH₵' : '₦';
-  return `${symbol}${amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+  return formatMoney(amount, currency, { minimumFractionDigits: currency === 'XOF' ? 0 : 2 });
 }
 
 /**
@@ -171,9 +172,12 @@ export function calculateBookingTotal(hours: number, hourlyRate: number): number
 export function createOnboardingPayment(
   userId: string,
   email: string,
-  country: 'GH' | 'NG'
+  country: Country
 ): PaymentInitializeParams {
-  const currency: PaymentCurrency = country === 'GH' ? 'GHS' : 'NGN';
+  if (country === 'TG') {
+    throw new Error('The worker onboarding fee is not enabled for Togo. Continue with the free beta onboarding flow.');
+  }
+  const currency: PaymentCurrency = currencyForCountry(country);
   const amount = country === 'GH' ? 10 : 2000;
 
   return {

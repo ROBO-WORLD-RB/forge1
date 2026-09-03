@@ -27,8 +27,8 @@ const safeFloatArb = (min: number, max: number) =>
   fc.float({ min, max, noNaN: true }).map(n => Object.is(n, -0) ? 0 : n);
 
 const workerTierArb: fc.Arbitrary<WorkerTier> = fc.constantFrom('free', 'basic', 'premium');
-const currencyArb: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN');
-const countryArb: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG');
+const currencyArb: fc.Arbitrary<Currency> = fc.constantFrom('GHS', 'NGN', 'XOF');
+const countryArb: fc.Arbitrary<Country> = fc.constantFrom('GH', 'NG', 'TG');
 const subscriptionStatusArb: fc.Arbitrary<SubscriptionStatus> = fc.constantFrom('active', 'cancelled', 'expired');
 const jobStatusArb: fc.Arbitrary<JobStatus> = fc.constantFrom('open', 'filled', 'cancelled');
 

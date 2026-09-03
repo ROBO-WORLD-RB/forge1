@@ -6,7 +6,7 @@ import { uploadPrivateFile } from '../utils/storageUpload';
 import { withTimeout } from '../utils/promiseTimeout';
 
 const DOC_TYPES: { type: DocumentType; label: string; hint: string }[] = [
-  { type: 'government_id', label: 'Government ID', hint: 'Ghana Card, NIN, or passport' },
+  { type: 'government_id', label: 'Government ID', hint: 'National ID, NIN, or passport' },
   { type: 'skill_certificate', label: 'Skill Certificate', hint: 'Trade certificate or qualification' },
   { type: 'selfie', label: 'Selfie', hint: 'Clear photo of your face' },
 ];

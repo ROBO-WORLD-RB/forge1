@@ -119,13 +119,13 @@ export async function getEscrowHoldsForUser(
 
 /** Worker hub: wallets + ledger + holds. */
 export async function getWorkerWalletSummary(
-  userId: string
+  userId: string,
+  currency: Currency = 'GHS'
 ): Promise<WalletServiceResult<WorkerWalletSummary>> {
   const transaction = startTransaction('wallet.workerSummary', 'db');
   try {
-    // Ensure default currency wallets exist so UI is never empty for new workers
-    await ensureWallet(userId, 'GHS');
-    await ensureWallet(userId, 'NGN');
+    // Ensure the wallet matching the user's persisted country exists.
+    await ensureWallet(userId, currency);
 
     const [walletsResult, holdsResult] = await Promise.all([
       getWallets(userId),

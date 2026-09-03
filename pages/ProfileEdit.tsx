@@ -16,6 +16,7 @@ import { CATEGORIES } from '../constants';
 import PageHelmet from '../components/PageHelmet';
 import VerificationUpload from '../components/VerificationUpload';
 import { uploadPublicFile } from '../utils/storageUpload';
+import { currencyForCountry } from '../utils/locale';
 
 const ProfileEdit: React.FC = () => {
   const navigate = useNavigate();
@@ -156,7 +157,7 @@ const ProfileEdit: React.FC = () => {
           hourlyRate: {
             min: parseFloat(workerData.rateMin) || 0,
             max: parseFloat(workerData.rateMax) || 0,
-            currency: user.country === 'GH' ? 'GHS' : 'NGN',
+            currency: currencyForCountry(user.country),
           },
           experienceYears: workerData.experienceYears,
           location: formData.location,
@@ -388,14 +389,14 @@ const ProfileEdit: React.FC = () => {
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <Input
-                      label={`Min rate / hr (${user.country === 'GH' ? 'GHS' : 'NGN'})`}
+                      label={`Min rate / hr (${currencyForCountry(user.country)})`}
                       type="number"
                       value={workerData.rateMin}
                       onChange={(e) => setWorkerData(prev => ({ ...prev, rateMin: e.target.value }))}
                       placeholder="0"
                     />
                     <Input
-                      label={`Max rate / hr (${user.country === 'GH' ? 'GHS' : 'NGN'})`}
+                      label={`Max rate / hr (${currencyForCountry(user.country)})`}
                       type="number"
                       value={workerData.rateMax}
                       onChange={(e) => setWorkerData(prev => ({ ...prev, rateMax: e.target.value }))}

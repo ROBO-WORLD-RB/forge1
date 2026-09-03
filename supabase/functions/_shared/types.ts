@@ -1,6 +1,6 @@
 /** Shared Paystack webhook types for Supabase Edge Functions */
 
-export type Currency = 'GHS' | 'NGN';
+export type Currency = 'GHS' | 'NGN' | 'XOF';
 export type TransactionType = 'subscription' | 'booking' | 'refund';
 export type PaymentStatus = 'success' | 'failed' | 'pending' | 'abandoned';
 

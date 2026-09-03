@@ -53,6 +53,7 @@ You’re close. Your local config is wired up; the main thing left before the ap
    | 19 | `supabase/migrations/018_wallet_escrow_foundations.sql` ← **M4: wallets, ledger, escrow holds** |
    | 20 | `supabase/migrations/019_analytics_disputes.sql` ← **M6: analytics_events + disputes + escrow pause on open dispute** |
    | 21 | `supabase/migrations/021_lock_down_profiles_rls.sql` ← **CRITICAL: stop public dump of all profiles via anon key** |
+   | 22 | `supabase/migrations/022_togo_currency_and_profiles_rls_fix.sql` ← **Togo/XOF + fixes recursive profile update policy** |
 
 4. *(Optional but helpful)* Run `supabase/seed-categories.sql` so service categories show up in search.
 
