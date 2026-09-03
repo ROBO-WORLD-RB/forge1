@@ -66,14 +66,18 @@ ALTER TABLE public.wallet_ledger_entries DROP CONSTRAINT IF EXISTS wallet_ledger
 ALTER TABLE public.wallet_ledger_entries
   ADD CONSTRAINT wallet_ledger_entries_currency_check CHECK (currency IN ('GHS', 'NGN', 'XOF'));
 
--- SECURITY DEFINER bypasses profiles RLS for the role lookup. A policy on
--- profiles must never query profiles directly or PostgreSQL recurses forever.
-CREATE OR REPLACE FUNCTION public.is_admin()
+-- SECURITY DEFINER bypasses profiles RLS for this narrowly scoped role lookup.
+-- Keep the helper out of the exposed public schema and do not grant it to anon.
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO authenticated;
+
+CREATE OR REPLACE FUNCTION private.is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
@@ -81,16 +85,40 @@ AS $$
   );
 $$;
 
-REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION private.is_admin() TO authenticated;
+
+-- Revoke the legacy public helper. It may remain in existing databases until
+-- all historical policy dependencies are removed, but it is no longer used.
+DO $$
+BEGIN
+  IF to_regprocedure('public.is_admin()') IS NOT NULL THEN
+    EXECUTE 'REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC, anon, authenticated';
+  END IF;
+END;
+$$;
 
 DROP POLICY IF EXISTS "Admins can update any profile" ON public.profiles;
 CREATE POLICY "Admins can update any profile"
   ON public.profiles
   FOR UPDATE
   TO authenticated
-  USING (public.is_admin())
-  WITH CHECK (public.is_admin());
+  USING (private.is_admin())
+  WITH CHECK (private.is_admin());
+
+DROP POLICY IF EXISTS "Admins can view all profiles" ON public.profiles;
+CREATE POLICY "Admins can view all profiles"
+  ON public.profiles
+  FOR SELECT
+  TO authenticated
+  USING (private.is_admin());
+
+DROP POLICY IF EXISTS "Admins can view all worker_profiles" ON public.worker_profiles;
+CREATE POLICY "Admins can view all worker_profiles"
+  ON public.worker_profiles
+  FOR SELECT
+  TO authenticated
+  USING (private.is_admin());
 
 CREATE OR REPLACE FUNCTION public.ensure_wallet(
   p_user_id UUID,

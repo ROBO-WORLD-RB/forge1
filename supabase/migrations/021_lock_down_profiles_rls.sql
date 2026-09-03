@@ -15,12 +15,16 @@
 -- ---------------------------------------------------------------------------
 -- 0. Helper — avoid recursive RLS when checking admin role
 -- ---------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION public.is_admin()
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO authenticated;
+
+CREATE OR REPLACE FUNCTION private.is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
@@ -28,8 +32,8 @@ AS $$
   );
 $$;
 
-REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION private.is_admin() TO authenticated;
 
 -- ---------------------------------------------------------------------------
 -- 1. Drop the open-door SELECT policy
@@ -51,7 +55,7 @@ CREATE POLICY "Admins can view all profiles"
   ON public.profiles
   FOR SELECT
   TO authenticated
-  USING (public.is_admin());
+  USING (private.is_admin());
 
 -- Public worker directory (search + /profile/:id for active workers only).
 -- Customers and pending/suspended workers are NOT listed.
@@ -171,7 +175,7 @@ CREATE POLICY "Admins can view all worker_profiles"
   ON public.worker_profiles
   FOR SELECT
   TO authenticated
-  USING (public.is_admin());
+  USING (private.is_admin());
 
 REVOKE DELETE ON public.worker_profiles FROM anon, authenticated;
 REVOKE TRUNCATE ON public.worker_profiles FROM anon, authenticated;

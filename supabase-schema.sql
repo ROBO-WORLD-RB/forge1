@@ -291,20 +291,24 @@ ALTER TABLE verification_documents ENABLE ROW LEVEL SECURITY;
 -- RLS POLICIES
 -- ============================================
 
-CREATE OR REPLACE FUNCTION public.is_admin()
+CREATE SCHEMA IF NOT EXISTS private;
+REVOKE ALL ON SCHEMA private FROM PUBLIC;
+GRANT USAGE ON SCHEMA private TO authenticated;
+
+CREATE OR REPLACE FUNCTION private.is_admin()
 RETURNS BOOLEAN
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = ''
 AS $$
   SELECT EXISTS (
     SELECT 1 FROM public.profiles
     WHERE id = auth.uid() AND role = 'admin'
   );
 $$;
-REVOKE ALL ON FUNCTION public.is_admin() FROM PUBLIC;
-GRANT EXECUTE ON FUNCTION public.is_admin() TO authenticated, anon;
+REVOKE ALL ON FUNCTION private.is_admin() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION private.is_admin() TO authenticated;
 
 -- Profiles (hardened — see migrations/002_security_hardening.sql)
 DROP POLICY IF EXISTS "Profiles are viewable by everyone" ON profiles;
@@ -324,8 +328,8 @@ CREATE POLICY "Users can insert own profile" ON profiles FOR INSERT TO authentic
   AND worker_status IN ('pending', 'pending_payment', 'active')
 );
 CREATE POLICY "Admins can update any profile" ON profiles FOR UPDATE TO authenticated
-  USING (public.is_admin())
-  WITH CHECK (public.is_admin());
+  USING (private.is_admin())
+  WITH CHECK (private.is_admin());
 
 -- Worker Profiles
 DROP POLICY IF EXISTS "Worker profiles are viewable by everyone" ON worker_profiles;
