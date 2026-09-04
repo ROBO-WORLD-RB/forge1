@@ -121,6 +121,21 @@ const Signup: React.FC = () => {
   // Google OAuth loading state
   const [googleLoading, setGoogleLoading] = useState(false);
 
+  const searchParams = new URLSearchParams(location.search);
+  const presetRoleParam = searchParams.get('as');
+
+  useEffect(() => {
+    if (presetRoleParam === 'worker') {
+      setRole(UserRole.WORKER);
+      persistSignupIntent(UserRole.WORKER, country);
+    } else if (presetRoleParam === 'customer') {
+      setRole(UserRole.CUSTOMER);
+      persistSignupIntent(UserRole.CUSTOMER, country);
+    }
+    // Only apply URL preset on first mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [presetRoleParam]);
+
   useEffect(() => {
     if (isLoading || !isAuthenticated || !user) return;
     const from = (location.state as { from?: Location })?.from;

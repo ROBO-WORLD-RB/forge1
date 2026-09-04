@@ -62,6 +62,13 @@
 <style>
   body { min-height: 100vh; min-height: -webkit-fill-available; min-height: 100dvh; }
 </style>
+<script>
+  // Drop stale keys from removed update-overlay builds (one-time client cleanup).
+  try {
+    sessionStorage.removeItem('forge:update-overlay-dismissed');
+    sessionStorage.removeItem('forge:version-reload');
+  } catch (_) {}
+</script>
 </head>
   <body>
     <div id="root"></div>

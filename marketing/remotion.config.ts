@@ -6,8 +6,9 @@
  */
 
 import { Config } from "@remotion/cli/config";
-import { enableTailwind } from '@remotion/tailwind-v4';
+import { enableTailwind } from "@remotion/tailwind-v4";
 
-Config.setVideoImageFormat("jpeg");
+/** PNG frames stay sharper than JPEG for type-heavy motion graphics. */
+Config.setVideoImageFormat("png");
 Config.setOverwriteOutput(true);
 Config.overrideWebpackConfig(enableTailwind);

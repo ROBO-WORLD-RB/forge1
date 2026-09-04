@@ -46,7 +46,8 @@ FILES=(
   "supabase/migrations/018_wallet_escrow_foundations.sql"
   "supabase/migrations/019_analytics_disputes.sql"
   "supabase/migrations/021_lock_down_profiles_rls.sql"
-  "supabase/migrations/022_togo_currency_and_profiles_rls_fix.sql"
+  "supabase/migrations/022_fix_oauth_role_assignment.sql"
+  "supabase/migrations/023_togo_currency_and_profiles_rls_fix.sql"
   # Optional seed data (service categories for search/discovery):
   "supabase/seed-categories.sql"
 )

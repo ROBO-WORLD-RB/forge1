@@ -4,7 +4,9 @@
 > **What Forge is:** A React + Vite SPA backed by Supabase (no custom backend server in this repo).  
 > **You cannot skip the P0 items** — the app will not work correctly without them.
 
-**Related docs:** [`PROJECT-EXPLORATION-REFERENCE.md`](./PROJECT-EXPLORATION-REFERENCE.md) · [`docs/CRON.md`](./docs/CRON.md) · [`supabase/functions/paystack-webhook/README.md`](./supabase/functions/paystack-webhook/README.md)
+> **Do this first on a live project:** run [`021_lock_down_profiles_rls.sql`](./supabase/migrations/021_lock_down_profiles_rls.sql). Short path: [`docs/FOUNDER-ACTIONS-NOW.md`](./docs/FOUNDER-ACTIONS-NOW.md).
+
+**Related docs:** [`docs/FOUNDER-ACTIONS-NOW.md`](./docs/FOUNDER-ACTIONS-NOW.md) · [`PROJECT-EXPLORATION-REFERENCE.md`](./PROJECT-EXPLORATION-REFERENCE.md) · [`docs/CRON.md`](./docs/CRON.md) · [`supabase/functions/paystack-webhook/README.md`](./supabase/functions/paystack-webhook/README.md)
 
 ---
 
@@ -63,7 +65,21 @@ Choose **one** path:
   3. [`supabase/migrations/002_security_hardening.sql`](./supabase/migrations/002_security_hardening.sql) — signup/admin role hardening + profile RLS
   4. [`supabase/migrations/003_signup_profile_and_jobs_fixes.sql`](./supabase/migrations/003_signup_profile_and_jobs_fixes.sql) — signup trigger (phone) + jobs RLS
   5. [`supabase/migrations/004_fix_username_generation.sql`](./supabase/migrations/004_fix_username_generation.sql) — collision-proof usernames (`@user` + full UUID hex)
-- [ ] **P0** If you used Option A (`supabase-schema.sql`) on a fresh DB, still run **001**, **add_worker_location**, **003**, and **004**. Security hardening from **002** is already included in current `supabase-schema.sql`; run **002** only if your DB was created from an older schema copy. **003** fixes empty-phone / jobs RLS; **004** fixes `profiles_username_key` / `@user000000000000` (run **004** even if **003** already applied or partially applied — do not re-run broken username logic from older copies of **003**).
+  6. [`supabase/migrations/005_chat_and_worker_apply_rls.sql`](./supabase/migrations/005_chat_and_worker_apply_rls.sql) — workers message/apply to posters
+  7. [`supabase/migrations/006_profile_public_read_rls.sql`](./supabase/migrations/006_profile_public_read_rls.sql) — public worker discovery (**superseded by 021**)
+  8. [`supabase/migrations/007_verification_documents_update_rls.sql`](./supabase/migrations/007_verification_documents_update_rls.sql) — KYC re-upload
+  9. [`supabase/migrations/008_customers_only_create_jobs.sql`](./supabase/migrations/008_customers_only_create_jobs.sql) — only customers post jobs
+  10. [`supabase/migrations/010_skip_onboarding_payment.sql`](./supabase/migrations/010_skip_onboarding_payment.sql) — beta: skip onboarding fee
+  11. [`supabase/migrations/012_worker_profiles_privilege_guard.sql`](./supabase/migrations/012_worker_profiles_privilege_guard.sql) — M0: block self tier/verified
+  12. [`supabase/migrations/013_verification_kyc_and_admin.sql`](./supabase/migrations/013_verification_kyc_and_admin.sql) — M0: KYC + admin
+  13. [`supabase/migrations/014_subscriptions_webhook_activation.sql`](./supabase/migrations/014_subscriptions_webhook_activation.sql) — M0: pending-only client subs
+  14. [`supabase/migrations/015_notifications_secure_insert.sql`](./supabase/migrations/015_notifications_secure_insert.sql) — M0: notify via RPC
+  15. [`supabase/migrations/016_favorites.sql`](./supabase/migrations/016_favorites.sql) — saved workers
+  16. [`supabase/migrations/017_job_applications.sql`](./supabase/migrations/017_job_applications.sql) — job applications
+  17. [`supabase/migrations/018_wallet_escrow_foundations.sql`](./supabase/migrations/018_wallet_escrow_foundations.sql) — wallets + escrow
+  18. [`supabase/migrations/019_analytics_disputes.sql`](./supabase/migrations/019_analytics_disputes.sql) — analytics + disputes
+  19. [`supabase/migrations/021_lock_down_profiles_rls.sql`](./supabase/migrations/021_lock_down_profiles_rls.sql) — **CRITICAL: stop public dump of all profiles**
+- [ ] **P0** If you used Option A (`supabase-schema.sql`) on a fresh DB, still run **001**, **add_worker_location**, **003**, **004**, then **005–019** and **021** as needed. Security hardening from **002** is already included in current `supabase-schema.sql`; run **002** only if your DB was created from an older schema copy. **Never skip 021 on a live project** — see [`docs/SECURITY-PROFILES-RLS.md`](./docs/SECURITY-PROFILES-RLS.md).
 
 > **YOU MUST DO THIS:** Skipping schema setup means sign-up, bookings, chat, and payments have no tables or policies.
 
@@ -272,7 +288,9 @@ See [`supabase/functions/subscription-expiry-cron/README.md`](./supabase/functio
 - `https://forge-9ieq.onrender.com/auth/callback`
 - `https://forge-9ieq.onrender.com/auth/reset-password`
 
-Render env vars already set: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`, `VITE_AI_PROVIDER`, `VITE_OPENROUTER_API_KEY`, `VITE_GEMINI_API_KEY`.
+Render env vars (required): `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PAYSTACK_PUBLIC_KEY`.
+
+**Security:** Prefer `OPENROUTER_API_KEY` as a Supabase Edge secret + `ai-chat` function. **Remove** `VITE_OPENROUTER_API_KEY` / `VITE_GEMINI_API_KEY` from Render if present — they are public in the browser bundle.
 
 Forge builds to static files in `dist/`. There is no Node server in production unless you add one.
 

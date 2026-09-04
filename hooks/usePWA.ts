@@ -1,16 +1,13 @@
 import { useEffect } from 'react';
 import { registerServiceWorker, isServiceWorkerSupported } from '../services/serviceWorker';
-import { initAppUpdateListeners } from '../utils/appUpdate';
 import { logger } from '../utils/logger';
 
-/** Registers the service worker and runs silent background update checks (no UI). */
+/** Registers the service worker silently — no update prompts or overlays. */
 export function usePWA() {
   useEffect(() => {
-    const stopVersionChecks = initAppUpdateListeners();
-
     if (!isServiceWorkerSupported()) {
       logger.info('Service workers not supported', undefined, 'usePWA');
-      return stopVersionChecks;
+      return;
     }
 
     registerServiceWorker({
@@ -24,7 +21,5 @@ export function usePWA() {
         logger.error('PWA registration failed', error, 'usePWA');
       },
     });
-
-    return stopVersionChecks;
   }, []);
 }

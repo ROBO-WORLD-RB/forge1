@@ -669,6 +669,8 @@ export interface GoogleUserMetadata {
   picture?: string;
   email?: string;
   email_verified?: boolean;
+  role?: string;
+  country?: string;
 }
 
 /**
@@ -699,12 +701,32 @@ function resolveOAuthRole(
   return intendedRole ?? 'customer';
 }
 
-async function assignOAuthRole(role: 'worker' | 'customer'): Promise<void> {
+function metadataOAuthRole(
+  userMetadata?: GoogleUserMetadata
+): 'worker' | 'customer' | null {
+  const role = userMetadata?.role;
+  if (role === 'worker' || role === 'customer') return role;
+  return null;
+}
+
+function resolveIntendedOAuthRole(
+  pendingRole: UserRole | null | undefined,
+  userMetadata?: GoogleUserMetadata
+): 'worker' | 'customer' | null {
+  if (pendingRole === 'worker' || pendingRole === 'customer') {
+    return signupRole(pendingRole);
+  }
+  return metadataOAuthRole(userMetadata);
+}
+
+async function assignOAuthRole(userId: string, role: 'worker' | 'customer'): Promise<boolean> {
   const { error: roleError } = await (supabase as any).rpc('assign_initial_role', { p_role: role });
   if (roleError) {
-    // Non-fatal for returning users — role is already committed on the profile
     console.warn('assign_initial_role:', roleError.message);
+    return false;
   }
+  const profile = await getUserProfile(userId);
+  return profile?.role === role;
 }
 
 export async function completeOAuthSignup(
@@ -719,8 +741,10 @@ export async function completeOAuthSignup(
 }> {
   try {
     const pendingRole = readOAuthPendingRole();
-    const country = readOAuthPendingCountry();
-    const intendedRole = pendingRole ? signupRole(pendingRole) : null;
+    const country =
+      readOAuthPendingCountry() ||
+      (userMetadata?.country === 'NG' ? 'NG' : 'GH');
+    const intendedRole = resolveIntendedOAuthRole(pendingRole, userMetadata);
 
     // Extract Google profile data
     const fullName = userMetadata?.full_name || userMetadata?.name || '';
@@ -755,13 +779,18 @@ export async function completeOAuthSignup(
       return { success: true, isNewUser: false, resolvedRole: 'worker' };
     }
 
-    // Signup path only: honor worker/customer choice (handle_new_user defaults to customer)
+    // Signup path: promote customer → worker when user chose worker at signup
     if (intendedRole === 'worker') {
-      await assignOAuthRole('worker');
+      let assigned = await assignOAuthRole(userId, 'worker');
       existingProfile = await getUserProfile(userId);
-      if (existingProfile?.role !== 'worker') {
-        await assignOAuthRole('worker');
+      if (existingProfile?.role !== 'worker' && !assigned) {
+        assigned = await assignOAuthRole(userId, 'worker');
         existingProfile = await getUserProfile(userId);
+      }
+      if (existingProfile?.role !== 'worker') {
+        console.error(
+          'OAuth worker role not applied. Run migration 022_fix_oauth_role_assignment.sql in Supabase.'
+        );
       }
     }
 

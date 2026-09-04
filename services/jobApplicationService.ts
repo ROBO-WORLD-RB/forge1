@@ -27,6 +27,8 @@ export interface JobApplicationServiceResult<T> {
 export interface ApplyToJobResult {
   application: JobApplication;
   booking: Booking | null;
+  /** Set when the application row saved but booking dual-write failed. */
+  bookingSyncWarning?: string;
 }
 
 /**
@@ -80,6 +82,7 @@ export async function applyToJob(
 
     // Dual-write booking so customer Bookings / FSM remain the delivery path
     const bookingResult = await createBooking(jobId, workerUserId, message);
+    let bookingSyncWarning: string | undefined;
     if (bookingResult.data) {
       booking = bookingResult.data;
       const { data: linked } = await (supabase.from('job_applications') as any)
@@ -89,13 +92,20 @@ export async function applyToJob(
         .single();
       if (linked) application = linked as JobApplication;
     } else if (bookingResult.error) {
-      // Application stands; booking may already exist from a prior path
+      bookingSyncWarning =
+        'Application saved, but booking sync failed. The customer may not see this under Bookings yet — try messaging them or re-apply later.';
       console.warn('applyToJob: booking dual-write failed', bookingResult.error.message);
+      captureError(new Error(bookingResult.error.message), {
+        tags: { operation: 'applyToJob.bookingDualWrite' },
+      });
     }
 
     trackApply(jobId, application.id);
 
-    return { data: { application, booking }, error: null };
+    return {
+      data: { application, booking, bookingSyncWarning },
+      error: null,
+    };
   } finally {
     transaction.finish();
   }

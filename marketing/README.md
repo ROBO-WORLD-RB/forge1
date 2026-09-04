@@ -30,7 +30,7 @@ npm run dev
 ```
 
 Opens Remotion Studio so you can scrub compositions and tweak Interactive props.  
-Select **`ForgeIntro`** in the composition list for the cinematic marketing intro, or **`ProblemStory`** for the vertical TikTok/Reels problem narrative.
+Select **`ForgeReel`** for the punchy vertical reel, **`ForgeIntro`** for the cinematic marketing intro, or **`ProblemStory`** for the illustrated problem narrative.
 
 ## Render a video
 
@@ -52,6 +52,12 @@ Render the vertical problem story (`ProblemStory`, 30s, 1080×1920):
 npm run render:problem
 ```
 
+Render the punchy vertical reel (`ForgeReel`, 1080×1920 @ 60fps, 4s beats):
+
+```bash
+npm run render:reel
+```
+
 Or render any composition by id:
 
 ```bash
@@ -59,6 +65,7 @@ npx remotion render HelloForge out/hello-forge.mp4
 npx remotion render BrandIntro out/brand-intro.mp4
 npx remotion render ForgeIntro out/forge-intro.mp4
 npx remotion render ProblemStory out/problem-story.mp4
+npx remotion render ForgeReel out/forge-reel.mp4
 ```
 
 Quick still (sanity-check a frame at 1s):
@@ -75,12 +82,23 @@ npm run build
 
 ## Compositions
 
-| ID             | Length | Size       | Purpose                                                                 |
-| -------------- | ------ | ---------- | ----------------------------------------------------------------------- |
-| `HelloForge`   | 3s     | 1920×1080  | Minimal branded mark + accent bar                                       |
-| `BrandIntro`   | 5s     | 1920×1080  | Wordmark + tagline (short intro)                                        |
-| `ForgeIntro`   | 66s    | 1920×1080  | Questions that need an answer → silence → FORGE brand reveal + narration |
-| `ProblemStory` | 30s    | 1080×1920  | Vertical problem beats (pipe, rain, trust, hands) → FORGE tease         |
+| ID             | Length | Size              | Purpose                                                                 |
+| -------------- | ------ | ----------------- | ----------------------------------------------------------------------- |
+| `ForgeReel`    | 60s    | 1080×1920 @ 60fps | Punchy reel (4s beats): chaos → pros → CTA → Intelligent Systems credit |
+| `HelloForge`   | 3s     | 1920×1080         | Minimal branded mark + accent bar                                       |
+| `BrandIntro`   | 5s     | 1920×1080         | Wordmark + tagline (short intro)                                        |
+| `ForgeIntro`   | 66s    | 1920×1080         | Questions that need an answer → silence → FORGE brand reveal + narration |
+| `ProblemStory` | 30s    | 1080×1920         | Vertical problem beats (pipe, rain, trust, hands) → FORGE tease         |
+
+### ForgeReel creative
+
+A **60s vertical** kinetic ad for TikTok / Reels / Shorts — every beat = **4 seconds**:
+
+1. **Chaos** — stacked WhatsApp complaints → “Ghosted. Overcharged. No-shows.” → hard cut  
+2. **Product** — Meet FORGE → type a search → swipe match (Kofi / Jerry) → dual profiles → verified, stars, escrow, Book → “On my way”  
+3. **Close** — hire any trade → FORGE + URL → Built by Intelligent Systems. By Africa. For Africa.
+
+Type: Bebas Neue + Outfit. Palette from `brand.ts` (ink / orange `#FF7A00`). Springs + interpolates only.
 
 ### ForgeIntro creative
 

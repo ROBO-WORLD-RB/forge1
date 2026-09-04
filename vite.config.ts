@@ -144,8 +144,8 @@ export default defineConfig(({ mode }) => {
           },
         }),
         VitePWA({
-          // prompt: never auto-reload; no in-app update UI.
-          registerType: 'prompt',
+          // Silent background updates — no in-app update UI or refresh prompts.
+          registerType: 'autoUpdate',
           injectRegister: null,
           includeAssets: ['icons/*.svg', 'icons/*.png', 'manifest.json', 'offline.html', '_headers'],
           manifest: {
@@ -181,9 +181,9 @@ export default defineConfig(({ mode }) => {
             // Drop old precache entries after redeploy so clients don't keep
             // requesting hashed chunks that no longer exist (ChunkLoadError).
             cleanupOutdatedCaches: true,
-            // New SW waits in background; no auto-activation or update prompts.
+            // Activate new builds immediately so clients don't stay on old update UI.
             clientsClaim: true,
-            skipWaiting: false,
+            skipWaiting: true,
             // SPA shell — never use offline.html here. That made every soft
             // navigation (OAuth /auth/callback, /dashboard, etc.) show
             // "You're Offline" while the user was actually online.
@@ -296,9 +296,11 @@ export default defineConfig(({ mode }) => {
           telemetry: false,
         }),
       ].filter(Boolean),
+      // Do not bake OpenRouter/Gemini secrets into the client bundle.
+      // Prefer supabase/functions/ai-chat + OPENROUTER_API_KEY secret.
       define: {
-        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
+        'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
+        'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY || ''),
       },
       resolve: {
         alias: {

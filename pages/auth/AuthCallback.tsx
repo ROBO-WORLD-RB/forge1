@@ -79,10 +79,13 @@ const AuthCallback: React.FC = () => {
         if (settled || cancelled) return;
 
         // Prefer resolved signup intent when DB trigger defaulted new OAuth users to customer
+        const metadataRole = user.user_metadata?.role;
+        const roleFromMetadata =
+          metadataRole === 'worker' || metadataRole === 'customer' ? metadataRole : null;
         const role = (
           resolvedRole ||
           profile?.role ||
-          user.user_metadata?.role ||
+          roleFromMetadata ||
           'customer'
         ) as UserRole;
 

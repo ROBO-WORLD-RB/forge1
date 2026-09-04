@@ -152,7 +152,7 @@ export const BrandReveal: React.FC = () => {
             marginTop: 18,
           }}
         >
-          Ghana · Nigeria · Togo
+          Ghana · Nigeria
         </Interactive.Div>
       </AbsoluteFill>
 

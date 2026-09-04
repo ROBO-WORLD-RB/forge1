@@ -10,8 +10,47 @@ export const OAUTH_PENDING_COUNTRY_KEY = 'oauth_pending_country';
 /** Signup page also writes these before Google redirect — read as fallback after OAuth round-trip */
 export const SIGNUP_ROLE_KEY = 'forge_signup_role';
 export const SIGNUP_COUNTRY_KEY = 'forge_signup_country';
+/** Cookie survives some mobile OAuth redirects when storage is cleared */
+export const OAUTH_INTENT_COOKIE = 'forge_oauth_intent';
 
 export type OAuthPendingRole = 'worker' | 'customer';
+
+const OAUTH_INTENT_MAX_AGE_MS = 15 * 60 * 1000;
+
+function readOAuthIntentCookie(): { role: OAuthPendingRole; country: Country } | null {
+  if (typeof document === 'undefined') return null;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${OAUTH_INTENT_COOKIE}=([^;]*)`)
+  );
+  if (!match?.[1]) return null;
+  try {
+    const parsed = JSON.parse(decodeURIComponent(match[1])) as {
+      role?: string;
+      country?: string;
+      t?: number;
+    };
+    if (!parsed.t || Date.now() - parsed.t > OAUTH_INTENT_MAX_AGE_MS) return null;
+    if (parsed.role !== 'worker' && parsed.role !== 'customer') return null;
+    if (!isCountry(parsed.country)) return null;
+    return { role: parsed.role, country: parsed.country };
+  } catch {
+    return null;
+  }
+}
+
+function writeOAuthIntentCookie(role: OAuthPendingRole, country: Country): void {
+  if (typeof document === 'undefined') return;
+  const payload = encodeURIComponent(
+    JSON.stringify({ role, country, t: Date.now() })
+  );
+  const secure = typeof window !== 'undefined' && window.location.protocol === 'https:' ? '; Secure' : '';
+  document.cookie = `${OAUTH_INTENT_COOKIE}=${payload}; path=/; max-age=900; SameSite=Lax${secure}`;
+}
+
+function clearOAuthIntentCookie(): void {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${OAUTH_INTENT_COOKIE}=; path=/; max-age=0`;
+}
 
 function readStorageItem(key: string): string | null {
   if (typeof window === 'undefined') return null;
@@ -42,21 +81,25 @@ function removeStorageItem(key: string): void {
   }
 }
 
-/** Persist signup role/country before Google redirect (sessionStorage + localStorage). */
+/** Persist signup role/country before Google redirect (storage + cookie). */
 export function persistOAuthSignupIntent(role: OAuthPendingRole, country: Country): void {
   writeStorageItem(OAUTH_PENDING_ROLE_KEY, role);
   writeStorageItem(OAUTH_PENDING_COUNTRY_KEY, country);
   writeStorageItem(SIGNUP_ROLE_KEY, role);
   writeStorageItem(SIGNUP_COUNTRY_KEY, country);
+  writeOAuthIntentCookie(role, country);
 }
 
-/** Read intended signup role after OAuth callback (oauth keys, then signup-page fallback). */
+/** Read intended signup role after OAuth callback (storage, cookie, signup fallback). */
 export function readOAuthPendingRole(): OAuthPendingRole | null {
   const fromOAuth = readStorageItem(OAUTH_PENDING_ROLE_KEY);
   if (fromOAuth === 'worker' || fromOAuth === 'customer') return fromOAuth;
 
   const fromSignup = readStorageItem(SIGNUP_ROLE_KEY);
   if (fromSignup === 'worker' || fromSignup === 'customer') return fromSignup;
+
+  const fromCookie = readOAuthIntentCookie();
+  if (fromCookie?.role) return fromCookie.role;
 
   return null;
 }
@@ -68,6 +111,9 @@ export function readOAuthPendingCountry(): Country {
   const fromSignup = readStorageItem(SIGNUP_COUNTRY_KEY);
   if (isCountry(fromSignup)) return fromSignup;
 
+  const fromCookie = readOAuthIntentCookie();
+  if (fromCookie?.country) return fromCookie.country;
+
   return 'GH';
 }
 
@@ -76,6 +122,7 @@ export function clearOAuthSignupIntent(): void {
   removeStorageItem(OAUTH_PENDING_COUNTRY_KEY);
   removeStorageItem(SIGNUP_ROLE_KEY);
   removeStorageItem(SIGNUP_COUNTRY_KEY);
+  clearOAuthIntentCookie();
 }
 
 /** App callback path — must match Supabase Redirect URLs and signInWithOAuth redirectTo */
